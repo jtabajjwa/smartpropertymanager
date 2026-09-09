@@ -1,0 +1,2 @@
+Successfully fixed 2 invoices.
+Remaining null invoiceable_type count: 0

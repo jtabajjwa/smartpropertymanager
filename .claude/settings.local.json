@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan:*)",
+      "Bash(php artisan cache:clear:*)",
+      "Bash(npm install:*)",
+      "Bash(php:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:sms.wearemarz.com)",
+      "Bash(ls:*)"
+    ]
+  }
+}
