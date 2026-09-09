@@ -32,7 +32,6 @@ test('admin can create a user', function () {
 
     $this->actingAs($admin)
         ->post(route('users.store'), [
-            'username' => 'newuser',
             'name' => 'New User',
             'email' => 'new@example.com',
             'phone' => '+256771234567',
@@ -41,7 +40,7 @@ test('admin can create a user', function () {
         ])->assertRedirect()->assertSessionHas('success');
 
     $this->assertDatabaseHas('users', [
-        'username' => 'newuser',
+        'email' => 'new@example.com',
         'name' => 'New User',
         'must_change_password' => true,
     ]);
@@ -52,27 +51,27 @@ test('created user must change password on first login', function () {
 
     $this->actingAs($admin)
         ->post(route('users.store'), [
-            'username' => 'freshuser',
             'name' => 'Fresh User',
+            'email' => 'fresh@example.com',
             'password' => 'secret1234',
             'role' => 'user',
         ]);
 
-    $newUser = User::where('username', 'freshuser')->first();
+    $newUser = User::where('email', 'fresh@example.com')->first();
     expect($newUser->must_change_password)->toBeTrue();
 });
 
-test('username must be unique when creating user', function () {
+test('email must be unique when creating user', function () {
     $admin = User::factory()->admin()->create();
-    User::factory()->create(['username' => 'taken']);
+    User::factory()->create(['email' => 'taken@example.com']);
 
     $this->actingAs($admin)
         ->post(route('users.store'), [
-            'username' => 'taken',
             'name' => 'Another User',
+            'email' => 'taken@example.com',
             'password' => 'secret1234',
             'role' => 'user',
-        ])->assertRedirect()->assertSessionHasErrors('username');
+        ])->assertRedirect()->assertSessionHasErrors('email');
 });
 
 test('phone must be unique when creating user', function () {
@@ -81,8 +80,8 @@ test('phone must be unique when creating user', function () {
 
     $this->actingAs($admin)
         ->post(route('users.store'), [
-            'username' => 'newuser',
             'name' => 'New User',
+            'email' => 'newphone@example.com',
             'phone' => '+256771111111',
             'password' => 'secret1234',
             'role' => 'user',
@@ -97,14 +96,13 @@ test('admin can update a user', function () {
 
     $this->actingAs($admin)
         ->put(route('users.update', $user), [
-            'username' => 'updated-username',
             'name' => 'Updated Name',
             'email' => 'updated@example.com',
             'role' => 'user',
         ])->assertRedirect()->assertSessionHas('success');
 
     expect($user->fresh()->name)->toBe('Updated Name');
-    expect($user->fresh()->username)->toBe('updated-username');
+    expect($user->fresh()->email)->toBe('updated@example.com');
 });
 
 test('non-admin cannot update a user', function () {
@@ -113,8 +111,8 @@ test('non-admin cannot update a user', function () {
 
     $this->actingAs($user)
         ->put(route('users.update', $other), [
-            'username' => 'hacked',
             'name' => 'Hacked',
+            'email' => $other->email,
             'role' => 'admin',
         ])->assertForbidden();
 });
@@ -150,8 +148,8 @@ test('cannot change the only admin role to user', function () {
 
     $this->actingAs($admin)
         ->put(route('users.update', $admin), [
-            'username' => $admin->username,
             'name' => $admin->name,
+            'email' => $admin->email,
             'role' => 'user',
         ])->assertRedirect()->assertSessionHas('error');
 
@@ -169,13 +167,14 @@ test('cannot deactivate the only admin', function () {
 });
 
 test('can change admin role when another admin exists', function () {
-    $admin1 = User::factory()->admin()->create();
-    $admin2 = User::factory()->admin()->create();
+    $landlord = \App\Models\Landlord::factory()->create();
+    $admin1 = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
+    $admin2 = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
 
     $this->actingAs($admin1)
         ->put(route('users.update', $admin2), [
-            'username' => $admin2->username,
             'name' => $admin2->name,
+            'email' => $admin2->email,
             'role' => 'user',
         ])->assertRedirect()->assertSessionHas('success');
 
@@ -183,8 +182,9 @@ test('can change admin role when another admin exists', function () {
 });
 
 test('can deactivate an admin when another admin exists', function () {
-    $admin1 = User::factory()->admin()->create();
-    $admin2 = User::factory()->admin()->create();
+    $landlord = \App\Models\Landlord::factory()->create();
+    $admin1 = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
+    $admin2 = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
 
     $this->actingAs($admin1)
         ->patch(route('users.toggle-active', $admin2))

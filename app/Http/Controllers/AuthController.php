@@ -15,12 +15,12 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request)
     {
-        $credentials = $request->only('username', 'password');
+        $credentials = $request->only('email', 'password');
         $remember = $request->boolean('remember');
 
         if (!Auth::attempt($credentials, $remember)) {
-            return back()->withInput($request->only('username'))
-                ->with('error', 'Invalid username or password.');
+            return back()->withInput($request->only('email'))
+                ->with('error', 'Invalid email or password.');
         }
 
         $user = Auth::user();
@@ -30,7 +30,7 @@ class AuthController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return back()->withInput($request->only('username'))
+            return back()->withInput($request->only('email'))
                 ->with('error', 'Your account has been deactivated. Contact an administrator.');
         }
 

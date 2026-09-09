@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Audit;
+use App\Services\CurrentLandlord;
 
 class AuditController extends Controller
 {
     public function index()
     {
         // Eager load polymorphic auditable relation
-        $query = Audit::with(['user', 'auditable'])->latest();
+        $query = Audit::with(['user', 'auditable'])
+            ->where('landlord_id', CurrentLandlord::id())
+            ->latest();
 
         if (request('action')) {
             $query->where('action', request('action'));

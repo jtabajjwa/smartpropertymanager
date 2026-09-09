@@ -9,10 +9,10 @@ test('login page is accessible to guests', function () {
 });
 
 test('user can login with valid credentials', function () {
-    $user = User::factory()->create(['username' => 'testuser']);
+    $user = User::factory()->create(['email' => 'testuser@example.com']);
 
     $this->post(route('login'), [
-        'username' => 'testuser',
+        'email' => 'testuser@example.com',
         'password' => 'password',
     ])->assertRedirect(route('dashboard'));
 
@@ -20,10 +20,10 @@ test('user can login with valid credentials', function () {
 });
 
 test('login fails with invalid credentials', function () {
-    User::factory()->create(['username' => 'testuser']);
+    User::factory()->create(['email' => 'testuser@example.com']);
 
     $this->post(route('login'), [
-        'username' => 'testuser',
+        'email' => 'testuser@example.com',
         'password' => 'wrong-password',
     ])->assertRedirect()->assertSessionHas('error');
 
@@ -31,10 +31,10 @@ test('login fails with invalid credentials', function () {
 });
 
 test('inactive user cannot login', function () {
-    User::factory()->inactive()->create(['username' => 'blocked']);
+    User::factory()->inactive()->create(['email' => 'blocked@example.com']);
 
     $this->post(route('login'), [
-        'username' => 'blocked',
+        'email' => 'blocked@example.com',
         'password' => 'password',
     ])->assertRedirect()->assertSessionHas('error');
 
@@ -42,10 +42,10 @@ test('inactive user cannot login', function () {
 });
 
 test('user with must_change_password is redirected to change password', function () {
-    User::factory()->mustChangePassword()->create(['username' => 'newuser']);
+    User::factory()->mustChangePassword()->create(['email' => 'newuser@example.com']);
 
     $this->post(route('login'), [
-        'username' => 'newuser',
+        'email' => 'newuser@example.com',
         'password' => 'password',
     ])->assertRedirect(route('change-password'));
 });

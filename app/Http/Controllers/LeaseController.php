@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreLeaseRequest;
 use App\Http\Requests\UpdateLeaseRequest;
 use App\Models\Lease;
+use App\Services\CurrentLandlord;
 use App\Services\InvoicingService;
+use App\Services\NumberGenerator;
 use App\Services\SmsNotificationService;
 use App\Services\UnitStatusService;
 use Illuminate\Support\Facades\DB;
@@ -71,7 +73,7 @@ class LeaseController extends Controller
 
         $invoices = DB::transaction(function () use ($data, $invoicingService) {
             $lease = Lease::create($data);
-            $lease->update(['number' => 'LSE-'.str_pad($lease->id, 5, '0', STR_PAD_LEFT)]);
+            $lease->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'lease', 'LSE')]);
 
             app(UnitStatusService::class)->onLeaseCreated($lease);
 

@@ -1,59 +1,147 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Primora
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A multi-tenant property management system built on Laravel 12. Landlords sign up for their own isolated organization ("landlord") and manage locations, estates, units, tenants, leases, invoices, payments, security deposits, utilities, and expenses. Each landlord's data is fully isolated from every other landlord's, sharing one database.
 
-## About Laravel
+Stack: Laravel 12 (PHP), Blade + Alpine.js + Tailwind CSS 4 (server-rendered, no SPA framework), MySQL/MariaDB, Vite.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **PHP 8.4** — the committed `composer.lock` resolves packages (`symfony/clock`, `nesbot/carbon`, `sebastian/*` test deps) that require PHP 8.3+ at minimum; in practice you need 8.4. If your local PHP is older (e.g. WAMP/XAMPP often ship 8.1–8.2), `composer install` will refuse to run. See [Installing PHP 8.4 alongside an older version](#installing-php-84-alongside-an-older-version) below if you're not ready to upgrade your whole environment.
+- **Composer 2**
+- **Node.js 18+ and npm**
+- **MySQL 8 or MariaDB** — any instance reachable over TCP works (WAMP/XAMPP/Docker/native install)
+- Required PHP extensions: `pdo_mysql`, `mbstring`, `openssl`, `curl`, `fileinfo`, `gd`, `intl`, `zip`, `bcmath` (bundled with most PHP distributions; on Windows builds these ship as DLLs you enable in `php.ini`)
 
-## Learning Laravel
+### Installing PHP 8.4 alongside an older version
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+If you don't want to touch your system's existing PHP (e.g. a shared WAMP install used by other projects), install a second, standalone PHP 8.4 somewhere isolated and just use its binary for this project — no need to change any system PATH or config:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Download the NTS x64 zip for your OS from [windows.php.net/downloads](https://windows.php.net/downloads/) (Windows) or your platform's PHP distribution.
+2. Extract it somewhere self-contained, e.g. `C:\dev-tools\php8.4\`.
+3. `copy php.ini-development php.ini`, then in that `php.ini`:
+   - Uncomment `extension_dir = "ext"`
+   - Uncomment `extension=` lines for: `curl`, `fileinfo`, `gd`, `intl`, `mbstring`, `mysqli`, `openssl`, `pdo_mysql`, `zip`, `pdo_sqlite` (the last one is needed to run the test suite, which uses an in-memory SQLite database)
+4. Use the full path to that `php.exe` for every command below instead of a bare `php` — e.g. `C:\dev-tools\php8.4\php.exe artisan migrate`. (Tip: a one-line batch/shell wrapper script in your PATH saves retyping this.)
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Setup
 
-### Premium Partners
+```bash
+# 1. Install PHP and JS dependencies
+composer install
+npm install
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 2. Copy the environment file and generate an app key
+cp .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+### 3. Configure the database
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Create a database and a dedicated user (don't use `root` in anything beyond local dev):
 
-## Code of Conduct
+```sql
+CREATE DATABASE primora CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'primora'@'127.0.0.1' IDENTIFIED BY 'choose-a-password';
+CREATE USER 'primora'@'localhost' IDENTIFIED BY 'choose-a-password';
+GRANT ALL PRIVILEGES ON primora.* TO 'primora'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON primora.* TO 'primora'@'localhost';
+FLUSH PRIVILEGES;
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Then set in `.env`:
 
-## Security Vulnerabilities
+```
+DB_CONNECTION=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=primora
+DB_USERNAME=primora
+DB_PASSWORD=choose-a-password
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+> **Note on storage engine:** some MySQL/MariaDB installs (older WAMP defaults in particular) create new tables as `MyISAM` instead of `InnoDB`, which breaks this app's foreign keys and unique indexes with a `1071 Specified key was too long` error on the very first migration. You shouldn't need to do anything about this — `config/database.php` already forces `ENGINE=InnoDB` on every table this app creates (`DB_ENGINE` env var if you ever need to override it) — but if you ever see that error, that's the cause.
 
-## License
+### 4. Migrate and seed
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+This creates one default "landlord" organization and seeds an admin login (see `database/seeders/AdminSeeder.php`):
+
+- **Email:** `rhodanansubuga@gmail.com`
+- **Password:** `12345678`
+
+You'll be forced to change the password on first login. Additional landlord organizations can self-register at `/signup` — each gets its own fully isolated data.
+
+### 5. Build frontend assets
+
+```bash
+npm run build       # one-off production build
+# or
+npm run dev          # Vite dev server with hot reload, for active frontend work
+```
+
+### 6. Run it
+
+```bash
+php artisan serve
+```
+
+Visit **http://127.0.0.1:8000**.
+
+---
+
+## Sending real email (signup verification)
+
+New landlord signups require email verification before the account can be used. By default `.env.example` ships with `MAIL_MAILER=log`, which just writes emails to `storage/logs/laravel.log` instead of sending them — fine for initial setup, but you won't receive real verification emails until you configure a real mailer.
+
+To use Gmail SMTP for local/dev testing:
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your.gmail.address@gmail.com
+MAIL_PASSWORD="your 16-character app password"
+MAIL_FROM_ADDRESS="your.gmail.address@gmail.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+Gmail requires an **App Password**, not your normal account password — generate one at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) (requires 2-Step Verification enabled on the account). For anything beyond local testing, use a real transactional email provider (Mailgun, SES, Postmark, Resend, etc.) — swapping providers later is just an `.env` change, nothing in the code depends on which one you use.
+
+After changing mail settings, clear the config cache: `php artisan config:clear`.
+
+## SMS (password reset)
+
+Password reset sends a one-time code via SMS (not email), using the Marz SMS gateway. It's disabled by default (`MARZ_SMS_ENABLED=false` in `.env`) — the app still runs fine without it, but password reset won't actually deliver a code until you set:
+
+```
+MARZ_SMS_ENABLED=true
+MARZ_SMS_API_KEY=...
+MARZ_SMS_API_SECRET=...
+```
+
+---
+
+## Running tests
+
+```bash
+php artisan test
+```
+
+The suite uses an in-memory SQLite database (`phpunit.xml`), so it doesn't touch your configured MySQL database at all — no extra setup needed beyond having the `pdo_sqlite` PHP extension enabled.
+
+---
+
+## Architecture notes
+
+- **Multi-tenancy:** every business table (locations, estates, units, tenants, leases, invoices, payments, expenses, users, audit logs, SMS logs) carries a `landlord_id` and is automatically scoped to the current landlord via a global Eloquent scope (`App\Traits\BelongsToLandlord` + `App\Services\CurrentLandlord`). Scoped models throw rather than silently leaking data if that context is ever missing.
+- **Auth:** users log in by email (not username — there is no username field). New landlords self-register at `/signup`, which creates both the `Landlord` organization and its first admin `User` in one step, then requires email verification before the account can be used.
+- **No API/SPA layer:** the whole app is server-rendered Blade with Alpine.js for interactivity (modals, wizards, dropdowns) — forms submit as normal POSTs, not fetch/AJAX. The one exception is a small set of JSON endpoints under `/search/*` used for searchable dropdowns.
+- **Scheduled jobs:** recurring rent invoicing and SMS reminders run via `routes/console.php` (`php artisan schedule:work` locally, or a real cron entry calling `schedule:run` every minute in production).

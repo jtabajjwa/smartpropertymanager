@@ -6,6 +6,8 @@ use App\Exports\ExpensesExport;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Models\Expense;
+use App\Services\CurrentLandlord;
+use App\Services\NumberGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -56,7 +58,7 @@ class ExpenseController extends Controller
 
         DB::transaction(function () use ($data) {
             $expense = Expense::create($data);
-            $expense->update(['number' => 'EXP-' . str_pad($expense->id, 5, '0', STR_PAD_LEFT)]);
+            $expense->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'expense', 'EXP')]);
         });
 
         return redirect()->back()->with('success', 'Expense created successfully.');

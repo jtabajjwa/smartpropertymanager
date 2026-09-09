@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\CurrentLandlord;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,8 +16,8 @@ class UpdateLeaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tenant_id' => 'sometimes|required|exists:tenants,id',
-            'unit_id' => 'sometimes|required|exists:units,id',
+            'tenant_id' => ['sometimes', 'required', Rule::exists('tenants', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'unit_id' => ['sometimes', 'required', Rule::exists('units', 'id')->where('landlord_id', CurrentLandlord::id())],
             'status' => ['sometimes', 'required', Rule::in(['active', 'terminated', 'evicted'])],
             'start_date' => 'sometimes|required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',

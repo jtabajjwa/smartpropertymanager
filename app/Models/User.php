@@ -3,18 +3,22 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
-    use HasFactory, Notifiable, Auditable;
+    use HasFactory, Notifiable, Auditable, MustVerifyEmail;
 
     protected $fillable = [
-        'username',
+        'landlord_id',
         'name',
         'email',
+        'email_verified_at',
         'phone',
         'password',
         'role',
@@ -35,6 +39,11 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    public function landlord(): BelongsTo
+    {
+        return $this->belongsTo(Landlord::class);
     }
 
     public function isAdmin(): bool

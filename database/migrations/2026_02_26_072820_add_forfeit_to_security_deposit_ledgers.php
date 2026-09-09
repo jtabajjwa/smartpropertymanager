@@ -1,17 +1,22 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE security_deposit_ledgers MODIFY COLUMN type ENUM('deposit', 'deduction', 'refund', 'forfeit') NOT NULL");
+        Schema::table('security_deposit_ledgers', function (Blueprint $table) {
+            $table->enum('type', ['deposit', 'deduction', 'refund', 'forfeit'])->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE security_deposit_ledgers MODIFY COLUMN type ENUM('deposit', 'deduction', 'refund') NOT NULL");
+        Schema::table('security_deposit_ledgers', function (Blueprint $table) {
+            $table->enum('type', ['deposit', 'deduction', 'refund'])->change();
+        });
     }
 };

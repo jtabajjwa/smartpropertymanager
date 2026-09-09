@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTenantRequest;
 use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Tenant;
+use App\Services\CurrentLandlord;
+use App\Services\NumberGenerator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -49,7 +51,7 @@ class TenantController extends Controller
 
         DB::transaction(function () use ($data) {
             $tenant = Tenant::create($data);
-            $tenant->update(['number' => 'TEN-' . str_pad($tenant->id, 5, '0', STR_PAD_LEFT)]);
+            $tenant->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'tenant', 'TEN')]);
         });
 
         return redirect()->back()->with('success', 'Tenant created successfully.');

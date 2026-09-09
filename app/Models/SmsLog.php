@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToLandlord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SmsLog extends Model
 {
+    use BelongsToLandlord;
+
     protected $fillable = [
         'phone',
         'message',

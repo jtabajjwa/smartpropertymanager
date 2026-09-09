@@ -6,7 +6,6 @@
         editModal: false,
         editing: {
             id: null,
-            username: '',
             name: '',
             email: '',
             phone: '',
@@ -15,7 +14,6 @@
         edit(item) {
             this.editing = {
                 id: item.id,
-                username: item.username,
                 name: item.name,
                 email: item.email || '',
                 phone: item.phone || '',
@@ -29,7 +27,7 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">All Users</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">All Users</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage system users and their access.</p>
                 </div>
                 <x-button @click="createModal = true" type="button">
@@ -39,11 +37,11 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-gray-900 rounded-2xl border border-white/10 p-4 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('users.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
-                        <x-input name="search" value="{{ request('search') }}" placeholder="Username, name, email, phone..." />
+                        <x-input name="search" value="{{ request('search') }}" placeholder="Name, email, phone..." />
                     </div>
                     <div class="w-36">
                         <x-label>Role</x-label>
@@ -64,32 +62,32 @@
                     <div class="flex gap-2">
                         <x-button type="submit">Filter</x-button>
                         @if(request()->hasAny(['search', 'role', 'status']))
-                            <a href="{{ route('users.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Clear</a>
+                            <a href="{{ route('users.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Username</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($users as $user)
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $user->username }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $user->name }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $user->phone ?? '--' }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $user->email }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $user->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $user->phone ?? '--' }}</td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="$user->role === 'admin' ? 'orange' : 'blue'">{{ ucfirst($user->role) }}</x-badge>
                                     </td>
@@ -100,12 +98,12 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="edit({{ Js::from($user) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-white/5 transition">Edit</button>
+                                                    <button @click="edit({{ Js::from($user) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     @if($user->id !== auth()->id())
                                                         <form action="{{ route('users.toggle-active', $user) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to {{ $user->is_active ? 'deactivate' : 'activate' }} this user?', $el)">
                                                             @csrf
                                                             @method('PATCH')
-                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm {{ $user->is_active ? 'text-red-400' : 'text-green-400' }} hover:bg-white/5 transition">
+                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm {{ $user->is_active ? 'text-red-600' : 'text-green-600' }} hover:bg-gray-50 transition">
                                                                 {{ $user->is_active ? 'Deactivate' : 'Activate' }}
                                                             </button>
                                                         </form>
@@ -118,7 +116,7 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No users found.</p>
+                                        <p class="text-sm text-gray-600">No users found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -127,7 +125,7 @@
                 </div>
 
                 @if ($users->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $users->links() }}
                     </div>
                 @endif
@@ -142,18 +140,13 @@
                         @csrf
 
                         <div>
-                            <x-label :required="true">Username</x-label>
-                            <x-input name="username" placeholder="e.g. john.doe" required />
-                        </div>
-
-                        <div>
                             <x-label :required="true">Name</x-label>
                             <x-input name="name" placeholder="Full name" required />
                         </div>
 
                         <div>
-                            <x-label>Email</x-label>
-                            <x-input type="email" name="email" placeholder="email@example.com" />
+                            <x-label :required="true">Email</x-label>
+                            <x-input type="email" name="email" placeholder="email@example.com" required />
                         </div>
 
                         <div>
@@ -165,7 +158,7 @@
                             <x-label :required="true">Password</x-label>
                             <div class="relative">
                                 <input :type="show ? 'text' : 'password'" name="password" required
-                                    class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-sm text-white placeholder-gray-500 focus:bg-white/10 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                                     placeholder="Minimum 8 characters" />
                                 <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-orange-500 transition focus:outline-none">
                                     <svg x-show="!show" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -201,18 +194,13 @@
                         @method('PUT')
 
                         <div>
-                            <x-label :required="true">Username</x-label>
-                            <x-input name="username" x-model="editing.username" required />
-                        </div>
-
-                        <div>
                             <x-label :required="true">Name</x-label>
                             <x-input name="name" x-model="editing.name" required />
                         </div>
 
                         <div>
-                            <x-label>Email</x-label>
-                            <x-input type="email" name="email" x-model="editing.email" />
+                            <x-label :required="true">Email</x-label>
+                            <x-input type="email" name="email" x-model="editing.email" required />
                         </div>
 
                         <div>

@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Utility;
+use App\Services\CurrentLandlord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -177,7 +178,7 @@ class SearchController extends Controller
 
     public function users(Request $request): JsonResponse
     {
-        return $this->search(User::query(), 'name', $request);
+        return $this->search(User::where('landlord_id', CurrentLandlord::id()), 'name', $request);
     }
 
     private function search($query, string $column, Request $request): JsonResponse

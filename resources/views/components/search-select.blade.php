@@ -75,14 +75,14 @@
             @keydown.escape="open = false"
             placeholder="{{ $placeholder }}"
             {{ $required ? 'required' : '' }}
-            class="w-full rounded-xl border border-white/10 bg-gray-800 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:bg-gray-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition pr-8"
+            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-50 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition pr-8"
             autocomplete="off"
         >
         <button
             type="button"
             x-show="selectedId || search"
             @click="clear()"
-            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
@@ -97,7 +97,7 @@
         x-transition:leave="transition ease-in duration-100"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="absolute z-50 mt-1 w-full bg-gray-800 border border-white/10 rounded-xl shadow-xl max-h-48 overflow-y-auto"
+        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto"
         style="display: none;"
     >
         <template x-if="loading">
@@ -110,7 +110,7 @@
             <button
                 type="button"
                 @click="select(item)"
-                class="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition"
+                class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition"
                 x-text="item.text"
             ></button>
         </template>

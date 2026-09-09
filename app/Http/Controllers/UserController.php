@@ -5,18 +5,18 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
+use App\Services\CurrentLandlord;
 
 class UserController extends Controller
 {
     public function index()
     {
-        $query = User::latest();
+        $query = User::where('landlord_id', CurrentLandlord::id())->latest();
 
         if (request('search')) {
             $search = request('search');
             $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             });
@@ -38,9 +38,10 @@ class UserController extends Controller
     public function store(StoreUserRequest $request)
     {
         User::create([
-            'username' => $request->username,
+            'landlord_id' => CurrentLandlord::id(),
             'name' => $request->name,
             'email' => $request->email,
+            'email_verified_at' => now(),
             'phone' => $request->phone,
             'password' => $request->password,
             'role' => $request->role,
@@ -58,7 +59,6 @@ class UserController extends Controller
         }
 
         $user->update([
-            'username' => $request->username,
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -83,7 +83,8 @@ class UserController extends Controller
 
     private function isLastActiveAdmin(User $user): bool
     {
-        return User::where('role', 'admin')
+        return User::where('landlord_id', $user->landlord_id)
+            ->where('role', 'admin')
             ->where('is_active', true)
             ->where('id', '!=', $user->id)
             ->doesntExist();

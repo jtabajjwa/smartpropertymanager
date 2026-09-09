@@ -20,7 +20,7 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">Casual Customers</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">Casual Customers</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage non-tenant customers for parking or casual income.</p>
                 </div>
                 <x-button @click="createModal = true" type="button">
@@ -30,7 +30,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-gray-900 rounded-2xl border border-white/10 p-4 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('customers.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -39,39 +39,39 @@
                     <div class="flex gap-2">
                         <x-button type="submit">Filter</x-button>
                         @if(request()->has('search'))
-                            <a href="{{ route('customers.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Clear</a>
+                            <a href="{{ route('customers.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($customers as $customer)
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $customer->name }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $customer->phone ?? '--' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $customer->email ?? '--' }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $customer->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $customer->phone ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $customer->email ?? '--' }}</td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="edit({{ Js::from($customer) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-white/5 transition">Edit</button>
+                                                    <button @click="edit({{ Js::from($customer) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     <form action="{{ route('customers.destroy', $customer) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this customer?', $el)">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition">Delete</button>
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
                                                     </form>
                                                 </x-slot>
                                             </x-dropdown>
@@ -81,7 +81,7 @@
                             @empty
                                 <tr>
                                     <td colspan="4" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No casual customers found.</p>
+                                        <p class="text-sm text-gray-600">No casual customers found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -90,7 +90,7 @@
                 </div>
 
                 @if ($customers->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $customers->links() }}
                     </div>
                 @endif

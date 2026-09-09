@@ -29,7 +29,7 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">All Expense Items</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">All Expense Items</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage expense categories for your properties.</p>
                 </div>
                 <x-button @click="createModal = true" type="button">
@@ -39,33 +39,33 @@
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Expenses</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Expenses</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($expenseItems as $expenseItem)
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $expenseItem->name }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ Str::limit($expenseItem->description, 60) ?? '--' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $expenseItem->expenses_count }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $expenseItem->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ Str::limit($expenseItem->description, 60) ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $expenseItem->expenses_count }}</td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="view({{ Js::from($expenseItem) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-white/5 transition">View</button>
-                                                    <button @click="edit({{ Js::from($expenseItem) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-white/5 transition">Edit</button>
+                                                    <button @click="view({{ Js::from($expenseItem) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <button @click="edit({{ Js::from($expenseItem) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     <form action="{{ route('expense-items.destroy', $expenseItem) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this expense item?', $el)">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition">Delete</button>
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
                                                     </form>
                                                 </x-slot>
                                             </x-dropdown>
@@ -75,7 +75,7 @@
                             @empty
                                 <tr>
                                     <td colspan="4" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No expense items found.</p>
+                                        <p class="text-sm text-gray-600">No expense items found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -84,7 +84,7 @@
                 </div>
 
                 @if ($expenseItems->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $expenseItems->links() }}
                     </div>
                 @endif
@@ -98,11 +98,11 @@
                     <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
                             <p class="text-xs text-gray-500 mb-1">Name</p>
-                            <p class="text-sm text-white font-medium" x-text="viewing.name || '--'"></p>
+                            <p class="text-sm text-gray-900 font-medium" x-text="viewing.name || '--'"></p>
                         </div>
                         <div class="col-span-2">
                             <p class="text-xs text-gray-500 mb-1">Description</p>
-                            <p x-text="viewing.description || 'No description.'" class="text-sm text-gray-300 whitespace-pre-line"></p>
+                            <p x-text="viewing.description || 'No description.'" class="text-sm text-gray-700 whitespace-pre-line"></p>
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 pt-4">

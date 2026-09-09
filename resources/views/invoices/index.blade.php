@@ -44,11 +44,11 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">All Invoices</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">All Invoices</h3>
                     <p class="mt-1 text-sm text-gray-500">Create and manage tenant invoices.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('invoices.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition">
+                    <a href="{{ route('invoices.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Export
                     </a>
@@ -60,7 +60,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-gray-900 rounded-2xl border border-white/10 p-4 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('invoices.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -112,39 +112,39 @@
                     <div class="flex gap-2">
                         <x-button type="submit">Filter</x-button>
                         @if(request()->hasAny(['search', 'tenant_id', 'customer_id', 'estate_id', 'lease_id', 'status', 'type', 'due_from', 'due_to']))
-                            <a href="{{ route('invoices.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Clear</a>
+                            <a href="{{ route('invoices.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Number</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Tenant / Customer</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Title</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Balance</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Due Date</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Number</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenant / Customer</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Title</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Balance</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($invoices as $invoice)
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $invoice->number }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $invoice->number }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2 mb-1">
-                                            <div class="text-sm font-medium text-white">{{ $invoice->display_payer_name }}</div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $invoice->display_payer_name }}</div>
                                         </div>
                                         @if($invoice->invoiceable_type === \App\Models\Lease::class && $invoice->invoiceable)
-                                            <div class="text-xs text-gray-400">Lease #{{ $invoice->invoiceable->number }}</div>
+                                            <div class="text-xs text-gray-600">Lease #{{ $invoice->invoiceable->number }}</div>
                                         @endif
                                         <div>
                                             @if($invoice->invoiceable_type === \App\Models\Lease::class)
@@ -154,18 +154,18 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $invoice->title }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400 capitalize">
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $invoice->title }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600 capitalize">
                                         {{ str_replace('_', ' ', $invoice->type) }}
                                         @if($invoice->type === 'utility' && $invoice->utility)
-                                            <span class="text-xs text-gray-400">({{ $invoice->utility->name }})</span>
+                                            <span class="text-xs text-gray-600">({{ $invoice->utility->name }})</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-white text-right">UGX {{ number_format($invoice->amount, 0) }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">UGX {{ number_format($invoice->amount, 0) }}</td>
                                     @php $balance = $invoice->unpaidBalance(); @endphp
-                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $balance > 0 ? 'text-orange-400' : 'text-green-400' }}">UGX {{ number_format($balance, 0) }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}">UGX {{ number_format($balance, 0) }}</td>
                                     <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-400">{{ $invoice->due_date->format('M d, Y') }}</div>
+                                        <div class="text-sm text-gray-600">{{ $invoice->due_date->format('M d, Y') }}</div>
                                         @if(!in_array($invoice->status, ['paid', 'cancelled']) && $invoice->due_date->isPast())
                                             <div class="text-xs text-red-500 font-medium mt-0.5">Overdue</div>
                                         @endif
@@ -187,19 +187,19 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-white/5 transition">View</button>
+                                                    <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                                     @if(in_array($invoice->status, ['unpaid', 'partial']) && $invoice->invoiceable_type === \App\Models\Lease::class && in_array($invoice->invoiceable?->status, ['terminated', 'evicted']))
                                                         <form action="{{ route('invoices.write-off', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to write off this invoice? This debt will be marked as uncollectible.', $el)">
                                                             @csrf
-                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-white/5 transition">Write Off</button>
+                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">Write Off</button>
                                                         </form>
                                                     @endif
                                                     @if(!in_array($invoice->status, ['cancelled', 'written_off']) && !$invoice->allocations->count())
-                                                        <button @click="edit({{ Js::from($invoice->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-white/5 transition">Edit</button>
+                                                        <button @click="edit({{ Js::from($invoice->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                         <form action="{{ route('invoices.cancel', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to cancel this invoice? This cannot be undone.', $el)">
                                                             @csrf
                                                             @method('PATCH')
-                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition">Cancel</button>
+                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Cancel</button>
                                                         </form>
                                                     @endif
                                                 </x-slot>
@@ -210,7 +210,7 @@
                             @empty
                                 <tr>
                                     <td colspan="9" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No invoices found.</p>
+                                        <p class="text-sm text-gray-600">No invoices found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -219,7 +219,7 @@
                 </div>
 
                 @if ($invoices->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $invoices->links() }}
                     </div>
                 @endif
@@ -233,47 +233,47 @@
                     <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
                             <p class="text-xs text-gray-500">Number</p>
-                            <p class="text-sm text-white" x-text="viewing.number || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.number || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Type</p>
-                            <p class="text-sm text-white" x-text="formatLabel(viewing.type)"></p>
+                            <p class="text-sm text-gray-900" x-text="formatLabel(viewing.type)"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Title</p>
-                            <p class="text-sm text-white" x-text="viewing.title || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.title || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Payer</p>
-                            <p class="text-sm text-white" x-text="viewing.invoiceable ? (viewing.invoiceable_type.includes('Lease') ? (viewing.invoiceable.number + ' — ' + (viewing.invoiceable.tenant?.name || '')) : viewing.invoiceable.name ) : '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.invoiceable ? (viewing.invoiceable_type.includes('Lease') ? (viewing.invoiceable.number + ' — ' + (viewing.invoiceable.tenant?.name || '')) : viewing.invoiceable.name ) : '--'"></p>
                         </div>
                         <div x-show="viewing.type === 'utility'">
                             <p class="text-xs text-gray-500">Utility</p>
-                            <p class="text-sm text-white" x-text="viewing.utility?.name || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.utility?.name || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Invoice Date</p>
-                            <p class="text-sm text-white" x-text="viewing.invoice_date ? viewing.invoice_date.split('T')[0] : '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.invoice_date ? viewing.invoice_date.split('T')[0] : '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Due Date</p>
-                            <p class="text-sm text-white" x-text="viewing.due_date ? viewing.due_date.split('T')[0] : '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.due_date ? viewing.due_date.split('T')[0] : '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Amount</p>
-                            <p class="text-sm text-white" x-text="viewing.amount ? 'UGX ' + Number(viewing.amount).toLocaleString() : '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.amount ? 'UGX ' + Number(viewing.amount).toLocaleString() : '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Balance</p>
-                            <p class="text-sm font-medium" :class="viewing.balance > 0 ? 'text-orange-400' : 'text-green-400'" x-text="viewing.balance !== undefined ? 'UGX ' + Number(viewing.balance).toLocaleString() : '--'"></p>
+                            <p class="text-sm font-medium" :class="viewing.balance > 0 ? 'text-orange-600' : 'text-green-600'" x-text="viewing.balance !== undefined ? 'UGX ' + Number(viewing.balance).toLocaleString() : '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Status</p>
-                            <p class="text-sm text-white" x-text="formatLabel(viewing.status)"></p>
+                            <p class="text-sm text-gray-900" x-text="formatLabel(viewing.status)"></p>
                         </div>
                         <div class="col-span-2">
                             <p class="text-xs text-gray-500">Notes</p>
-                            <p class="text-sm text-gray-300 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
+                            <p class="text-sm text-gray-700 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 pt-4">
@@ -294,12 +294,12 @@
                         @csrf
                         <div class="flex gap-4 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" x-model="ownerType" value="lease" class="text-orange-500 bg-white/5 border-white/10 focus:ring-orange-500 focus:ring-offset-gray-900 duration-200">
-                                <span class="text-sm text-gray-300">Tenant (Lease)</span>
+                                <input type="radio" x-model="ownerType" value="lease" class="text-orange-500 bg-gray-50 border-gray-200 focus:ring-orange-500 focus:ring-offset-white duration-200">
+                                <span class="text-sm text-gray-700">Tenant (Lease)</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" x-model="ownerType" value="customer" class="text-orange-500 bg-white/5 border-white/10 focus:ring-orange-500 focus:ring-offset-gray-900 duration-200">
-                                <span class="text-sm text-gray-300">Casual Customer</span>
+                                <input type="radio" x-model="ownerType" value="customer" class="text-orange-500 bg-gray-50 border-gray-200 focus:ring-orange-500 focus:ring-offset-white duration-200">
+                                <span class="text-sm text-gray-700">Casual Customer</span>
                             </label>
                         </div>
                         <div x-show="ownerType === 'lease'">
@@ -349,8 +349,8 @@
                             <x-textarea name="notes" placeholder="Optional notes..."></x-textarea>
                         </div>
                         <div class="flex items-center gap-2 pt-2">
-                            <input type="checkbox" id="send_sms" name="send_sms" value="1" class="w-4 h-4 text-orange-500 bg-white/5 border-white/10 rounded focus:ring-orange-500 focus:ring-offset-gray-900 transition duration-200 cursor-pointer">
-                            <label for="send_sms" class="text-sm text-gray-300 font-medium cursor-pointer select-none">Send SMS Notification to Payer</label>
+                            <input type="checkbox" id="send_sms" name="send_sms" value="1" class="w-4 h-4 text-orange-500 bg-gray-50 border-gray-200 rounded focus:ring-orange-500 focus:ring-offset-white transition duration-200 cursor-pointer">
+                            <label for="send_sms" class="text-sm text-gray-700 font-medium cursor-pointer select-none">Send SMS Notification to Payer</label>
                         </div>
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
@@ -370,30 +370,30 @@
                         @method('PUT')
 
                         {{-- Read-only summary --}}
-                        <div class="grid grid-cols-2 gap-x-6 gap-y-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             <div>
                                 <p class="text-xs text-gray-500">Number</p>
-                                <p class="text-sm text-white font-medium" x-text="editing.number"></p>
+                                <p class="text-sm text-gray-900 font-medium" x-text="editing.number"></p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500">Type</p>
-                                <p class="text-sm text-white" x-text="formatLabel(editing.type)"></p>
+                                <p class="text-sm text-gray-900" x-text="formatLabel(editing.type)"></p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500">Payer</p>
-                                <p class="text-sm text-white" x-text="editing.invoiceable ? (editing.invoiceable_type.includes('Lease') ? (editing.invoiceable.number + ' — ' + (editing.invoiceable.tenant?.name || '')) : editing.invoiceable.name ) : '--'"></p>
+                                <p class="text-sm text-gray-900" x-text="editing.invoiceable ? (editing.invoiceable_type.includes('Lease') ? (editing.invoiceable.number + ' — ' + (editing.invoiceable.tenant?.name || '')) : editing.invoiceable.name ) : '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500">Invoice Date</p>
-                                <p class="text-sm text-white" x-text="editing.invoice_date ? editing.invoice_date.split('T')[0] : '--'"></p>
+                                <p class="text-sm text-gray-900" x-text="editing.invoice_date ? editing.invoice_date.split('T')[0] : '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500">Title</p>
-                                <p class="text-sm text-white" x-text="editing.title || '--'"></p>
+                                <p class="text-sm text-gray-900" x-text="editing.title || '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500">Amount</p>
-                                <p class="text-sm text-white" x-text="editing.amount ? 'UGX ' + Number(editing.amount).toLocaleString() : '--'"></p>
+                                <p class="text-sm text-gray-900" x-text="editing.amount ? 'UGX ' + Number(editing.amount).toLocaleString() : '--'"></p>
                             </div>
                         </div>
 

@@ -9,6 +9,9 @@ use App\Models\Payment;
 use App\Models\SecurityDepositLedger;
 use App\Models\Tenant;
 use App\Models\Unit;
+use App\Services\CurrentLandlord;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -25,12 +28,91 @@ class DashboardController extends Controller
         $unitStats = Unit::selectRaw("
             COUNT(*) as total,
             SUM(CASE WHEN status = 'occupied' THEN 1 ELSE 0 END) as occupied,
-            SUM(CASE WHEN status = 'vacant' THEN 1 ELSE 0 END) as vacant
+            SUM(CASE WHEN status = 'vacant' THEN 1 ELSE 0 END) as vacant,
+            SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance
         ")->first();
 
         $totalUnits = $unitStats->total;
         $vacantUnits = $unitStats->vacant;
         $occupancyRate = $totalUnits > 0 ? round($unitStats->occupied / $totalUnits * 100, 1) : 0;
+
+        $occupancyBreakdown = [
+            'occupied' => (int) $unitStats->occupied,
+            'vacant' => (int) $unitStats->vacant,
+            'maintenance' => (int) $unitStats->maintenance,
+        ];
+
+        // --- Vacant units, longest-empty first ---
+        $vacantUnitsList = Unit::with('estate')
+            ->where('status', 'vacant')
+            ->get()
+            ->map(function (Unit $unit) {
+                $lastLease = Lease::where('unit_id', $unit->id)
+                    ->whereIn('status', ['terminated', 'evicted'])
+                    ->orderByDesc('updated_at')
+                    ->first();
+
+                $vacantSince = $lastLease?->updated_at ?? $unit->created_at;
+
+                return (object) [
+                    'unit' => $unit,
+                    'vacant_since' => $vacantSince,
+                    'days_vacant' => $vacantSince->diffInDays(now()),
+                ];
+            })
+            ->sortByDesc('days_vacant')
+            ->values();
+
+        // --- Revenue by estate / unit (all-time, lease-based rent+utility income only) ---
+        $revenueBase = fn () => DB::table('payment_allocations')
+            ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
+            ->join('leases', 'leases.id', '=', 'invoices.lease_id')
+            ->join('units', 'units.id', '=', 'leases.unit_id')
+            ->join('estates', 'estates.id', '=', 'units.estate_id')
+            ->where('estates.landlord_id', CurrentLandlord::id())
+            ->where('invoices.type', '!=', 'security_deposit');
+
+        $topEstatesByRevenue = $revenueBase()
+            ->select('estates.id', 'estates.name', DB::raw('SUM(payment_allocations.amount) as revenue'))
+            ->groupBy('estates.id', 'estates.name')
+            ->orderByDesc('revenue')
+            ->limit(6)
+            ->get();
+
+        $topUnitsByRevenue = $revenueBase()
+            ->select('units.id', 'units.name as unit_name', 'estates.name as estate_name', DB::raw('SUM(payment_allocations.amount) as revenue'))
+            ->groupBy('units.id', 'units.name', 'estates.name')
+            ->orderByDesc('revenue')
+            ->limit(6)
+            ->get();
+
+        // --- Revenue vs expenses, last 6 months ---
+        $monthsWindow = collect(range(5, 0))->map(fn ($i) => now()->subMonths($i)->startOfMonth());
+
+        $monthlyIncomeRaw = DB::table('payment_allocations')
+            ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
+            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
+            ->where('invoices.landlord_id', CurrentLandlord::id())
+            ->where('invoices.type', '!=', 'security_deposit')
+            ->where('payments.payment_date', '>=', $monthsWindow->first())
+            ->selectRaw("DATE_FORMAT(payments.payment_date, '%Y-%m') as ym, SUM(payment_allocations.amount) as total")
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        $monthlyExpenseRaw = Expense::where('date', '>=', $monthsWindow->first())
+            ->selectRaw("DATE_FORMAT(date, '%Y-%m') as ym, SUM(amount) as total")
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        $monthlyRevenueExpense = $monthsWindow->map(function (Carbon $month) use ($monthlyIncomeRaw, $monthlyExpenseRaw) {
+            $key = $month->format('Y-m');
+
+            return [
+                'label' => $month->format('M Y'),
+                'income' => (float) ($monthlyIncomeRaw[$key] ?? 0),
+                'expense' => (float) ($monthlyExpenseRaw[$key] ?? 0),
+            ];
+        })->values();
 
         // Pending & overdue — NOT filtered by date range
         $pendingStats = Invoice::whereIn('status', ['unpaid', 'partial'])
@@ -104,7 +186,9 @@ class DashboardController extends Controller
             'occupancyRate', 'pendingInvoices', 'pendingInvoiceAmount',
             'overdueInvoices', 'overdueAmount', 'securityDepositsHeld',
             'totalPaymentsCollected', 'totalRawPayments', 'totalExpenses', 'netIncome',
-            'recentPayments', 'recentInvoices', 'expiringLeases'
+            'recentPayments', 'recentInvoices', 'expiringLeases',
+            'occupancyBreakdown', 'vacantUnitsList', 'topEstatesByRevenue', 'topUnitsByRevenue',
+            'monthlyRevenueExpense'
         ));
     }
 }

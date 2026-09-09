@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Services\CurrentLandlord;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreExpenseRequest extends FormRequest
 {
@@ -15,9 +17,9 @@ class StoreExpenseRequest extends FormRequest
     {
         return [
             'date' => 'required|date|before_or_equal:today',
-            'expense_item_id' => 'required|exists:expense_items,id',
-            'estate_id' => 'required|exists:estates,id',
-            'unit_id' => 'nullable|exists:units,id',
+            'expense_item_id' => ['required', Rule::exists('expense_items', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'estate_id' => ['required', Rule::exists('estates', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'unit_id' => ['nullable', Rule::exists('units', 'id')->where('landlord_id', CurrentLandlord::id())],
             'amount' => 'required|numeric|min:0.01|max:99999999.99',
             'notes' => 'nullable|string|max:1000',
         ];

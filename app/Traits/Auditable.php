@@ -59,7 +59,9 @@ trait Auditable
     protected function logAudit(string $action, array $oldValues, array $newValues): void
     {
         Audit::create([
-            'user_id' => Auth::id(),
+            'user_id' => Auth::guard('web')->id(),
+            'staff_user_id' => Auth::guard('staff')->id(),
+            'landlord_id' => $this->landlord_id ?? null,
             'auditable_type' => get_class($this),
             'auditable_id' => $this->getKey(),
             'action' => $action,

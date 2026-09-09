@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Invoice;
+use App\Models\Landlord;
+use App\Services\CurrentLandlord;
 use App\Services\SmsNotificationService;
 use Illuminate\Console\Command;
 
@@ -24,15 +26,24 @@ class SendOverdueReminders extends Command
         $reminderDays = []; // left blank for now, but can be easily re-enabled if we want to start with fewer reminders and add more later
         $dates = collect($reminderDays)->map(fn ($d) => now()->subDays($d)->toDateString());
 
-        $invoices = Invoice::with('lease.tenant')
-            ->whereIn('status', ['unpaid', 'partial'])
-            ->whereIn('due_date', $dates)
-            ->get();
-
         $sent = 0;
-        foreach ($invoices as $invoice) {
-            $smsNotification->invoiceOverdue($invoice);
-            $sent++;
+
+        foreach (Landlord::where('status', 'active')->cursor() as $landlord) {
+            CurrentLandlord::set($landlord->id);
+
+            try {
+                $invoices = Invoice::with('lease.tenant')
+                    ->whereIn('status', ['unpaid', 'partial'])
+                    ->whereIn('due_date', $dates)
+                    ->get();
+
+                foreach ($invoices as $invoice) {
+                    $smsNotification->invoiceOverdue($invoice);
+                    $sent++;
+                }
+            } finally {
+                CurrentLandlord::clear();
+            }
         }
 
         $this->info("Processed {$sent} overdue invoice reminders.");

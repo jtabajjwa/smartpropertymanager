@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\CurrentLandlord;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,7 +19,7 @@ class StoreInvoiceRequest extends FormRequest
             'lease_id' => [
                 'required_without:customer_id',
                 'nullable',
-                'exists:leases,id',
+                Rule::exists('leases', 'id')->where('landlord_id', CurrentLandlord::id()),
                 function ($attribute, $value, $fail) {
                     if ($value) {
                         $lease = \App\Models\Lease::find($value);
@@ -28,7 +29,7 @@ class StoreInvoiceRequest extends FormRequest
                     }
                 },
             ],
-            'customer_id' => 'required_without:lease_id|nullable|exists:customers,id',
+            'customer_id' => ['required_without:lease_id', 'nullable', Rule::exists('customers', 'id')->where('landlord_id', CurrentLandlord::id())],
             'type' => [
                 'required',
                 function ($attribute, $value, $fail) {
@@ -43,7 +44,7 @@ class StoreInvoiceRequest extends FormRequest
                     }
                 },
             ],
-            'utility_id' => 'required_if:type,utility|nullable|exists:utilities,id',
+            'utility_id' => ['required_if:type,utility', 'nullable', Rule::exists('utilities', 'id')->where('landlord_id', CurrentLandlord::id())],
             'title' => 'required|string|max:100',
             'invoice_date' => 'required|date',
             'amount' => 'required|numeric|min:0.01|max:99999999.99',

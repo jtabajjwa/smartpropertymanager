@@ -4,38 +4,37 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login — {{ config('app.name', 'PRIME') }}</title>
+    <title>Login — {{ config('app.name', 'Primora') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-black min-h-screen flex items-center justify-center p-4">
+<body class="font-sans antialiased bg-gray-50 min-h-screen flex items-center justify-center p-4">
 
     <div class="w-full max-w-sm">
         {{-- Logo --}}
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold tracking-tight text-orange-500">PRIME</h1>
-            <p class="mt-2 text-sm text-gray-500">Property Management System</p>
+        <div class="mb-8 flex justify-center">
+            <x-logo />
         </div>
 
         {{-- Card --}}
-        <div class="bg-gray-900 rounded-2xl border border-white/10 shadow-2xl p-6">
-            <h2 class="text-lg font-semibold text-white mb-6">Sign in to your account</h2>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-2xl p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Sign in to your account</h2>
 
             {{-- Flash Messages --}}
             @if (session('success'))
-                <div class="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-400">
+                <div class="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-600">
                     {{ session('success') }}
                 </div>
             @endif
 
             @if (session('error'))
-                <div class="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+                <div class="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-600">
                     {{ session('error') }}
                 </div>
             @endif
 
             @if ($errors->any())
                 <div class="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3">
-                    <ul class="text-sm text-red-400 space-y-1">
+                    <ul class="text-sm text-red-600 space-y-1">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
@@ -47,17 +46,17 @@
                 @csrf
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-1.5">Username</label>
-                    <input type="text" name="username" value="{{ old('username') }}" required autofocus
-                        class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:bg-white/10 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
-                        placeholder="Enter your username" />
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">Email</label>
+                    <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                        placeholder="you@example.com" />
                 </div>
 
                 <div x-data="{ show: false }">
-                    <label class="block text-sm font-medium text-gray-400 mb-1.5">Password</label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">Password</label>
                     <div class="relative">
                         <input :type="show ? 'text' : 'password'" name="password" required
-                            class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-sm text-white placeholder-gray-500 focus:bg-white/10 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                             placeholder="Enter your password" />
                         <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-orange-500 transition focus:outline-none">
                             <svg x-show="!show" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -68,16 +67,21 @@
 
                 <div class="flex items-center justify-between">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="remember" value="1" class="w-4 h-4 rounded border-white/20 bg-white/5 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
-                        <span class="text-sm text-gray-400">Remember me</span>
+                        <input type="checkbox" name="remember" value="1" class="w-4 h-4 rounded border-gray-300 bg-gray-50 text-orange-500 focus:ring-orange-500 focus:ring-offset-0" />
+                        <span class="text-sm text-gray-600">Remember me</span>
                     </label>
-                    <a href="{{ route('forgot-password') }}" class="text-sm text-orange-500 hover:text-orange-400 transition">Forgot password?</a>
+                    <a href="{{ route('forgot-password') }}" class="text-sm text-orange-500 hover:text-orange-600 transition">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="w-full bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-xl px-4 py-2.5 text-sm font-medium transition">
+                <button type="submit" class="w-full bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-white rounded-xl px-4 py-2.5 text-sm font-medium transition">
                     Sign in
                 </button>
             </form>
+
+            <p class="mt-6 text-center text-sm text-gray-500">
+                New landlord?
+                <a href="{{ route('signup') }}" class="text-orange-500 hover:text-orange-600 transition">Create an account</a>
+            </p>
         </div>
     </div>
 

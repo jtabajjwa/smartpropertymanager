@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Exports\PaymentsExport;
 use App\Http\Requests\StorePaymentRequest;
 use App\Models\Payment;
+use App\Services\CurrentLandlord;
+use App\Services\NumberGenerator;
 use App\Services\SmsNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +74,7 @@ class PaymentController extends Controller
             }
 
             $payment = Payment::create($data);
-            $payment->update(['number' => 'PAY-'.str_pad($payment->id, 5, '0', STR_PAD_LEFT)]);
+            $payment->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'payment', 'PAY')]);
 
             return $payment;
         });

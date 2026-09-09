@@ -41,11 +41,11 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">All Payments</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">All Payments</h3>
                     <p class="mt-1 text-sm text-gray-500">Record and manage tenant payments.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('payments.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition">
+                    <a href="{{ route('payments.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Export
                     </a>
@@ -57,7 +57,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-gray-900 rounded-2xl border border-white/10 p-4 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('payments.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -99,35 +99,35 @@
                     <div class="flex gap-2">
                         <x-button type="submit">Filter</x-button>
                         @if(request()->hasAny(['search', 'tenant_id', 'payment_method', 'status', 'date_from', 'date_to']))
-                            <a href="{{ route('payments.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Clear</a>
+                            <a href="{{ route('payments.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Number</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Tenant / Customer</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Method</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Unallocated</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Number</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenant / Customer</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Method</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Unallocated</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($payments as $payment)
-                                <tr class="hover:bg-white/5 transition-colors {{ $payment->status === 'cancelled' ? 'opacity-50' : '' }}">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $payment->number }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors {{ $payment->status === 'cancelled' ? 'opacity-50' : '' }}">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $payment->number }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2 mb-1">
-                                            <div class="text-sm font-medium text-white">{{ $payment->display_payer_name }}</div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $payment->display_payer_name }}</div>
                                             @if($payment->payable_type === \App\Models\Tenant::class)
                                                 <x-badge color="gray">Tenant</x-badge>
                                             @elseif($payment->payable_type === \App\Models\Customer::class)
@@ -135,9 +135,9 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-white text-right">UGX {{ number_format($payment->amount, 0) }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $payment->payment_date->format('M d, Y') }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400 capitalize">{{ str_replace('_', ' ', $payment->payment_method) }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">UGX {{ number_format($payment->amount, 0) }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $payment->payment_date->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600 capitalize">{{ str_replace('_', ' ', $payment->payment_method) }}</td>
                                     <td class="px-6 py-4">
                                         @if($payment->status === 'cancelled')
                                             <x-badge color="red">Cancelled</x-badge>
@@ -152,25 +152,25 @@
                                     <td class="px-6 py-4 text-right">
                                         @if($payment->status !== 'cancelled')
                                             @php $unallocated = $payment->unallocatedAmount(); @endphp
-                                            <span class="text-sm font-medium {{ $unallocated > 0 ? 'text-orange-400' : 'text-green-400' }}">
+                                            <span class="text-sm font-medium {{ $unallocated > 0 ? 'text-orange-600' : 'text-green-600' }}">
                                                 UGX {{ number_format($unallocated, 0) }}
                                             </span>
                                         @else
-                                            <span class="text-sm text-gray-600">—</span>
+                                            <span class="text-sm text-gray-400">—</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="allocate({{ Js::from($payment->makeVisible('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-purple-400 hover:bg-white/5 transition">Allocations</button>
-                                                    <button @click="view({{ Js::from($payment->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-white/5 transition">View</button>
+                                                    <button @click="allocate({{ Js::from($payment->makeVisible('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-50 transition">Allocations</button>
+                                                    <button @click="view({{ Js::from($payment->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                                     @if($payment->status !== 'cancelled')
                                                         @if(!$payment->allocations->count())
                                                             <form action="{{ route('payments.cancel', $payment) }}" method="POST" @submit.prevent="$store.confirm.open('Cancel this payment? This cannot be undone.', $el)">
                                                                 @csrf
                                                                 @method('PATCH')
-                                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition">Cancel</button>
+                                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Cancel</button>
                                                             </form>
                                                         @endif
                                                     @endif
@@ -182,7 +182,7 @@
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No payments found.</p>
+                                        <p class="text-sm text-gray-600">No payments found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -191,7 +191,7 @@
                 </div>
 
                 @if ($payments->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $payments->links() }}
                     </div>
                 @endif
@@ -206,13 +206,13 @@
                         <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Number</p>
-                                <p class="mt-1 text-sm text-white" x-text="viewing.number || '--'"></p>
+                                <p class="mt-1 text-sm text-gray-900" x-text="viewing.number || '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
                                 <div class="mt-1 flex gap-2">
                                     <template x-if="viewing.status === 'cancelled'">
-                                        <p class="text-sm text-red-400">Cancelled</p>
+                                        <p class="text-sm text-red-600">Cancelled</p>
                                     </template>
                                     <template x-if="viewing.status !== 'cancelled'">
                                         <div class="flex items-center gap-2">
@@ -231,38 +231,38 @@
                             </div>
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Payer</p>
-                                <p class="mt-1 text-sm text-white" x-text="viewing.payable ? viewing.payable.name : '--'"></p>
+                                <p class="mt-1 text-sm text-gray-900" x-text="viewing.payable ? viewing.payable.name : '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Amount</p>
-                                <p class="mt-1 text-sm text-white" x-text="viewing.amount ? 'UGX ' + Number(viewing.amount).toLocaleString() : '--'"></p>
+                                <p class="mt-1 text-sm text-gray-900" x-text="viewing.amount ? 'UGX ' + Number(viewing.amount).toLocaleString() : '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Payment Date</p>
-                                <p class="mt-1 text-sm text-white" x-text="viewing.payment_date ? viewing.payment_date.split('T')[0] : '--'"></p>
+                                <p class="mt-1 text-sm text-gray-900" x-text="viewing.payment_date ? viewing.payment_date.split('T')[0] : '--'"></p>
                             </div>
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Payment Method</p>
-                                <p class="mt-1 text-sm text-white" x-text="formatLabel(viewing.payment_method)"></p>
+                                <p class="mt-1 text-sm text-gray-900" x-text="formatLabel(viewing.payment_method)"></p>
                             </div>
                             <div>
                                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Reference</p>
-                                <p class="mt-1 text-sm text-white" x-text="viewing.reference || '--'"></p>
+                                <p class="mt-1 text-sm text-gray-900" x-text="viewing.reference || '--'"></p>
                             </div>
                         </div>
                         <div>
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Notes</p>
-                            <p class="text-sm text-gray-300 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
+                            <p class="text-sm text-gray-700 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
                         </div>
                         <div>
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Receipt Photo</p>
                             <template x-if="viewing.receipt_photo">
                                 <a :href="'/storage/' + viewing.receipt_photo" target="_blank">
-                                    <img :src="'/storage/' + viewing.receipt_photo" alt="Receipt" class="w-full h-32 object-cover rounded-xl border border-white/10 hover:border-orange-500 transition" />
+                                    <img :src="'/storage/' + viewing.receipt_photo" alt="Receipt" class="w-full h-32 object-cover rounded-xl border border-gray-200 hover:border-orange-500 transition" />
                                 </a>
                             </template>
                             <template x-if="!viewing.receipt_photo">
-                                <div class="w-full h-32 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center">
+                                <div class="w-full h-32 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
                                     <p class="text-xs text-gray-500">No receipt photo</p>
                                 </div>
                             </template>
@@ -282,19 +282,19 @@
                 <x-modal title="Allocate Payment" maxWidth="2xl">
                     <div class="space-y-5">
                         {{-- Payment Summary --}}
-                        <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
                             <div class="grid grid-cols-3 gap-4">
                                 <div>
                                     <p class="text-xs text-gray-500">Payment</p>
-                                    <p class="text-sm font-medium text-white" x-text="allocating.number"></p>
+                                    <p class="text-sm font-medium text-gray-900" x-text="allocating.number"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Total Amount</p>
-                                    <p class="text-sm font-medium text-white" x-text="'UGX ' + Number(allocating.amount).toLocaleString()"></p>
+                                    <p class="text-sm font-medium text-gray-900" x-text="'UGX ' + Number(allocating.amount).toLocaleString()"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Unallocated</p>
-                                    <p class="text-sm font-medium text-orange-400" x-text="'UGX ' + Number(allocating.amount - (allocating.allocations || []).reduce((sum, a) => sum + Number(a.amount), 0)).toLocaleString()"></p>
+                                    <p class="text-sm font-medium text-orange-600" x-text="'UGX ' + Number(allocating.amount - (allocating.allocations || []).reduce((sum, a) => sum + Number(a.amount), 0)).toLocaleString()"></p>
                                 </div>
                             </div>
                         </div>
@@ -302,16 +302,16 @@
                         {{-- Existing Allocations --}}
                         <template x-if="allocating.allocations && allocating.allocations.length > 0">
                             <div>
-                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Existing Allocations</p>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Existing Allocations</p>
                                 <div class="space-y-2">
                                     <template x-for="alloc in allocating.allocations" :key="alloc.id">
-                                        <div class="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+                                        <div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
                                             <div>
                                                 <div class="flex items-center gap-2">
-                                                    <p class="text-sm text-white" x-text="alloc.invoice ? (alloc.invoice.number + ' — ' + alloc.invoice.title) : ('Invoice #' + alloc.invoice_id)"></p>
+                                                    <p class="text-sm text-gray-900" x-text="alloc.invoice ? (alloc.invoice.number + ' — ' + alloc.invoice.title) : ('Invoice #' + alloc.invoice_id)"></p>
                                                     <template x-if="alloc.invoice && alloc.invoice.invoiceable_type">
                                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                                                              :class="alloc.invoice.invoiceable_type.includes('Tenant') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'"
+                                                              :class="alloc.invoice.invoiceable_type.includes('Tenant') ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' : 'bg-purple-500/10 text-purple-600 border border-purple-500/20'"
                                                               x-text="alloc.invoice.invoiceable_type.includes('Tenant') ? 'Tenant' : 'Customer'"></span>
                                                     </template>
                                                 </div>
@@ -326,8 +326,8 @@
 
                         {{-- Add New Allocation --}}
                         <template x-if="Number(allocating.amount - (allocating.allocations || []).reduce((sum, a) => sum + Number(a.amount), 0)) > 0">
-                            <div class="border-t border-white/10 pt-4">
-                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Add Allocation</p>
+                            <div class="border-t border-gray-200 pt-4">
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">Add Allocation</p>
                                 <form action="{{ route('payment-allocations.store') }}" method="POST" class="space-y-4" @submit.prevent="$store.confirm.open('Are you sure you want to allocate this payment? This action is irreversible.', $el)">
                                     @csrf
                                     <input type="hidden" name="payment_id" :value="allocating.id">
@@ -347,7 +347,7 @@
                             </div>
                         </template>
                         <template x-if="Number(allocating.amount - (allocating.allocations || []).reduce((sum, a) => sum + Number(a.amount), 0)) === 0">
-                            <div class="flex justify-end pt-4 border-t border-white/10">
+                            <div class="flex justify-end pt-4 border-t border-gray-200">
                                 <x-button variant="secondary" type="button" @click="allocateModal = false">Close</x-button>
                             </div>
                         </template>
@@ -364,12 +364,12 @@
                         @csrf
                         <div class="flex gap-4 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" x-model="ownerType" value="tenant" class="text-orange-500 bg-white/5 border-white/10 focus:ring-orange-500 focus:ring-offset-gray-900 duration-200">
-                                <span class="text-sm text-gray-300">Tenant</span>
+                                <input type="radio" x-model="ownerType" value="tenant" class="text-orange-500 bg-gray-50 border-gray-200 focus:ring-orange-500 focus:ring-offset-white duration-200">
+                                <span class="text-sm text-gray-700">Tenant</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" x-model="ownerType" value="customer" class="text-orange-500 bg-white/5 border-white/10 focus:ring-orange-500 focus:ring-offset-gray-900 duration-200">
-                                <span class="text-sm text-gray-300">Casual Customer</span>
+                                <input type="radio" x-model="ownerType" value="customer" class="text-orange-500 bg-gray-50 border-gray-200 focus:ring-orange-500 focus:ring-offset-white duration-200">
+                                <span class="text-sm text-gray-700">Casual Customer</span>
                             </label>
                         </div>
                         <div x-show="ownerType === 'tenant'">
@@ -404,15 +404,15 @@
                         </div>
                         <div>
                             <x-label>Receipt Photo</x-label>
-                            <input type="file" name="receipt_photo" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                            <input type="file" name="receipt_photo" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                         </div>
                         <div>
                             <x-label>Notes</x-label>
                             <x-textarea name="notes" placeholder="Optional notes..."></x-textarea>
                         </div>
                         <div class="flex items-center gap-2 pt-2">
-                            <input type="checkbox" id="send_sms" name="send_sms" value="1" class="w-4 h-4 text-orange-500 bg-white/5 border-white/10 rounded focus:ring-orange-500 focus:ring-offset-gray-900 transition duration-200 cursor-pointer">
-                            <label for="send_sms" class="text-sm text-gray-300 font-medium cursor-pointer select-none">Send SMS Notification to Payer</label>
+                            <input type="checkbox" id="send_sms" name="send_sms" value="1" class="w-4 h-4 text-orange-500 bg-gray-50 border-gray-200 rounded focus:ring-orange-500 focus:ring-offset-white transition duration-200 cursor-pointer">
+                            <label for="send_sms" class="text-sm text-gray-700 font-medium cursor-pointer select-none">Send SMS Notification to Payer</label>
                         </div>
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>

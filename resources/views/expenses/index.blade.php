@@ -40,11 +40,11 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">All Expenses</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">All Expenses</h3>
                     <p class="mt-1 text-sm text-gray-500">Track and manage property-related expenses.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('expenses.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition">
+                    <a href="{{ route('expenses.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Export
                     </a>
@@ -56,7 +56,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-gray-900 rounded-2xl border border-white/10 p-4 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('expenses.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -81,46 +81,46 @@
                     <div class="flex gap-2">
                         <x-button type="submit">Filter</x-button>
                         @if(request()->hasAny(['search', 'estate_id', 'expense_item_id', 'date_from', 'date_to']))
-                            <a href="{{ route('expenses.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Clear</a>
+                            <a href="{{ route('expenses.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Number</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Item</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Estate</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Unit</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Number</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Item</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estate</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($expenses as $expense)
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $expense->number }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $expense->date->format('M d, Y') }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $expense->expenseItem?->name ?? '--' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $expense->estate?->name ?? '--' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $expense->unit?->name ?? '--' }}</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-white text-right">UGX {{ number_format($expense->amount, 2) }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $expense->number }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->date->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->expenseItem?->name ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->estate?->name ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->unit?->name ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">UGX {{ number_format($expense->amount, 2) }}</td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="view({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-white/5 transition">View</button>
-                                                    <button @click="edit({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-white/5 transition">Edit</button>
+                                                    <button @click="view({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <button @click="edit({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     <form action="{{ route('expenses.destroy', $expense) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this expense?', $el)">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition">Delete</button>
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
                                                     </form>
                                                 </x-slot>
                                             </x-dropdown>
@@ -130,7 +130,7 @@
                             @empty
                                 <tr>
                                     <td colspan="7" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No expenses found.</p>
+                                        <p class="text-sm text-gray-600">No expenses found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -139,7 +139,7 @@
                 </div>
 
                 @if ($expenses->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $expenses->links() }}
                     </div>
                 @endif
@@ -153,31 +153,31 @@
                     <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
                             <p class="text-xs text-gray-500">Number</p>
-                            <p class="text-sm text-white" x-text="viewing.number || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.number || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Date</p>
-                            <p class="text-sm text-white" x-text="viewing.date ? viewing.date.split('T')[0] : '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.date ? viewing.date.split('T')[0] : '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Expense Item</p>
-                            <p class="text-sm text-white" x-text="viewing.expense_item?.name || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.expense_item?.name || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Estate</p>
-                            <p class="text-sm text-white" x-text="viewing.estate?.name || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.estate?.name || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Unit</p>
-                            <p class="text-sm text-white" x-text="viewing.unit?.name || '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.unit?.name || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Amount</p>
-                            <p class="text-sm text-white" x-text="viewing.amount ? 'UGX ' + Number(viewing.amount).toLocaleString() : '--'"></p>
+                            <p class="text-sm text-gray-900" x-text="viewing.amount ? 'UGX ' + Number(viewing.amount).toLocaleString() : '--'"></p>
                         </div>
                         <div class="col-span-2">
                             <p class="text-xs text-gray-500">Notes</p>
-                            <p class="text-sm text-gray-300 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
+                            <p class="text-sm text-gray-700 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 pt-4">

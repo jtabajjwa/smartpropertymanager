@@ -44,7 +44,7 @@
             {{-- Header --}}
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-white">All Tenants</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">All Tenants</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage tenants and their contact information.</p>
                 </div>
                 <x-button @click="createModal = true" type="button">
@@ -54,7 +54,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-gray-900 rounded-2xl border border-white/10 p-4 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('tenants.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -71,47 +71,47 @@
                     <div class="flex gap-2">
                         <x-button type="submit">Filter</x-button>
                         @if(request()->hasAny(['search', 'type']))
-                            <a href="{{ route('tenants.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Clear</a>
+                            <a href="{{ route('tenants.index') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- Table --}}
-            <div class="bg-gray-900 rounded-2xl shadow-sm border border-white/10">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
                 <div>
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-white/10">
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Number</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone</th>
-                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Number</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-white/5">
+                        <tbody class="divide-y divide-gray-100">
                             @forelse ($tenants as $tenant)
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $tenant->number }}</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-white">{{ $tenant->name }}</td>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $tenant->number }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $tenant->name }}</td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="$tenant->type === 'individual' ? 'blue' : 'orange'">{{ ucfirst($tenant->type) }}</x-badge>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $tenant->email ?? '--' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-400">{{ $tenant->primary_phone ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $tenant->email ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $tenant->primary_phone ?? '--' }}</td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="view({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-white/5 transition">View</button>
-                                                    <button @click="edit({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-white/5 transition">Edit</button>
+                                                    <button @click="view({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <button @click="edit({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     @if($tenant->leases_count === 0 && $tenant->payments_count === 0)
                                                         <form action="{{ route('tenants.destroy', $tenant) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this tenant?', $el)">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition">Delete</button>
+                                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
                                                         </form>
                                                     @endif
                                                 </x-slot>
@@ -122,7 +122,7 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="px-6 py-12 text-center">
-                                        <p class="text-sm text-gray-400">No tenants found.</p>
+                                        <p class="text-sm text-gray-600">No tenants found.</p>
                                     </td>
                                 </tr>
                             @endforelse
@@ -131,7 +131,7 @@
                 </div>
 
                 @if ($tenants->hasPages())
-                    <div class="px-6 py-4 border-t border-white/10">
+                    <div class="px-6 py-4 border-t border-gray-200">
                         {{ $tenants->links() }}
                     </div>
                 @endif
@@ -146,46 +146,46 @@
 
                         {{-- Personal Information --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Personal Information</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Personal Information</h4>
                             <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                                 <div>
                                     <p class="text-xs text-gray-500">Number</p>
-                                    <p class="text-sm text-white font-medium" x-text="viewing.number || '--'"></p>
+                                    <p class="text-sm text-gray-900 font-medium" x-text="viewing.number || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Type</p>
-                                    <p class="text-sm text-white capitalize" x-text="viewing.type || '--'"></p>
+                                    <p class="text-sm text-gray-900 capitalize" x-text="viewing.type || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Name</p>
-                                    <p class="text-sm text-white font-medium" x-text="viewing.name || '--'"></p>
+                                    <p class="text-sm text-gray-900 font-medium" x-text="viewing.name || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Email</p>
-                                    <p class="text-sm text-white" x-text="viewing.email || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.email || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Primary Phone</p>
-                                    <p class="text-sm text-white" x-text="viewing.primary_phone || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.primary_phone || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Secondary Phone</p>
-                                    <p class="text-sm text-white" x-text="viewing.secondary_phone || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.secondary_phone || '--'"></p>
                                 </div>
                             </div>
                         </div>
 
                         {{-- Identification --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Identification</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Identification</h4>
                             <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                                 <div>
                                     <p class="text-xs text-gray-500">ID Type</p>
-                                    <p class="text-sm text-white" x-text="formatLabel(viewing.id_type)"></p>
+                                    <p class="text-sm text-gray-900" x-text="formatLabel(viewing.id_type)"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">ID Number</p>
-                                    <p class="text-sm text-white" x-text="viewing.id_number || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.id_number || '--'"></p>
                                 </div>
                             </div>
                             <div class="grid grid-cols-3 gap-4 mt-4">
@@ -193,11 +193,11 @@
                                     <p class="text-xs text-gray-500 mb-2">Photo</p>
                                     <template x-if="viewing.photo">
                                         <a :href="'/storage/' + viewing.photo" target="_blank">
-                                            <img :src="'/storage/' + viewing.photo" alt="Tenant Photo" class="w-full h-32 object-cover rounded-xl border border-white/10 hover:border-orange-500 transition" />
+                                            <img :src="'/storage/' + viewing.photo" alt="Tenant Photo" class="w-full h-32 object-cover rounded-xl border border-gray-200 hover:border-orange-500 transition" />
                                         </a>
                                     </template>
                                     <template x-if="!viewing.photo">
-                                        <div class="w-full h-32 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center">
+                                        <div class="w-full h-32 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
                                             <p class="text-xs text-gray-500">No photo</p>
                                         </div>
                                     </template>
@@ -206,11 +206,11 @@
                                     <p class="text-xs text-gray-500 mb-2">ID Scan</p>
                                     <template x-if="viewing.id_scan">
                                         <a :href="'/storage/' + viewing.id_scan" target="_blank">
-                                            <img :src="'/storage/' + viewing.id_scan" alt="ID Scan" class="w-full h-32 object-cover rounded-xl border border-white/10 hover:border-orange-500 transition" />
+                                            <img :src="'/storage/' + viewing.id_scan" alt="ID Scan" class="w-full h-32 object-cover rounded-xl border border-gray-200 hover:border-orange-500 transition" />
                                         </a>
                                     </template>
                                     <template x-if="!viewing.id_scan">
-                                        <div class="w-full h-32 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center">
+                                        <div class="w-full h-32 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
                                             <p class="text-xs text-gray-500">No scan</p>
                                         </div>
                                     </template>
@@ -219,11 +219,11 @@
                                     <p class="text-xs text-gray-500 mb-2">LC Letter</p>
                                     <template x-if="viewing.lc_letter">
                                         <a :href="'/storage/' + viewing.lc_letter" target="_blank">
-                                            <img :src="'/storage/' + viewing.lc_letter" alt="LC Letter" class="w-full h-32 object-cover rounded-xl border border-white/10 hover:border-orange-500 transition" />
+                                            <img :src="'/storage/' + viewing.lc_letter" alt="LC Letter" class="w-full h-32 object-cover rounded-xl border border-gray-200 hover:border-orange-500 transition" />
                                         </a>
                                     </template>
                                     <template x-if="!viewing.lc_letter">
-                                        <div class="w-full h-32 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center">
+                                        <div class="w-full h-32 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
                                             <p class="text-xs text-gray-500">No letter</p>
                                         </div>
                                     </template>
@@ -233,35 +233,35 @@
 
                         {{-- Emergency Contact --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Emergency Contact</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Emergency Contact</h4>
                             <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                                 <div>
                                     <p class="text-xs text-gray-500">Contact Name</p>
-                                    <p class="text-sm text-white" x-text="viewing.emergency_contact_name || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.emergency_contact_name || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Relationship</p>
-                                    <p class="text-sm text-white" x-text="formatLabel(viewing.emergency_contact_relationship)"></p>
+                                    <p class="text-sm text-gray-900" x-text="formatLabel(viewing.emergency_contact_relationship)"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Contact Phone</p>
-                                    <p class="text-sm text-white" x-text="viewing.emergency_contact_phone || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.emergency_contact_phone || '--'"></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-500">Contact Email</p>
-                                    <p class="text-sm text-white" x-text="viewing.emergency_contact_email || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.emergency_contact_email || '--'"></p>
                                 </div>
                                 <div class="col-span-2">
                                     <p class="text-xs text-gray-500">Contact Address</p>
-                                    <p class="text-sm text-white" x-text="viewing.emergency_contact_address || '--'"></p>
+                                    <p class="text-sm text-gray-900" x-text="viewing.emergency_contact_address || '--'"></p>
                                 </div>
                             </div>
                         </div>
 
                         {{-- Notes --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Notes</h4>
-                            <p class="text-sm text-gray-300 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Notes</h4>
+                            <p class="text-sm text-gray-700 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
                         </div>
 
                         <div class="flex justify-end gap-3 pt-2">
@@ -282,7 +282,7 @@
 
                         {{-- Personal Information --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Personal Information</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Personal Information</h4>
                             <div class="space-y-4">
                                 <div>
                                     <x-label :required="true">Type</x-label>
@@ -314,7 +314,7 @@
 
                         {{-- Identification --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Identification</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Identification</h4>
                             <div class="space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -335,16 +335,16 @@
                                 </div>
                                 <div>
                                     <x-label>Photo</x-label>
-                                    <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                                    <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <x-label>LC Letter</x-label>
-                                        <input type="file" name="lc_letter" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                                        <input type="file" name="lc_letter" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                     </div>
                                     <div>
                                         <x-label>ID Scan</x-label>
-                                        <input type="file" name="id_scan" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                                        <input type="file" name="id_scan" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
@@ -352,7 +352,7 @@
 
                         {{-- Emergency Contact --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Emergency Contact</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Emergency Contact</h4>
                             <div class="space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -389,7 +389,7 @@
 
                         {{-- Notes --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Notes</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Notes</h4>
                             <div>
                                 <x-label>Notes</x-label>
                                 <x-textarea name="notes" rows="3" placeholder="Any additional notes..."></x-textarea>
@@ -415,7 +415,7 @@
 
                         {{-- Personal Information --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Personal Information</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Personal Information</h4>
                             <div class="space-y-4">
                                 <div>
                                     <x-label>Number</x-label>
@@ -451,7 +451,7 @@
 
                         {{-- Identification --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Identification</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Identification</h4>
                             <div class="space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -473,24 +473,24 @@
                                 <div>
                                     <x-label>Photo</x-label>
                                     <template x-if="editing.photo">
-                                        <p class="text-xs text-gray-500 mb-1">Current: <span x-text="editing.photo.split('/').pop()" class="text-orange-400"></span></p>
+                                        <p class="text-xs text-gray-500 mb-1">Current: <span x-text="editing.photo.split('/').pop()" class="text-orange-600"></span></p>
                                     </template>
-                                    <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                                    <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <x-label>LC Letter</x-label>
                                         <template x-if="editing.lc_letter">
-                                            <p class="text-xs text-gray-500 mb-1">Current: <span x-text="editing.lc_letter.split('/').pop()" class="text-orange-400"></span></p>
+                                            <p class="text-xs text-gray-500 mb-1">Current: <span x-text="editing.lc_letter.split('/').pop()" class="text-orange-600"></span></p>
                                         </template>
-                                        <input type="file" name="lc_letter" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                                        <input type="file" name="lc_letter" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                     </div>
                                     <div>
                                         <x-label>ID Scan</x-label>
                                         <template x-if="editing.id_scan">
-                                            <p class="text-xs text-gray-500 mb-1">Current: <span x-text="editing.id_scan.split('/').pop()" class="text-orange-400"></span></p>
+                                            <p class="text-xs text-gray-500 mb-1">Current: <span x-text="editing.id_scan.split('/').pop()" class="text-orange-600"></span></p>
                                         </template>
-                                        <input type="file" name="id_scan" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-400 hover:file:bg-orange-500/20 cursor-pointer" />
+                                        <input type="file" name="id_scan" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
@@ -498,7 +498,7 @@
 
                         {{-- Emergency Contact --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Emergency Contact</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Emergency Contact</h4>
                             <div class="space-y-4">
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -535,7 +535,7 @@
 
                         {{-- Notes --}}
                         <div>
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">Notes</h4>
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Notes</h4>
                             <div>
                                 <x-label>Notes</x-label>
                                 <x-textarea name="notes" x-model="editing.notes" rows="3"></x-textarea>

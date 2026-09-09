@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Services\CurrentLandlord;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreEstateRequest extends FormRequest
 {
@@ -16,7 +18,7 @@ class StoreEstateRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'location_id' => 'required|exists:locations,id',
+            'location_id' => ['required', Rule::exists('locations', 'id')->where('landlord_id', CurrentLandlord::id())],
         ];
     }
 }

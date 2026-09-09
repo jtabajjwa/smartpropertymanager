@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Invoice;
+use App\Models\Landlord;
+use App\Services\CurrentLandlord;
 use App\Services\SmsNotificationService;
 use Illuminate\Console\Command;
 
@@ -22,15 +24,24 @@ class SendUpcomingInvoiceReminders extends Command
         // Send reminder 3 days before due date
         $dueDate = now()->addDays(3)->toDateString();
 
-        $invoices = Invoice::with('lease.tenant')
-            ->whereIn('status', ['unpaid', 'partial'])
-            ->whereDate('due_date', $dueDate)
-            ->get();
-
         $sent = 0;
-        foreach ($invoices as $invoice) {
-            $smsNotification->invoiceUpcoming($invoice);
-            $sent++;
+
+        foreach (Landlord::where('status', 'active')->cursor() as $landlord) {
+            CurrentLandlord::set($landlord->id);
+
+            try {
+                $invoices = Invoice::with('lease.tenant')
+                    ->whereIn('status', ['unpaid', 'partial'])
+                    ->whereDate('due_date', $dueDate)
+                    ->get();
+
+                foreach ($invoices as $invoice) {
+                    $smsNotification->invoiceUpcoming($invoice);
+                    $sent++;
+                }
+            } finally {
+                CurrentLandlord::clear();
+            }
         }
 
         $this->info("Processed {$sent} upcoming invoice reminders.");

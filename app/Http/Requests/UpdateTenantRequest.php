@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\CurrentLandlord;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,7 +34,7 @@ class UpdateTenantRequest extends FormRequest
                 'sometimes',
                 'required',
                 'email',
-                Rule::unique('tenants', 'email')->ignore($this->route('tenant')),
+                Rule::unique('tenants', 'email')->where('landlord_id', CurrentLandlord::id())->ignore($this->route('tenant')),
             ],
             'primary_phone' => 'sometimes|required|string|max:255',
             'secondary_phone' => 'nullable|string|max:255',

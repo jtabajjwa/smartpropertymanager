@@ -1,4 +1,4 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-gray-800'])
+@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-white'])
 
 @php
 switch ($align) {
@@ -28,7 +28,7 @@ switch ($width) {
 @endphp
 
 <div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div @click="open = ! open" class="cursor-pointer inline-flex items-center justify-center p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition duration-150 ease-in-out">
+    <div @click="open = ! open" class="cursor-pointer inline-flex items-center justify-center p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition duration-150 ease-in-out">
         {{ $trigger ?? '' }}
         @if(!isset($trigger))
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,7 +44,7 @@ switch ($width) {
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="transform opacity-100 scale-100"
             x-transition:leave-end="transform opacity-0 scale-95"
-            class="absolute z-50 mt-2 {{ $widthClasses }} rounded-xl shadow-lg border border-gray-700 bg-gray-800 {{ $alignmentClasses }}"
+            class="absolute z-50 mt-2 {{ $widthClasses }} rounded-xl shadow-lg border border-gray-300 bg-white {{ $alignmentClasses }}"
             style="display: none;">
         <div class="rounded-xl ring-1 ring-black ring-opacity-5 {{ $contentClasses }}">
             {{ $content }}

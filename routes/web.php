@@ -7,6 +7,9 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [\App\Http\Controllers\AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [\App\Http\Controllers\AuthController::class, 'login']);
 
+    Route::get('signup', [\App\Http\Controllers\SignupController::class, 'show'])->name('signup');
+    Route::post('signup', [\App\Http\Controllers\SignupController::class, 'store']);
+
     Route::get('forgot-password', [\App\Http\Controllers\PasswordResetController::class, 'showForgotForm'])->name('forgot-password');
     Route::post('forgot-password', [\App\Http\Controllers\PasswordResetController::class, 'sendCode'])->middleware('throttle:5,1');
 
@@ -14,12 +17,20 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [\App\Http\Controllers\PasswordResetController::class, 'reset']);
 });
 
-// Auth-only routes (no active/password checks — allows logout + change-password)
+// Auth-only routes (no active/password checks — allows logout + change-password + email verification)
 Route::middleware('auth')->group(function () {
     Route::post('logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
 
     Route::get('change-password', [\App\Http\Controllers\ChangePasswordController::class, 'show'])->name('change-password');
     Route::post('change-password', [\App\Http\Controllers\ChangePasswordController::class, 'update']);
+
+    Route::get('email/verify', [\App\Http\Controllers\EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+    Route::post('email/verification-notification', [\App\Http\Controllers\EmailVerificationController::class, 'send'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
 });
 
 // Redirect root to dashboard
@@ -27,8 +38,8 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
-// Fully protected routes (auth + check-active + must-change-password)
-Route::middleware(['auth', 'check-active', 'must-change-password'])->group(function () {
+// Fully protected routes (auth + landlord scoping + check-active + email verified + must-change-password)
+Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must-change-password'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
     // Property
