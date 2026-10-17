@@ -39,7 +39,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Payments</h3>
                     <p class="mt-1 text-sm text-gray-500">Record and manage tenant payments.</p>
@@ -105,9 +105,9 @@
                 </form>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div>
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -190,8 +190,71 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($payments as $payment)
+                        <div class="p-4 {{ $payment->status === 'cancelled' ? 'opacity-50' : '' }}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $payment->number }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $payment->display_payer_name }}</p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="allocate({{ Js::from($payment->makeVisible('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-50 transition">Allocations</button>
+                                        <button @click="view({{ Js::from($payment->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        @if($payment->status !== 'cancelled')
+                                            @if(!$payment->allocations->count())
+                                                <form action="{{ route('payments.cancel', $payment) }}" method="POST" @submit.prevent="$store.confirm.open('Cancel this payment? This cannot be undone.', $el)">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Cancel</button>
+                                                </form>
+                                            @endif
+                                        @endif
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @if($payment->payable_type === \App\Models\Tenant::class)
+                                    <x-badge color="gray">Tenant</x-badge>
+                                @elseif($payment->payable_type === \App\Models\Customer::class)
+                                    <x-badge color="gray">Customer</x-badge>
+                                @endif
+                                @if($payment->status === 'cancelled')
+                                    <x-badge color="red">Cancelled</x-badge>
+                                @elseif($payment->status === 'unallocated')
+                                    <x-badge color="gray" class="!py-0 !px-1.5 text-[10px]">Unallocated</x-badge>
+                                @elseif($payment->status === 'partially_allocated')
+                                    <x-badge color="blue" class="!py-0 !px-1.5 text-[10px]">Partial</x-badge>
+                                @elseif($payment->status === 'fully_allocated')
+                                    <x-badge color="purple" class="!py-0 !px-1.5 text-[10px]">Fully Allocated</x-badge>
+                                @endif
+                            </div>
+                            <div class="mt-3 space-y-1">
+                                <p class="text-sm text-gray-600"><span class="text-gray-500">Amount:</span> UGX {{ number_format($payment->amount, 0) }}</p>
+                                <p class="text-sm text-gray-600"><span class="text-gray-500">Date:</span> {{ $payment->payment_date->format('M d, Y') }}</p>
+                                <p class="text-sm text-gray-600 capitalize"><span class="text-gray-500">Method:</span> {{ str_replace('_', ' ', $payment->payment_method) }}</p>
+                                <p class="text-sm text-gray-600">
+                                    <span class="text-gray-500">Unallocated:</span>
+                                    @if($payment->status !== 'cancelled')
+                                        @php $unallocated = $payment->unallocatedAmount(); @endphp
+                                        <span class="font-medium {{ $unallocated > 0 ? 'text-orange-600' : 'text-green-600' }}">UGX {{ number_format($unallocated, 0) }}</span>
+                                    @else
+                                        <span class="text-gray-400">—</span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No payments found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($payments->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $payments->links() }}
                     </div>
                 @endif
@@ -283,7 +346,7 @@
                     <div class="space-y-5">
                         {{-- Payment Summary --}}
                         <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                            <div class="grid grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <p class="text-xs text-gray-500">Payment</p>
                                     <p class="text-sm font-medium text-gray-900" x-text="allocating.number"></p>

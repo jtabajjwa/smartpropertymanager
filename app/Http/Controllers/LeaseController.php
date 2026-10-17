@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreLeaseRequest;
 use App\Http\Requests\UpdateLeaseRequest;
 use App\Models\Lease;
+use App\Models\LeaseTemplate;
 use App\Services\CurrentLandlord;
 use App\Services\InvoicingService;
 use App\Services\NumberGenerator;
 use App\Services\SmsNotificationService;
 use App\Services\UnitStatusService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -48,7 +50,21 @@ class LeaseController extends Controller
 
         $leases = $query->latest()->paginate(15)->withQueryString();
 
-        return view('leases.index', compact('leases'));
+        $leaseTemplates = LeaseTemplate::orderByDesc('is_default')->orderBy('name')->get();
+
+        return view('leases.index', compact('leases', 'leaseTemplates'));
+    }
+
+    public function generateAgreement(Lease $lease)
+    {
+        $template = LeaseTemplate::findOrFail(request('template_id'));
+
+        $pdf = Pdf::loadView('pdfs.lease-agreement', [
+            'lease' => $lease->load(['tenant', 'unit.estate', 'landlord']),
+            'content' => $template->renderFor($lease),
+        ]);
+
+        return $pdf->stream("agreement-{$lease->number}.pdf");
     }
 
     public function store(StoreLeaseRequest $request)

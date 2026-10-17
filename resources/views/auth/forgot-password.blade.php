@@ -18,7 +18,7 @@
         {{-- Card --}}
         <div class="bg-white rounded-2xl border border-gray-200 shadow-2xl p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Forgot Password</h2>
-            <p class="text-sm text-gray-500 mb-6">Enter your phone number and we'll send you a reset code via SMS.</p>
+            <p class="text-sm text-gray-500 mb-6">Enter your email address and we'll send you a reset code.</p>
 
             @if (session('success'))
                 <div class="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-600">
@@ -46,10 +46,10 @@
                 @csrf
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1.5">Phone Number</label>
-                    <input type="text" name="phone" value="{{ old('phone') }}" required autofocus
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
+                    <input type="email" name="email" value="{{ old('email') }}" required autofocus
                         class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
-                        placeholder="0771234567" />
+                        placeholder="you@example.com" />
                 </div>
 
                 <button type="submit" class="w-full bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-white rounded-xl px-4 py-2.5 text-sm font-medium transition">

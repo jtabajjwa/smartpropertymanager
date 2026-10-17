@@ -25,7 +25,7 @@
         <div class="max-w-7xl mx-auto">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">Staff Users</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage who can access the staff portal.</p>
@@ -68,9 +68,9 @@
                 </form>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div class="overflow-x-auto">
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -124,8 +124,45 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($staffUsers as $staffUser)
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $staffUser->email }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600">{{ $staffUser->name }}</p>
+                                    <p class="text-sm text-gray-600">{{ $staffUser->phone ?? '--' }}</p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="edit({{ Js::from($staffUser) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                        @if($staffUser->id !== auth('staff')->id())
+                                            <form action="{{ route('staff.staff-users.toggle-active', $staffUser) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to {{ $staffUser->is_active ? 'deactivate' : 'activate' }} this staff user?', $el)">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm {{ $staffUser->is_active ? 'text-red-600' : 'text-green-600' }} hover:bg-gray-50 transition">
+                                                    {{ $staffUser->is_active ? 'Deactivate' : 'Activate' }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <x-badge :color="$staffUser->role === 'admin' ? 'orange' : 'blue'">{{ ucfirst($staffUser->role) }}</x-badge>
+                                <x-badge :color="$staffUser->is_active ? 'green' : 'red'">{{ $staffUser->is_active ? 'Active' : 'Inactive' }}</x-badge>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No staff users found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($staffUsers->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $staffUsers->links() }}
                     </div>
                 @endif

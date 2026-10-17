@@ -92,6 +92,17 @@
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Operations</p>
                 <x-sidebar-link route="expenses.index" label="Expenses" icon="calculator" />
                 <x-sidebar-link route="expense-items.index" label="Expense Items" icon="tag" />
+                <x-sidebar-link route="vendors.index" label="Vendors" icon="wrench" />
+                <x-sidebar-link route="vendor-jobs.index" label="Job Cards" icon="clipboard" />
+            </div>
+
+            <!-- Templates -->
+            <div>
+                <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Templates</p>
+                <x-sidebar-link route="lease-templates.index" label="Lease Templates" icon="clipboard" />
+                @if(auth()->user()->isAdmin())
+                    <x-sidebar-link route="company-profile.edit" label="Company Profile" icon="building" />
+                @endif
             </div>
 
             <!-- Admin -->

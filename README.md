@@ -90,7 +90,7 @@ npm run dev          # Vite dev server with hot reload, for active frontend work
 ### 6. Run it
 
 ```bash
-php artisan serve
+C:\dev-tools\php8.4.25\php.exe artisan serve
 ```
 
 Visit **http://127.0.0.1:8000**.

@@ -81,9 +81,9 @@
             </form>
         </div>
 
-        <!-- Table -->
+        <!-- Table (md and up) -->
         <div class="bg-white rounded-2xl border border-gray-200">
-            <div>
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead>
                         <tr class="border-b border-gray-200">
@@ -174,6 +174,84 @@
                         </tbody>
                     @endforelse
                 </table>
+            </div>
+
+            {{-- Cards (below md) --}}
+            <div class="md:hidden divide-y divide-gray-100">
+                @forelse($logs as $log)
+                    <div class="p-4" x-data="{ expanded: false }">
+                        <div @click="expanded = !expanded" class="cursor-pointer">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $log->tenant?->name ?? '—' }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600 font-mono text-xs">{{ $log->phone }}</p>
+                                    <p class="text-sm text-gray-600" title="{{ $log->created_at->format('Y-m-d H:i:s') }}">{{ $log->created_at->diffForHumans() }}</p>
+                                </div>
+                                <div>
+                                    @if($log->status === 'sent')
+                                        <x-badge color="green">Sent</x-badge>
+                                    @else
+                                        <x-badge color="red">Failed</x-badge>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @switch($log->notification_type)
+                                    @case('invoice_created')
+                                        <x-badge color="blue">Invoice</x-badge>
+                                        @break
+                                    @case('overdue_reminder')
+                                        <x-badge color="red">Overdue</x-badge>
+                                        @break
+                                    @case('payment_received')
+                                        <x-badge color="green">Payment</x-badge>
+                                        @break
+                                    @case('lease_expiring')
+                                        <x-badge color="orange">Lease Expiry</x-badge>
+                                        @break
+                                    @case('deposit_deduction')
+                                        <x-badge color="red">Deduction</x-badge>
+                                        @break
+                                    @case('deposit_refund')
+                                        <x-badge color="green">Refund</x-badge>
+                                        @break
+                                    @case('upcoming_reminder')
+                                        <x-badge color="orange">Upcoming</x-badge>
+                                        @break
+                                    @default
+                                        <x-badge>{{ $log->notification_type }}</x-badge>
+                                @endswitch
+                            </div>
+                            <p class="mt-3 text-sm text-gray-600">{{ Str::limit($log->message, 60) }}</p>
+                        </div>
+                        <div x-show="expanded" x-cloak class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                            <div class="flex items-start gap-3 text-xs">
+                                <span class="font-medium text-gray-600 w-20 shrink-0">Message</span>
+                                <span class="text-gray-700 whitespace-pre-wrap">{{ $log->message }}</span>
+                            </div>
+                            <div class="flex items-start gap-3 text-xs">
+                                <span class="font-medium text-gray-600 w-20 shrink-0">Sent At</span>
+                                <span class="text-gray-700">{{ $log->created_at->format('d M Y, H:i:s') }}</span>
+                            </div>
+                            @if($log->reference_type)
+                                <div class="flex items-start gap-3 text-xs">
+                                    <span class="font-medium text-gray-600 w-20 shrink-0">Reference</span>
+                                    <span class="text-gray-700">{{ $log->reference_type }} #{{ $log->reference_id }}</span>
+                                </div>
+                            @endif
+                            @if($log->error)
+                                <div class="flex items-start gap-3 text-xs">
+                                    <span class="font-medium text-gray-600 w-20 shrink-0">Error</span>
+                                    <span class="text-red-600">{{ $log->error }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-8 text-center">
+                        <p class="text-sm text-gray-600">No SMS logs found.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
 

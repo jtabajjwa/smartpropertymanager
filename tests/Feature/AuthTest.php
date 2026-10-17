@@ -190,3 +190,64 @@ test('forgot password page is accessible', function () {
 test('reset password page is accessible', function () {
     $this->get(route('reset-password'))->assertOk();
 });
+
+test('forgot password sends a reset code email to a valid user', function () {
+    \Illuminate\Support\Facades\Mail::fake();
+
+    $user = User::factory()->create(['email' => 'resetme@example.com']);
+
+    $this->post(route('forgot-password'), ['email' => 'resetme@example.com'])
+        ->assertRedirect(route('reset-password', ['email' => 'resetme@example.com']))
+        ->assertSessionHas('success');
+
+    \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\PasswordResetCodeMail::class, function ($mail) use ($user) {
+        return $mail->hasTo($user->email);
+    });
+
+    $this->assertDatabaseHas('password_reset_codes', ['user_id' => $user->id, 'used' => false]);
+});
+
+test('forgot password does not reveal whether an email exists', function () {
+    \Illuminate\Support\Facades\Mail::fake();
+
+    $this->post(route('forgot-password'), ['email' => 'nobody@example.com'])
+        ->assertRedirect()->assertSessionHas('success');
+
+    \Illuminate\Support\Facades\Mail::assertNothingSent();
+});
+
+test('user can reset password with a valid emailed code', function () {
+    $user = User::factory()->create(['email' => 'resetme@example.com']);
+
+    \App\Models\PasswordResetCode::create([
+        'user_id' => $user->id,
+        'code' => '123456',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->post(route('reset-password'), [
+        'email' => 'resetme@example.com',
+        'code' => '123456',
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('login'))->assertSessionHas('success');
+
+    expect(\Illuminate\Support\Facades\Hash::check('new-password-123', $user->fresh()->password))->toBeTrue();
+});
+
+test('reset password fails with an invalid code', function () {
+    $user = User::factory()->create(['email' => 'resetme@example.com']);
+
+    \App\Models\PasswordResetCode::create([
+        'user_id' => $user->id,
+        'code' => '123456',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->post(route('reset-password'), [
+        'email' => 'resetme@example.com',
+        'code' => '000000',
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect()->assertSessionHas('error');
+});

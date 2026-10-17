@@ -51,6 +51,8 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
     Route::resource('tenants', \App\Http\Controllers\TenantController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('customers', \App\Http\Controllers\CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('leases', \App\Http\Controllers\LeaseController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('lease-templates', \App\Http\Controllers\LeaseTemplateController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('leases/{lease}/agreement', [\App\Http\Controllers\LeaseController::class, 'generateAgreement'])->name('leases.agreement');
 
     // Finance — exports (must be before resource routes)
     Route::get('leases/export', [\App\Http\Controllers\LeaseController::class, 'export'])->name('leases.export');
@@ -63,6 +65,8 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
     Route::resource('invoices', \App\Http\Controllers\InvoiceController::class)->only(['index', 'store', 'update']);
     Route::patch('invoices/{invoice}/cancel', [\App\Http\Controllers\InvoiceController::class, 'cancel'])->name('invoices.cancel');
     Route::post('invoices/{invoice}/write-off', [\App\Http\Controllers\InvoiceController::class, 'writeOff'])->name('invoices.write-off');
+    Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoiceController::class, 'pdf'])->name('invoices.pdf');
+    Route::post('invoices/{invoice}/send-email', [\App\Http\Controllers\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
     Route::resource('payments', \App\Http\Controllers\PaymentController::class)->only(['index', 'store']);
     Route::patch('payments/{payment}/cancel', [\App\Http\Controllers\PaymentController::class, 'cancel'])->name('payments.cancel');
     Route::resource('payment-allocations', \App\Http\Controllers\PaymentAllocationController::class)->only(['index', 'store']);
@@ -75,6 +79,8 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
     Route::resource('expenses', \App\Http\Controllers\ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('expense-items', \App\Http\Controllers\ExpenseItemController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('utilities', \App\Http\Controllers\UtilityController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('vendors', \App\Http\Controllers\VendorController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('vendor-jobs', \App\Http\Controllers\VendorJobController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Admin-only
     Route::middleware('admin')->group(function () {
@@ -84,6 +90,8 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
         Route::post('users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
         Route::put('users/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('users.update');
         Route::patch('users/{user}/toggle-active', [\App\Http\Controllers\UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::get('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'edit'])->name('company-profile.edit');
+        Route::put('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'update'])->name('company-profile.update');
     });
 
     // Search API (for searchable dropdowns)
@@ -96,6 +104,8 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
         Route::get('leases', [\App\Http\Controllers\SearchController::class, 'leases'])->name('leases');
         Route::get('utilities', [\App\Http\Controllers\SearchController::class, 'utilities'])->name('utilities');
         Route::get('expense-items', [\App\Http\Controllers\SearchController::class, 'expenseItems'])->name('expense-items');
+        Route::get('vendors', [\App\Http\Controllers\SearchController::class, 'vendors'])->name('vendors');
+        Route::get('expenses', [\App\Http\Controllers\SearchController::class, 'expenses'])->name('expenses');
         Route::get('payments', [\App\Http\Controllers\SearchController::class, 'payments'])->name('payments');
         Route::get('invoices', [\App\Http\Controllers\SearchController::class, 'invoices'])->name('invoices');
         Route::get('users', [\App\Http\Controllers\SearchController::class, 'users'])->name('users');

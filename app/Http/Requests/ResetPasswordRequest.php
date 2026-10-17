@@ -11,17 +11,10 @@ class ResetPasswordRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation()
-    {
-        if ($this->has('phone')) {
-            $this->merge(['phone' => \App\Services\PhoneFormatter::format($this->phone)]);
-        }
-    }
-
     public function rules(): array
     {
         return [
-            'phone' => 'required|string',
+            'email' => 'required|email',
             'code' => 'required|string|size:6',
             'password' => 'required|string|min:8|confirmed',
         ];

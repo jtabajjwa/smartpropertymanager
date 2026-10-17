@@ -51,6 +51,7 @@ class StoreInvoiceRequest extends FormRequest
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'notes' => 'nullable|string|max:1000',
             'send_sms' => 'boolean',
+            'send_email' => 'boolean',
         ];
     }
 }

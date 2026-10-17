@@ -41,7 +41,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">Security Deposits</h3>
                     <p class="mt-1 text-sm text-gray-500">Track deposits, deductions, and refunds per lease.</p>
@@ -85,7 +85,7 @@
             </div>
 
             {{-- Summary Cards --}}
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                 <div class="bg-white rounded-2xl border border-gray-200 p-4">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Deposited</p>
                     <p class="mt-1 text-xl font-bold text-green-600">UGX {{ number_format($totals->deposit, 0) }}</p>
@@ -122,7 +122,7 @@
                                 @endif
                             </div>
                             <div class="mt-3 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-2">
+                                <div class="grid grid-cols-1 sm:grid-cols-5 gap-x-6 gap-y-2">
                                     <div>
                                         <p class="text-xs text-gray-500">Deposited</p>
                                         <p class="text-sm font-medium text-green-600">UGX {{ number_format($item->deposit, 0) }}</p>
@@ -169,6 +169,7 @@
 
                     {{-- Ledger Entries (expandable) --}}
                     <div x-show="expanded" x-cloak class="border-t border-gray-200">
+                        <div class="hidden md:block overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b border-gray-100">
@@ -220,6 +221,49 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </div>
+
+                        {{-- Cards (below md) --}}
+                        <div class="md:hidden divide-y divide-gray-100">
+                            @foreach($item->entries as $entry)
+                                <div class="p-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-gray-900">{{ $entry->date->format('M d, Y') }}</p>
+                                            <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $entry->notes ?? '--' }}</p>
+                                        </div>
+                                        @if($entry->type !== 'deposit')
+                                            <x-dropdown align="right" width="48">
+                                                <x-slot name="content">
+                                                    <button @click="edit({{ Js::from($entry->load('lease.tenant')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                                    <form action="{{ route('security-deposit-ledgers.destroy', $entry) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this entry?', $el)">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
+                                                    </form>
+                                                </x-slot>
+                                            </x-dropdown>
+                                        @else
+                                            <span class="text-xs text-gray-400 whitespace-nowrap">Auto-tracked</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        @if($entry->type === 'deposit')
+                                            <x-badge color="green">Deposit</x-badge>
+                                        @elseif($entry->type === 'refund')
+                                            <x-badge color="orange">Refund</x-badge>
+                                        @elseif($entry->type === 'forfeit')
+                                            <x-badge color="purple" class="!bg-purple-900/50 !text-purple-600 !border-purple-800 border">Forfeit</x-badge>
+                                        @else
+                                            <x-badge color="red">Deduction</x-badge>
+                                        @endif
+                                    </div>
+                                    <p class="mt-3 text-sm font-medium {{ $entry->type === 'deposit' ? 'text-green-600' : 'text-red-600' }}">
+                                        <span class="text-gray-500 font-normal">Amount:</span> UGX {{ $entry->type === 'deposit' ? '+' : '-' }}{{ number_format($entry->amount, 0) }}
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             @empty

@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Mail\PasswordResetCodeMail;
 use App\Models\PasswordResetCode;
 use App\Models\User;
-use App\Services\SmsService;
+use Illuminate\Support\Facades\Mail;
 
 class PasswordResetController extends Controller
 {
@@ -15,15 +16,14 @@ class PasswordResetController extends Controller
         return view('auth.forgot-password');
     }
 
-    public function sendCode(ForgotPasswordRequest $request, SmsService $sms)
+    public function sendCode(ForgotPasswordRequest $request)
     {
-        $user = User::where('phone', $request->phone)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user || !$user->isActive()) {
-            return back()->with('success', 'If an account exists with that phone number, a reset code has been sent.');
+            return back()->with('success', 'If an account exists with that email address, a reset code has been sent.');
         }
 
-        // Invalidate previous unused codes
         PasswordResetCode::where('user_id', $user->id)
             ->where('used', false)
             ->update(['used' => true]);
@@ -36,11 +36,10 @@ class PasswordResetController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        $appName = config('app.name');
-        $sms->send($user->phone, "Your {$appName} password reset code is: {$code}. Valid for 10 minutes.");
+        Mail::to($user->email)->send(new PasswordResetCodeMail($user->name, $code));
 
-        return redirect()->route('reset-password', ['phone' => $request->phone])
-            ->with('success', 'A reset code has been sent to your phone.');
+        return redirect()->route('reset-password', ['email' => $request->email])
+            ->with('success', 'A reset code has been sent to your email address.');
     }
 
     public function showResetForm()
@@ -50,10 +49,10 @@ class PasswordResetController extends Controller
 
     public function reset(ResetPasswordRequest $request)
     {
-        $user = User::where('phone', $request->phone)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return back()->with('error', 'Invalid phone number or code.');
+            return back()->with('error', 'Invalid email address or code.');
         }
 
         $resetCode = PasswordResetCode::where('user_id', $user->id)
@@ -64,7 +63,7 @@ class PasswordResetController extends Controller
             ->first();
 
         if (!$resetCode) {
-            return back()->withInput($request->only('phone'))
+            return back()->withInput($request->only('email'))
                 ->with('error', 'Invalid or expired reset code.');
         }
 

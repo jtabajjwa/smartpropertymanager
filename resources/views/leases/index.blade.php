@@ -44,12 +44,19 @@
         formatDate(val) {
             if (!val) return '';
             return val.split('T')[0];
+        },
+        agreementModal: false,
+        agreementLease: null,
+        agreementTemplateId: '{{ $leaseTemplates->firstWhere('is_default', true)?->id }}',
+        openAgreementModal(lease) {
+            this.agreementLease = lease;
+            this.agreementModal = true;
         }
     }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Leases</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage lease agreements for your tenants.</p>
@@ -99,9 +106,9 @@
                 </form>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div>
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -145,6 +152,7 @@
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
                                                     <button @click="view({ ...{{ Js::from($lease) }}, locked: {{ $lease->invoices_count > 0 ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <button @click="openAgreementModal({{ Js::from($lease) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">Generate Agreement</button>
                                                     @if(!in_array($lease->status, ['terminated', 'evicted']))
                                                         <button @click="edit({ ...{{ Js::from($lease) }}, locked: {{ $lease->invoices_count > 0 ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     @endif
@@ -171,8 +179,61 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($leases as $lease)
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $lease->number }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $lease->tenant?->name ?? '--' }}</p>
+                                    <p class="text-sm text-gray-600">
+                                        {{ $lease->unit?->name ?? '--' }}
+                                        @if($lease->unit?->estate)
+                                            <span class="text-xs text-gray-600">({{ $lease->unit->estate->name }})</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="view({ ...{{ Js::from($lease) }}, locked: {{ $lease->invoices_count > 0 ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        <button @click="openAgreementModal({{ Js::from($lease) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">Generate Agreement</button>
+                                        @if(!in_array($lease->status, ['terminated', 'evicted']))
+                                            <button @click="edit({ ...{{ Js::from($lease) }}, locked: {{ $lease->invoices_count > 0 ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                        @endif
+                                        @if($lease->invoices_count === 0)
+                                            <form action="{{ route('leases.destroy', $lease) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this lease?', $el)">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
+                                            </form>
+                                        @endif
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <x-badge :color="match($lease->status) { 'active' => 'green', 'terminated' => 'red', 'evicted' => 'red', default => 'gray' }">{{ ucfirst($lease->status) }}</x-badge>
+                            </div>
+                            <div class="mt-3 text-sm text-gray-600 space-y-1">
+                                <p>
+                                    <span class="text-gray-500">Period:</span> {{ $lease->start_date?->format('M d, Y') }} to {{ $lease->end_date?->format('M d, Y') ?? 'ongoing' }}
+                                    @if($lease->status === 'active' && $lease->daysRemaining() !== null)
+                                        <span class="{{ $lease->daysRemaining() <= 30 ? 'text-red-500 font-medium' : '' }}">({{ $lease->daysRemaining() }} days left)</span>
+                                    @endif
+                                </p>
+                                <p><span class="text-gray-500">Next Invoice:</span> {{ $lease->next_invoice_date ? $lease->next_invoice_date->format('M d, Y') : '--' }}</p>
+                                <p><span class="text-gray-500">Rent:</span> UGX {{ number_format($lease->rent_amount, 0) }}</p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No leases found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($leases->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $leases->links() }}
                     </div>
                 @endif
@@ -258,7 +319,7 @@
                 <x-modal title="Add Lease" maxWidth="2xl">
                     <form action="{{ route('leases.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
                         @csrf
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label :required="true">Tenant</x-label>
                                 <x-search-select name="tenant_id" url="{{ route('search.tenants') }}" placeholder="Search tenants..." required />
@@ -268,7 +329,7 @@
                                 <x-search-select name="unit_id" url="{{ route('search.units') }}?available=1" placeholder="Search available units..." required />
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label :required="true">Start Date</x-label>
                                 <x-input type="date" name="start_date" required />
@@ -278,7 +339,7 @@
                                 <x-input type="date" name="end_date" />
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label :required="true">Rent Amount</x-label>
                                 <x-money-input name="rent_amount" required />
@@ -295,7 +356,7 @@
                                 </x-select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label>Security Deposit</x-label>
                                 <x-money-input name="security_deposit" />
@@ -327,7 +388,7 @@
                         @method('PUT')
 
                         {{-- Read-only summary (always shown for locked fields) --}}
-                        <div class="grid grid-cols-2 gap-x-6 gap-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             <div>
                                 <p class="text-xs text-gray-500">Number</p>
                                 <p class="text-sm text-gray-900 font-medium" x-text="editing.number"></p>
@@ -365,7 +426,7 @@
                         {{-- Unlocked fields (tenant, unit, start, financials) — only when no invoices --}}
                         <template x-if="!editing.locked">
                             <div class="space-y-5">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Tenant</x-label>
                                         <x-search-select name="tenant_id" url="{{ route('search.tenants') }}" placeholder="Search tenants..." required />
@@ -379,7 +440,7 @@
                                     <x-label :required="true">Start Date</x-label>
                                     <x-input type="date" name="start_date" :x-model="'formatDate(editing.start_date)'" required />
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Rent Amount</x-label>
                                         <x-money-input name="rent_amount" required />
@@ -396,7 +457,7 @@
                                         </x-select>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label>Security Deposit</x-label>
                                         <x-money-input name="security_deposit" />
@@ -450,6 +511,40 @@
                             <x-button>Update Lease</x-button>
                         </div>
                     </form>
+                </x-modal>
+            </div>
+        </template>
+
+        {{-- Generate Agreement Modal --}}
+        <template x-if="agreementModal">
+            <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) agreementModal = false })">
+                <x-modal title="Generate Agreement" maxWidth="md">
+                    <p class="text-sm text-gray-600 mb-4">
+                        Generate a filled-in agreement PDF for <span class="font-medium text-gray-900" x-text="agreementLease?.number"></span> — print it, get it signed, then upload the scanned copy on this lease.
+                    </p>
+
+                    @if($leaseTemplates->isEmpty())
+                        <p class="text-sm text-gray-600">You don't have any lease templates yet. <a href="{{ route('lease-templates.index') }}" class="text-orange-500 hover:text-orange-600 transition">Create one first</a>.</p>
+                        <div class="flex justify-end gap-3 pt-4">
+                            <x-button variant="secondary" type="button" @click="agreementModal = false">Close</x-button>
+                        </div>
+                    @else
+                        <div>
+                            <x-label :required="true">Template</x-label>
+                            <x-select x-model="agreementTemplateId" required>
+                                @foreach($leaseTemplates as $template)
+                                    <option value="{{ $template->id }}">{{ $template->name }}</option>
+                                @endforeach
+                            </x-select>
+                        </div>
+                        <div class="flex justify-end gap-3 pt-4">
+                            <x-button variant="secondary" type="button" @click="agreementModal = false">Cancel</x-button>
+                            <a :href="'{{ url('leases') }}/' + agreementLease?.id + '/agreement?template_id=' + agreementTemplateId" target="_blank"
+                                class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-white transition">
+                                Download PDF
+                            </a>
+                        </div>
+                    @endif
                 </x-modal>
             </div>
         </template>

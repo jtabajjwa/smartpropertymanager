@@ -18,7 +18,7 @@
         {{-- Card --}}
         <div class="bg-white rounded-2xl border border-gray-200 shadow-2xl p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Reset Password</h2>
-            <p class="text-sm text-gray-500 mb-6">Enter the 6-digit code sent to your phone and choose a new password.</p>
+            <p class="text-sm text-gray-500 mb-6">Enter the 6-digit code sent to your email and choose a new password.</p>
 
             @if (session('success'))
                 <div class="mb-4 rounded-xl bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-600">
@@ -46,10 +46,10 @@
                 @csrf
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-1.5">Phone Number</label>
-                    <input type="text" name="phone" value="{{ request('phone', old('phone')) }}" required
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
+                    <input type="email" name="email" value="{{ request('email', old('email')) }}" required
                         class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
-                        placeholder="0771234567" />
+                        placeholder="you@example.com" />
                 </div>
 
                 <div>

@@ -16,6 +16,9 @@ class Landlord extends Model
         'contact_email',
         'contact_phone',
         'address',
+        'logo',
+        'brand_color',
+        'invoice_footer_note',
         'status',
         'subscription_status',
         'current_period_end',
@@ -38,5 +41,26 @@ class Landlord extends Model
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function logoUrl(): ?string
+    {
+        return $this->logo ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo) : null;
+    }
+
+    /**
+     * DomPDF renders offline and doesn't reliably fetch images by URL, so the
+     * logo is embedded directly as a base64 data URI when building a PDF.
+     */
+    public function logoDataUri(): ?string
+    {
+        if (!$this->logo || !\Illuminate\Support\Facades\Storage::disk('public')->exists($this->logo)) {
+            return null;
+        }
+
+        $contents = \Illuminate\Support\Facades\Storage::disk('public')->get($this->logo);
+        $mime = \Illuminate\Support\Facades\Storage::disk('public')->mimeType($this->logo);
+
+        return "data:{$mime};base64," . base64_encode($contents);
     }
 }

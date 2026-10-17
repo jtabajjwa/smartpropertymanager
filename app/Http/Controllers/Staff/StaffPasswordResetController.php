@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Staff;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Mail\PasswordResetCodeMail;
 use App\Models\StaffPasswordResetCode;
 use App\Models\StaffUser;
-use App\Services\SmsService;
+use Illuminate\Support\Facades\Mail;
 
 class StaffPasswordResetController extends Controller
 {
@@ -16,12 +17,12 @@ class StaffPasswordResetController extends Controller
         return view('staff.auth.forgot-password');
     }
 
-    public function sendCode(ForgotPasswordRequest $request, SmsService $sms)
+    public function sendCode(ForgotPasswordRequest $request)
     {
-        $staffUser = StaffUser::where('phone', $request->phone)->first();
+        $staffUser = StaffUser::where('email', $request->email)->first();
 
         if (!$staffUser || !$staffUser->isActive()) {
-            return back()->with('success', 'If an account exists with that phone number, a reset code has been sent.');
+            return back()->with('success', 'If an account exists with that email address, a reset code has been sent.');
         }
 
         StaffPasswordResetCode::where('staff_user_id', $staffUser->id)
@@ -36,11 +37,10 @@ class StaffPasswordResetController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        $appName = config('app.name');
-        $sms->send($staffUser->phone, "Your {$appName} staff portal password reset code is: {$code}. Valid for 10 minutes.");
+        Mail::to($staffUser->email)->send(new PasswordResetCodeMail($staffUser->name, $code));
 
-        return redirect()->route('staff.reset-password', ['phone' => $request->phone])
-            ->with('success', 'A reset code has been sent to your phone.');
+        return redirect()->route('staff.reset-password', ['email' => $request->email])
+            ->with('success', 'A reset code has been sent to your email address.');
     }
 
     public function showResetForm()
@@ -50,10 +50,10 @@ class StaffPasswordResetController extends Controller
 
     public function reset(ResetPasswordRequest $request)
     {
-        $staffUser = StaffUser::where('phone', $request->phone)->first();
+        $staffUser = StaffUser::where('email', $request->email)->first();
 
         if (!$staffUser) {
-            return back()->with('error', 'Invalid phone number or code.');
+            return back()->with('error', 'Invalid email address or code.');
         }
 
         $resetCode = StaffPasswordResetCode::where('staff_user_id', $staffUser->id)
@@ -64,7 +64,7 @@ class StaffPasswordResetController extends Controller
             ->first();
 
         if (!$resetCode) {
-            return back()->withInput($request->only('phone'))
+            return back()->withInput($request->only('email'))
                 ->with('error', 'Invalid or expired reset code.');
         }
 

@@ -6,7 +6,9 @@ use App\Exports\InvoicesExport;
 use App\Http\Requests\StoreInvoiceRequest;
 use App\Http\Requests\UpdateInvoiceRequest;
 use App\Models\Invoice;
+use App\Services\InvoiceEmailService;
 use App\Services\SmsNotificationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -82,7 +84,7 @@ class InvoiceController extends Controller
                 $data['invoiceable_id'] = $data['lease_id'];
             }
 
-            unset($data['send_sms']); // Don't save this to the DB
+            unset($data['send_sms'], $data['send_email']); // Don't save these to the DB
 
             $invoice = Invoice::create($data);
             $invoice->update(['number' => 'INV-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT)]);
@@ -92,6 +94,10 @@ class InvoiceController extends Controller
 
         if ($request->boolean('send_sms')) {
             app(SmsNotificationService::class)->invoiceCreated($invoice->load('lease.tenant'));
+        }
+
+        if ($request->boolean('send_email')) {
+            app(InvoiceEmailService::class)->invoiceCreated($invoice->load('lease.tenant'));
         }
 
         return redirect()->back()->with('success', 'Invoice created successfully.');
@@ -144,5 +150,25 @@ class InvoiceController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Invoice written off successfully.');
+    }
+
+    public function pdf(Invoice $invoice)
+    {
+        $invoice->load(['landlord', 'lease.unit.estate']);
+
+        $pdf = Pdf::loadView('pdfs.invoice', ['invoice' => $invoice]);
+
+        return $pdf->stream("invoice-{$invoice->number}.pdf");
+    }
+
+    public function sendEmail(Invoice $invoice, InvoiceEmailService $emails)
+    {
+        $result = $emails->send($invoice->load('lease.tenant'));
+
+        if (!$result['sent']) {
+            return redirect()->back()->with('error', $result['reason']);
+        }
+
+        return redirect()->back()->with('success', 'Invoice emailed successfully.');
     }
 }

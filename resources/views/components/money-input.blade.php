@@ -46,6 +46,7 @@
     }"
     x-on:set-money-input.window="if ($event.detail.name === '{{ $name }}') setValue($event.detail.value)"
     class="relative"
+    {{ $attributes }}
 >
     <input type="hidden" name="{{ $name }}" :value="raw">
     <input

@@ -64,6 +64,7 @@
     x-on:set-search-url.window="if ($event.detail.name === '{{ $name }}') { baseUrl = $event.detail.url; results = []; }"
     @click.outside="open = false"
     class="relative"
+    {{ $attributes }}
 >
     <input type="hidden" name="{{ $name }}" :value="selectedId">
     <div class="relative">

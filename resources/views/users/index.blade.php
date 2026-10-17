@@ -25,7 +25,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Users</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage system users and their access.</p>
@@ -68,9 +68,9 @@
                 </form>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div>
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -124,8 +124,45 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($users as $user)
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $user->name }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $user->email }}</p>
+                                    <p class="text-sm text-gray-600">{{ $user->phone ?? '--' }}</p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="edit({{ Js::from($user) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                        @if($user->id !== auth()->id())
+                                            <form action="{{ route('users.toggle-active', $user) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to {{ $user->is_active ? 'deactivate' : 'activate' }} this user?', $el)">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm {{ $user->is_active ? 'text-red-600' : 'text-green-600' }} hover:bg-gray-50 transition">
+                                                    {{ $user->is_active ? 'Deactivate' : 'Activate' }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <x-badge :color="$user->role === 'admin' ? 'orange' : 'blue'">{{ ucfirst($user->role) }}</x-badge>
+                                <x-badge :color="$user->is_active ? 'green' : 'red'">{{ $user->is_active ? 'Active' : 'Inactive' }}</x-badge>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No users found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($users->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $users->links() }}
                     </div>
                 @endif

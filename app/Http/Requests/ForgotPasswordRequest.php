@@ -11,17 +11,10 @@ class ForgotPasswordRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation()
-    {
-        if ($this->has('phone')) {
-            $this->merge(['phone' => \App\Services\PhoneFormatter::format($this->phone)]);
-        }
-    }
-
     public function rules(): array
     {
         return [
-            'phone' => 'required|string',
+            'email' => 'required|email',
         ];
     }
 }

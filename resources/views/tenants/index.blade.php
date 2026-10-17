@@ -42,7 +42,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Tenants</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage tenants and their contact information.</p>
@@ -77,9 +77,9 @@
                 </form>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div>
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -130,8 +130,44 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($tenants as $tenant)
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $tenant->name }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600">{{ $tenant->number }}</p>
+                                    <p class="text-sm text-gray-600 break-words">{{ $tenant->email ?? '--' }}</p>
+                                    <p class="text-sm text-gray-600">{{ $tenant->primary_phone ?? '--' }}</p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="view({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        <button @click="edit({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                        @if($tenant->leases_count === 0 && $tenant->payments_count === 0)
+                                            <form action="{{ route('tenants.destroy', $tenant) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this tenant?', $el)">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
+                                            </form>
+                                        @endif
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <x-badge :color="$tenant->type === 'individual' ? 'blue' : 'orange'">{{ ucfirst($tenant->type) }}</x-badge>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No tenants found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($tenants->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $tenants->links() }}
                     </div>
                 @endif
@@ -299,7 +335,7 @@
                                     <x-label :required="true">Email</x-label>
                                     <x-input type="email" name="email" placeholder="email@example.com" required />
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Primary Phone</x-label>
                                         <x-input name="primary_phone" placeholder="+256..." required />
@@ -316,7 +352,7 @@
                         <div>
                             <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Identification</h4>
                             <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">ID Type</x-label>
                                         <x-select name="id_type" required>
@@ -337,7 +373,7 @@
                                     <x-label>Photo</x-label>
                                     <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label>LC Letter</x-label>
                                         <input type="file" name="lc_letter" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
@@ -354,7 +390,7 @@
                         <div>
                             <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Emergency Contact</h4>
                             <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Contact Name</x-label>
                                         <x-input name="emergency_contact_name" placeholder="Full name" required />
@@ -370,7 +406,7 @@
                                         </x-select>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Contact Phone</x-label>
                                         <x-input name="emergency_contact_phone" placeholder="+256..." required />
@@ -436,7 +472,7 @@
                                     <x-label :required="true">Email</x-label>
                                     <x-input type="email" name="email" x-model="editing.email" required />
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Primary Phone</x-label>
                                         <x-input name="primary_phone" x-model="editing.primary_phone" required />
@@ -453,7 +489,7 @@
                         <div>
                             <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Identification</h4>
                             <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">ID Type</x-label>
                                         <x-select name="id_type" x-model="editing.id_type" required>
@@ -477,7 +513,7 @@
                                     </template>
                                     <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label>LC Letter</x-label>
                                         <template x-if="editing.lc_letter">
@@ -500,7 +536,7 @@
                         <div>
                             <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Emergency Contact</h4>
                             <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Contact Name</x-label>
                                         <x-input name="emergency_contact_name" x-model="editing.emergency_contact_name" required />
@@ -516,7 +552,7 @@
                                         </x-select>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Contact Phone</x-label>
                                         <x-input name="emergency_contact_phone" x-model="editing.emergency_contact_phone" required />

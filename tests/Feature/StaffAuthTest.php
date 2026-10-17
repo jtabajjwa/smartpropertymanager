@@ -146,3 +146,38 @@ test('landlord session does not authenticate the staff guard', function () {
         ->get(route('staff.dashboard'))
         ->assertRedirect(route('staff.login'));
 });
+
+// --- Forgot / Reset Password ---
+
+test('staff forgot password sends a reset code email to a valid staff user', function () {
+    \Illuminate\Support\Facades\Mail::fake();
+
+    $staffUser = StaffUser::factory()->create(['email' => 'staffreset@example.com']);
+
+    $this->post(route('staff.forgot-password'), ['email' => 'staffreset@example.com'])
+        ->assertRedirect(route('staff.reset-password', ['email' => 'staffreset@example.com']))
+        ->assertSessionHas('success');
+
+    \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\PasswordResetCodeMail::class, function ($mail) use ($staffUser) {
+        return $mail->hasTo($staffUser->email);
+    });
+});
+
+test('staff user can reset password with a valid emailed code', function () {
+    $staffUser = StaffUser::factory()->create(['email' => 'staffreset@example.com']);
+
+    \App\Models\StaffPasswordResetCode::create([
+        'staff_user_id' => $staffUser->id,
+        'code' => '123456',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->post(route('staff.reset-password'), [
+        'email' => 'staffreset@example.com',
+        'code' => '123456',
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('staff.login'))->assertSessionHas('success');
+
+    expect(\Illuminate\Support\Facades\Hash::check('new-password-123', $staffUser->fresh()->password))->toBeTrue();
+});

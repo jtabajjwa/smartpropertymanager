@@ -88,7 +88,7 @@
             @endif
 
             <div class="ml-auto flex items-center gap-3">
-                <span class="text-sm text-gray-600">{{ auth('staff')->user()->name }}</span>
+                <span class="hidden sm:inline text-sm text-gray-600">{{ auth('staff')->user()->name }}</span>
                 <a href="{{ route('staff.change-password') }}" class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition" title="Change password">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                 </a>

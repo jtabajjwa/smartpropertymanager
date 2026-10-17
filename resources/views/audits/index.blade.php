@@ -51,9 +51,9 @@
             </form>
         </div>
 
-        <!-- Table -->
+        <!-- Table (md and up) -->
         <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div>
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead>
                         <tr class="border-b border-gray-200">
@@ -151,6 +151,88 @@
                         </tbody>
                     @endforelse
                 </table>
+            </div>
+
+            {{-- Cards (below md) --}}
+            <div class="md:hidden divide-y divide-gray-100">
+                @forelse($audits as $audit)
+                    @php
+                        $hasDetails = ($audit->action === 'updated' && $audit->old_values && $audit->new_values)
+                            || ($audit->action === 'created' && $audit->new_values)
+                            || ($audit->action === 'deleted' && $audit->old_values);
+                    @endphp
+                    <div class="p-4" x-data="{ expanded: false }">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900 break-words" title="{{ $audit->record_name }}">
+                                    {{ $audit->record_name }} <span class="text-xs text-gray-400">#{{ $audit->auditable_id }}</span>
+                                </p>
+                                <p class="mt-0.5 text-sm text-gray-600">{{ class_basename($audit->auditable_type) }}</p>
+                                <p class="text-sm text-gray-600">{{ $audit->user?->name ?? 'System' }}</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @if($audit->action === 'created')
+                                <x-badge color="green">Created</x-badge>
+                            @elseif($audit->action === 'updated')
+                                <x-badge color="orange">Updated</x-badge>
+                            @elseif($audit->action === 'deleted')
+                                <x-badge color="red">Deleted</x-badge>
+                            @endif
+                        </div>
+                        <div class="mt-3 text-sm text-gray-600 space-y-1">
+                            <p><span class="text-gray-500">When:</span> <span title="{{ $audit->created_at->format('Y-m-d H:i:s') }}">{{ $audit->created_at->diffForHumans() }}</span></p>
+                            <p><span class="text-gray-500">IP:</span> {{ $audit->ip_address }}</p>
+                        </div>
+                        @if($hasDetails)
+                            <button @click="expanded = !expanded" class="mt-3 text-orange-500 hover:text-orange-600 text-xs font-medium transition">
+                                @if($audit->action === 'updated')
+                                    <span x-text="expanded ? 'Hide' : 'View {{ count($audit->new_values) }} change(s)'"></span>
+                                @elseif($audit->action === 'created')
+                                    <span x-text="expanded ? 'Hide' : 'View details'"></span>
+                                @elseif($audit->action === 'deleted')
+                                    <span x-text="expanded ? 'Hide' : 'View deleted data'"></span>
+                                @endif
+                            </button>
+                            <div x-show="expanded" x-cloak class="mt-2 bg-gray-50 rounded-lg p-3">
+                                <div class="grid grid-cols-1 gap-2">
+                                    @if($audit->action === 'updated')
+                                        @foreach($audit->new_values as $field => $newVal)
+                                            <div class="flex items-start gap-3 text-xs">
+                                                <span class="font-medium text-gray-600 w-32 shrink-0">{{ str_replace('_', ' ', ucfirst($field)) }}</span>
+                                                <span class="text-red-600/70 line-through">{{ is_array($audit->old_values[$field] ?? null) ? json_encode($audit->old_values[$field]) : ($audit->old_values[$field] ?? '—') }}</span>
+                                                <svg class="w-3 h-3 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                                <span class="text-green-600/70">{{ is_array($newVal) ? json_encode($newVal) : $newVal }}</span>
+                                            </div>
+                                        @endforeach
+                                    @elseif($audit->action === 'created')
+                                        @foreach($audit->new_values as $field => $val)
+                                            @if(!in_array($field, ['id', 'created_at', 'updated_at']))
+                                                <div class="flex items-start gap-3 text-xs">
+                                                    <span class="font-medium text-gray-600 w-32 shrink-0">{{ str_replace('_', ' ', ucfirst($field)) }}</span>
+                                                    <span class="text-green-600/70">{{ is_array($val) ? json_encode($val) : ($val ?? '—') }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    @elseif($audit->action === 'deleted')
+                                        @foreach($audit->old_values as $field => $val)
+                                            @if(!in_array($field, ['id', 'created_at', 'updated_at']))
+                                                <div class="flex items-start gap-3 text-xs">
+                                                    <span class="font-medium text-gray-600 w-32 shrink-0">{{ str_replace('_', ' ', ucfirst($field)) }}</span>
+                                                    <span class="text-red-600/70">{{ is_array($val) ? json_encode($val) : ($val ?? '—') }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @empty
+                    <div class="p-8 text-center">
+                        <p class="text-sm text-gray-600">No audit records found.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
 

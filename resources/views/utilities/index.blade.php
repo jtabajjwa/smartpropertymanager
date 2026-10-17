@@ -27,7 +27,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Utilities</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage utility types for your properties.</p>
@@ -38,9 +38,9 @@
                 </x-button>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div>
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -81,8 +81,37 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($utilities as $utility)
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $utility->name }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $utility->description ?? '--' }}</p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="view({{ Js::from($utility) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        <button @click="edit({{ Js::from($utility) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                        <form action="{{ route('utilities.destroy', $utility) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this utility?', $el)">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
+                                        </form>
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No utilities found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($utilities->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $utilities->links() }}
                     </div>
                 @endif

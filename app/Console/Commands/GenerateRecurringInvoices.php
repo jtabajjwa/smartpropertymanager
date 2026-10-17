@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Landlord;
 use App\Models\Lease;
 use App\Services\CurrentLandlord;
+use App\Services\InvoiceEmailService;
 use App\Services\InvoicingService;
 use App\Services\SmsNotificationService;
 use Illuminate\Console\Command;
@@ -14,7 +15,7 @@ class GenerateRecurringInvoices extends Command
     protected $signature = 'invoices:generate-recurring';
     protected $description = 'Generate recurring rent invoices for active leases where next_invoice_date has arrived';
 
-    public function handle(InvoicingService $invoicingService, SmsNotificationService $sms): void
+    public function handle(InvoicingService $invoicingService, SmsNotificationService $sms, InvoiceEmailService $emails): void
     {
         $generated = 0;
         $leaseCount = 0;
@@ -44,6 +45,12 @@ class GenerateRecurringInvoices extends Command
                                 $sms->invoiceCreated($invoice->load('lease.tenant'));
                             } catch (\Throwable $e) {
                                 // SMS failure should not block invoice generation
+                            }
+
+                            try {
+                                $emails->invoiceCreated($invoice->load('lease.tenant'));
+                            } catch (\Throwable $e) {
+                                // Email failure should not block invoice generation
                             }
 
                             $generated++;

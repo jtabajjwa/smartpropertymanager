@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estate;
+use App\Models\Expense;
 use App\Models\ExpenseItems;
 use App\Models\Invoice;
 use App\Models\Lease;
@@ -12,6 +13,7 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\Vendor;
 use App\Services\CurrentLandlord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -117,6 +119,31 @@ class SearchController extends Controller
     public function expenseItems(Request $request): JsonResponse
     {
         return $this->search(ExpenseItems::query(), 'name', $request);
+    }
+
+    public function vendors(Request $request): JsonResponse
+    {
+        return $this->search(Vendor::query(), 'name', $request);
+    }
+
+    public function expenses(Request $request): JsonResponse
+    {
+        $query = Expense::with('expenseItem');
+
+        if ($q = $request->input('q')) {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('number', 'like', "%{$q}%")
+                    ->orWhereHas('expenseItem', fn ($t) => $t->where('name', 'like', "%{$q}%"));
+            });
+        }
+
+        $results = $query->limit($request->input('limit', 20))->get()
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'text' => "{$e->number} — {$e->expenseItem?->name} (UGX " . number_format($e->amount) . ')',
+            ]);
+
+        return response()->json($results);
     }
 
     public function payments(Request $request): JsonResponse

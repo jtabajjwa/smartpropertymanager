@@ -42,7 +42,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Invoices</h3>
                     <p class="mt-1 text-sm text-gray-500">Create and manage tenant invoices.</p>
@@ -118,9 +118,9 @@
                 </form>
             </div>
 
-            {{-- Table --}}
+            {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div>
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b border-gray-200">
@@ -188,6 +188,11 @@
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
                                                     <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">View / Download PDF</a>
+                                                    <form action="{{ route('invoices.send-email', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Send this invoice by email to the payer?', $el)">
+                                                        @csrf
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">Send / Resend Email</button>
+                                                    </form>
                                                     @if(in_array($invoice->status, ['unpaid', 'partial']) && $invoice->invoiceable_type === \App\Models\Lease::class && in_array($invoice->invoiceable?->status, ['terminated', 'evicted']))
                                                         <form action="{{ route('invoices.write-off', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to write off this invoice? This debt will be marked as uncollectible.', $el)">
                                                             @csrf
@@ -218,8 +223,89 @@
                     </table>
                 </div>
 
+                {{-- Cards (below md) --}}
+                <div class="md:hidden divide-y divide-gray-100">
+                    @forelse ($invoices as $invoice)
+                        @php $balance = $invoice->unpaidBalance(); @endphp
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $invoice->number }}</p>
+                                    <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $invoice->display_payer_name }}</p>
+                                    @if($invoice->invoiceable_type === \App\Models\Lease::class && $invoice->invoiceable)
+                                        <p class="text-sm text-gray-600">Lease #{{ $invoice->invoiceable->number }}</p>
+                                    @endif
+                                    <p class="text-sm text-gray-600 break-words">{{ $invoice->title }}</p>
+                                </div>
+                                <x-dropdown align="right" width="48">
+                                    <x-slot name="content">
+                                        <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">View / Download PDF</a>
+                                        <form action="{{ route('invoices.send-email', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Send this invoice by email to the payer?', $el)">
+                                            @csrf
+                                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">Send / Resend Email</button>
+                                        </form>
+                                        @if(in_array($invoice->status, ['unpaid', 'partial']) && $invoice->invoiceable_type === \App\Models\Lease::class && in_array($invoice->invoiceable?->status, ['terminated', 'evicted']))
+                                            <form action="{{ route('invoices.write-off', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to write off this invoice? This debt will be marked as uncollectible.', $el)">
+                                                @csrf
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">Write Off</button>
+                                            </form>
+                                        @endif
+                                        @if(!in_array($invoice->status, ['cancelled', 'written_off']) && !$invoice->allocations->count())
+                                            <button @click="edit({{ Js::from($invoice->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
+                                            <form action="{{ route('invoices.cancel', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to cancel this invoice? This cannot be undone.', $el)">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Cancel</button>
+                                            </form>
+                                        @endif
+                                    </x-slot>
+                                </x-dropdown>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @if($invoice->invoiceable_type === \App\Models\Lease::class)
+                                    <x-badge color="gray">Tenant</x-badge>
+                                @elseif($invoice->invoiceable_type === \App\Models\Customer::class)
+                                    <x-badge color="gray">Customer</x-badge>
+                                @endif
+                                @if($invoice->status === 'paid')
+                                    <x-badge color="green">Paid</x-badge>
+                                @elseif($invoice->status === 'partial')
+                                    <x-badge color="orange">Partial</x-badge>
+                                @elseif($invoice->status === 'cancelled')
+                                    <x-badge color="gray">Cancelled</x-badge>
+                                @elseif($invoice->status === 'written_off')
+                                    <x-badge color="gray">Written&nbsp;Off</x-badge>
+                                @else
+                                    <x-badge color="red">Unpaid</x-badge>
+                                @endif
+                            </div>
+                            <div class="mt-3 space-y-1">
+                                <p class="text-sm text-gray-600 capitalize">
+                                    <span class="text-gray-500">Type:</span> {{ str_replace('_', ' ', $invoice->type) }}
+                                    @if($invoice->type === 'utility' && $invoice->utility)
+                                        ({{ $invoice->utility->name }})
+                                    @endif
+                                </p>
+                                <p class="text-sm text-gray-600"><span class="text-gray-500">Amount:</span> UGX {{ number_format($invoice->amount, 0) }}</p>
+                                <p class="text-sm font-medium {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}"><span class="text-gray-500 font-normal">Balance:</span> UGX {{ number_format($balance, 0) }}</p>
+                                <p class="text-sm text-gray-600">
+                                    <span class="text-gray-500">Due:</span> {{ $invoice->due_date->format('M d, Y') }}
+                                    @if(!in_array($invoice->status, ['paid', 'cancelled']) && $invoice->due_date->isPast())
+                                        <span class="text-red-500 font-medium">(Overdue)</span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center">
+                            <p class="text-sm text-gray-600">No invoices found.</p>
+                        </div>
+                    @endforelse
+                </div>
+
                 @if ($invoices->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="px-4 md:px-6 py-4 border-t border-gray-200">
                         {{ $invoices->links() }}
                     </div>
                 @endif
@@ -330,7 +416,7 @@
                             <x-label :required="true">Title</x-label>
                             <x-input name="title" placeholder="e.g. January 2026 Rent" required />
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label :required="true">Invoice Date</x-label>
                                 <x-input type="date" name="invoice_date" required />
@@ -352,6 +438,10 @@
                             <input type="checkbox" id="send_sms" name="send_sms" value="1" class="w-4 h-4 text-orange-500 bg-gray-50 border-gray-200 rounded focus:ring-orange-500 focus:ring-offset-white transition duration-200 cursor-pointer">
                             <label for="send_sms" class="text-sm text-gray-700 font-medium cursor-pointer select-none">Send SMS Notification to Payer</label>
                         </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="send_email" name="send_email" value="1" checked class="w-4 h-4 text-orange-500 bg-gray-50 border-gray-200 rounded focus:ring-orange-500 focus:ring-offset-white transition duration-200 cursor-pointer">
+                            <label for="send_email" class="text-sm text-gray-700 font-medium cursor-pointer select-none">Email PDF Invoice to Payer</label>
+                        </div>
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
                             <x-button>Save Invoice</x-button>
@@ -370,7 +460,7 @@
                         @method('PUT')
 
                         {{-- Read-only summary --}}
-                        <div class="grid grid-cols-2 gap-x-6 gap-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             <div>
                                 <p class="text-xs text-gray-500">Number</p>
                                 <p class="text-sm text-gray-900 font-medium" x-text="editing.number"></p>
