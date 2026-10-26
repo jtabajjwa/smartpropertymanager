@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\BelongsToLandlord;
+use App\Traits\HasPhoto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,13 +12,31 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Estate extends Model
 {
-    use HasFactory, Auditable, BelongsToLandlord;
+    use HasFactory, Auditable, BelongsToLandlord, HasPhoto;
 
     protected $fillable = [
         'name',
         'description',
         'location_id',
+        'latitude',
+        'longitude',
     ];
+
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
+    ];
+
+    public function hasCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    /** Opens the pin in Google Maps (handy for directions on a phone). */
+    public function mapUrl(): ?string
+    {
+        return $this->hasCoordinates() ? "https://www.google.com/maps?q={$this->latitude},{$this->longitude}" : null;
+    }
 
     public function location(): BelongsTo
     {

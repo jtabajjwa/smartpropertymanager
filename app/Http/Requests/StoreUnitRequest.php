@@ -20,6 +20,7 @@ class StoreUnitRequest extends FormRequest
             'description' => 'nullable|string',
             'status' => ['required', Rule::in(['vacant', 'occupied', 'maintenance'])],
             'estate_id' => ['required', Rule::exists('estates', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'photo' => \App\Services\PhotoUploader::RULES,
         ];
     }
 }

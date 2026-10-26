@@ -10,7 +10,7 @@ Options -Indexes
 # </IfModule>
 
 # --- Keep private files private ---------------------------------------------
-<FilesMatch "^(config\.php|README\.md)$">
+<FilesMatch "^(config(\.local|\.local\.example)?\.php|README\.md|\.gitignore)$">
     Require all denied
 </FilesMatch>
 

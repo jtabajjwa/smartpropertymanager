@@ -32,10 +32,10 @@
                     <h3 class="text-lg font-semibold text-gray-900">All Landlords</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage landlord organizations signed up to Primora.</p>
                 </div>
-                <x-button @click="createModal = true" type="button">
+                @staffcan('landlords.create')<x-button @click="createModal = true" type="button">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Add Landlord
-                </x-button>
+                </x-button>@endstaffcan
             </div>
 
             {{-- Filters --}}
@@ -71,6 +71,7 @@
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Company</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact Email</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Portfolio</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subscription</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -80,13 +81,19 @@
                             @forelse ($landlords as $landlord)
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                        {{ $landlord->name }}
+                                        <a href="{{ route('staff.landlords.show', $landlord) }}" class="hover:text-orange-600 transition">{{ $landlord->name }}</a>
                                         @if($landlord->trading_name)
                                             <span class="text-gray-500 font-normal">({{ $landlord->trading_name }})</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $landlord->contact_email }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $landlord->contact_phone }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                                        {{ $landlord->units_count }} {{ Str::plural('unit', $landlord->units_count) }}
+                                        <span class="block text-xs text-gray-400">
+                                            {{ $landlord->estates_count }} {{ Str::plural('estate', $landlord->estates_count) }}@if($landlord->units_count > 0) · {{ round($landlord->occupied_units_count / $landlord->units_count * 100) }}% let @endif
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <x-badge color="gray">{{ ucfirst($landlord->subscription_status) }}</x-badge>
                                     </td>
@@ -97,8 +104,13 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="edit({{ Js::from($landlord) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                                    @if($landlord->status === 'active')
+                                                    @staffcan('portal.access')<form action="{{ route('staff.landlords.portal', $landlord) }}" method="POST">
+                                                        @csrf
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-900 font-medium hover:bg-gray-50 transition">Open landlord portal</button>
+                                                    </form>@endstaffcan
+                                                    @staffcan('properties.view')<a href="{{ route('staff.landlords.show', $landlord) }}" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">Manage properties</a>@endstaffcan
+                                                    @staffcan('landlords.edit')<button @click="edit({{ Js::from($landlord) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>@endstaffcan
+                                                    @staffcan('landlords.suspend')@if($landlord->status === 'active')
                                                         <form action="{{ route('staff.landlords.suspend', $landlord) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to suspend this landlord?', $el)">
                                                             @csrf
                                                             @method('PATCH')
@@ -111,6 +123,7 @@
                                                             <button type="submit" class="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-50 transition">Reactivate</button>
                                                         </form>
                                                     @endif
+@endstaffcan
                                                 </x-slot>
                                             </x-dropdown>
                                         </div>
@@ -118,7 +131,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-12 text-center">
+                                    <td colspan="7" class="px-6 py-12 text-center">
                                         <p class="text-sm text-gray-600">No landlords found.</p>
                                     </td>
                                 </tr>
@@ -144,8 +157,13 @@
                                 </div>
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="content">
-                                        <button @click="edit({{ Js::from($landlord) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                        @if($landlord->status === 'active')
+                                        @staffcan('portal.access')<form action="{{ route('staff.landlords.portal', $landlord) }}" method="POST">
+                                                        @csrf
+                                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-900 font-medium hover:bg-gray-50 transition">Open landlord portal</button>
+                                                    </form>@endstaffcan
+                                                    @staffcan('properties.view')<a href="{{ route('staff.landlords.show', $landlord) }}" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">Manage properties</a>@endstaffcan
+                                                    @staffcan('landlords.edit')<button @click="edit({{ Js::from($landlord) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>@endstaffcan
+                                        @staffcan('landlords.suspend')@if($landlord->status === 'active')
                                             <form action="{{ route('staff.landlords.suspend', $landlord) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to suspend this landlord?', $el)">
                                                 @csrf
                                                 @method('PATCH')
@@ -158,10 +176,12 @@
                                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-50 transition">Reactivate</button>
                                             </form>
                                         @endif
+@endstaffcan
                                     </x-slot>
                                 </x-dropdown>
                             </div>
                             <div class="mt-3 flex flex-wrap gap-2">
+                                <x-badge color="orange">{{ $landlord->units_count }} {{ Str::plural('unit', $landlord->units_count) }}</x-badge>
                                 <x-badge color="gray">{{ ucfirst($landlord->subscription_status) }}</x-badge>
                                 <x-badge :color="$landlord->status === 'active' ? 'green' : 'red'">{{ ucfirst($landlord->status) }}</x-badge>
                             </div>
@@ -181,6 +201,7 @@
             </div>
         </div>
 
+        @staffcan('landlords.create')
         {{-- Create Modal --}}
         <template x-if="createModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) createModal = false })">
@@ -246,7 +267,9 @@
                 </x-modal>
             </div>
         </template>
+        @endstaffcan
 
+        @staffcan('landlords.edit')
         {{-- Edit Modal --}}
         <template x-if="editModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) editModal = false })">
@@ -288,5 +311,6 @@
                 </x-modal>
             </div>
         </template>
+        @endstaffcan
     </div>
 </x-staff-layout>

@@ -134,9 +134,13 @@ test('unauthenticated staff request is redirected to staff login', function () {
 test('staff session does not authenticate the landlord web guard', function () {
     $staffUser = StaffUser::factory()->create();
 
+    // Staff only reach the landlord portal through "staff mode" for a chosen
+    // landlord; a bare staff session is turned away, back to the staff side.
     $this->actingAs($staffUser, 'staff')
         ->get(route('dashboard'))
-        ->assertRedirect(route('login'));
+        ->assertRedirect(route('staff.landlords.index'));
+
+    $this->assertGuest('web');
 });
 
 test('landlord session does not authenticate the staff guard', function () {

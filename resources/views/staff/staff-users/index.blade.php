@@ -10,6 +10,7 @@
             email: '',
             phone: '',
             role: 'user',
+            permissions: [],
         },
         edit(item) {
             this.editing = {
@@ -18,6 +19,7 @@
                 email: item.email || '',
                 phone: item.phone || '',
                 role: item.role,
+                permissions: item.permissions || [],
             };
             this.editModal = true;
         }
@@ -90,6 +92,7 @@
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $staffUser->phone ?? '--' }}</td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="$staffUser->role === 'admin' ? 'orange' : 'blue'">{{ ucfirst($staffUser->role) }}</x-badge>
+                                        @unless($staffUser->isAdmin())<span class="block mt-1 text-xs text-gray-500" title="{{ collect($staffUser->effectivePermissions())->map(fn ($p) => \App\Support\StaffPermissions::label($p))->implode(', ') }}">{{ count($staffUser->effectivePermissions()) }} of {{ count(\App\Support\StaffPermissions::all()) }} permissions</span>@endunless
                                     </td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="$staffUser->is_active ? 'green' : 'red'">{{ $staffUser->is_active ? 'Active' : 'Inactive' }}</x-badge>
@@ -151,6 +154,7 @@
                             </div>
                             <div class="mt-3 flex flex-wrap gap-2">
                                 <x-badge :color="$staffUser->role === 'admin' ? 'orange' : 'blue'">{{ ucfirst($staffUser->role) }}</x-badge>
+                                        @unless($staffUser->isAdmin())<span class="block mt-1 text-xs text-gray-500" title="{{ collect($staffUser->effectivePermissions())->map(fn ($p) => \App\Support\StaffPermissions::label($p))->implode(', ') }}">{{ count($staffUser->effectivePermissions()) }} of {{ count(\App\Support\StaffPermissions::all()) }} permissions</span>@endunless
                                 <x-badge :color="$staffUser->is_active ? 'green' : 'red'">{{ $staffUser->is_active ? 'Active' : 'Inactive' }}</x-badge>
                             </div>
                         </div>
@@ -172,7 +176,7 @@
         {{-- Create Modal --}}
         <template x-if="createModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) createModal = false })">
-                <x-modal title="Add Staff User" maxWidth="lg">
+                <x-modal title="Add Staff User" maxWidth="xl">
                     <form action="{{ route('staff.staff-users.store') }}" method="POST" class="space-y-4">
                         @csrf
 
@@ -205,13 +209,7 @@
                             <p class="mt-1 text-xs text-gray-500">Staff user will be required to change this on first login.</p>
                         </div>
 
-                        <div>
-                            <x-label :required="true">Role</x-label>
-                            <x-select name="role" required>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </x-select>
-                        </div>
+                        <x-staff-permissions-picker />
 
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
@@ -225,7 +223,7 @@
         {{-- Edit Modal --}}
         <template x-if="editModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) editModal = false })">
-                <x-modal title="Edit Staff User" maxWidth="lg">
+                <x-modal title="Edit Staff User" maxWidth="xl">
                     <form :action="'{{ url('staff/staff-users') }}/' + editing.id" method="POST" class="space-y-4">
                         @csrf
                         @method('PUT')
@@ -245,13 +243,7 @@
                             <x-input name="phone" x-model="editing.phone" placeholder="0771234567" />
                         </div>
 
-                        <div>
-                            <x-label :required="true">Role</x-label>
-                            <x-select name="role" x-model="editing.role" required>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </x-select>
-                        </div>
+                        <x-staff-permissions-picker role="editing.role" permissions="editing.permissions" />
 
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="editModal = false">Cancel</x-button>

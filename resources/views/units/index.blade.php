@@ -34,6 +34,14 @@
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">All Units</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage individual property units across your estates.</p>
+                    @if($unitLimit)
+                        <p class="mt-1 text-sm {{ $unitLimit['used'] >= $unitLimit['max'] ? 'text-orange-600 font-medium' : 'text-gray-500' }}">
+                            {{ $unitLimit['used'] }} of {{ $unitLimit['max'] }} units used on your subscription.
+                            @if($unitLimit['used'] >= $unitLimit['max'])
+                                @if(auth()->user()->isLandlordAdmin())<a href="{{ route('subscription.show') }}" class="underline hover:text-orange-700">Upgrade to add more</a>@else Ask an admin to upgrade the subscription to add more. @endif
+                            @endif
+                        </p>
+                    @endif
                 </div>
                 <x-button @click="createModal = true" type="button">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -86,7 +94,12 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($units as $unit)
                                 <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $unit->name }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                        <div class="flex items-center gap-3">
+                                            <x-photo-thumb :url="$unit->photo_url" icon="cube" />
+                                            <span>{{ $unit->name }}</span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }}</td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="match($unit->status) { 'vacant' => 'green', 'occupied' => 'orange', 'maintenance' => 'gray', default => 'gray' }">{{ ucfirst($unit->status) }}</x-badge>
@@ -127,7 +140,10 @@
                         <div class="p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $unit->name }}</p>
+                                    <div class="flex items-center gap-3">
+                                        <x-photo-thumb :url="$unit->photo_url" icon="cube" size="w-12 h-12" />
+                                        <p class="text-sm font-medium text-gray-900 break-words">{{ $unit->name }}</p>
+                                    </div>
                                     <p class="mt-0.5 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }}</p>
                                 </div>
                                 <x-dropdown align="right" width="48">
@@ -168,6 +184,11 @@
         <template x-if="viewModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) viewModal = false })">
                 <x-modal title="Unit Details" maxWidth="lg">
+                    <template x-if="viewing.photo_url">
+                        <a :href="viewing.photo_url" target="_blank" rel="noopener" class="block mb-5" title="Open full photo">
+                            <img :src="viewing.photo_url" alt="" class="w-full h-56 object-cover rounded-xl border border-gray-200">
+                        </a>
+                    </template>
                     <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Name</p>
@@ -202,7 +223,7 @@
         <template x-if="createModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) createModal = false })">
                 <x-modal title="Add Unit" maxWidth="lg">
-                    <form action="{{ route('units.store') }}" method="POST" class="space-y-5">
+                    <form action="{{ route('units.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
                         @csrf
                         <div>
                             <x-label :required="true">Name</x-label>
@@ -212,6 +233,7 @@
                             <x-label>Description</x-label>
                             <x-textarea name="description" placeholder="Optional description..."></x-textarea>
                         </div>
+                        <x-photo-input label="Photo (helps identify it)" />
                         <div>
                             <x-label :required="true">Status</x-label>
                             <x-select name="status" required>
@@ -236,7 +258,7 @@
         <template x-if="editModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) editModal = false })">
                 <x-modal title="Edit Unit" maxWidth="lg">
-                    <form :action="'{{ url('units') }}/' + editing.id" method="POST" class="space-y-5">
+                    <form :action="'{{ url('units') }}/' + editing.id" method="POST" enctype="multipart/form-data" class="space-y-5">
                         @csrf
                         @method('PUT')
                         <div>
@@ -247,6 +269,7 @@
                             <x-label>Description</x-label>
                             <x-textarea name="description" x-model="editing.description"></x-textarea>
                         </div>
+                        <x-photo-input label="Photo (helps identify it)" current="editing.photo_url" />
                         <div>
                             <x-label :required="true">Status</x-label>
                             <x-select name="status" x-model="editing.status" required>

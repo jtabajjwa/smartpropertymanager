@@ -33,13 +33,20 @@ Route::middleware('auth')->group(function () {
         ->name('verification.send');
 });
 
+// Payment gateway callbacks (Yo! IPN / failure notifications). No session or CSRF:
+// the gateway's server calls these; contents are re-checked with the gateway.
+Route::post('payments/callback/{gateway}/{type}', \App\Http\Controllers\PaymentCallbackController::class)
+    ->middleware('throttle:120,1')
+    ->name('payments.callback');
+
 // Redirect root to dashboard
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
-// Fully protected routes (auth + landlord scoping + check-active + email verified + must-change-password)
-Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must-change-password'])->group(function () {
+// Fully protected routes (auth + landlord scoping + check-active + email verified + must-change-password).
+// Staff may also enter, but only in "staff mode" for one landlord (see StaffActingSession / ResolveLandlord).
+Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verified', 'must-change-password'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
     // Property
@@ -52,6 +59,7 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
     Route::resource('customers', \App\Http\Controllers\CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('leases', \App\Http\Controllers\LeaseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('lease-templates', \App\Http\Controllers\LeaseTemplateController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('lease-templates/standard', [\App\Http\Controllers\LeaseTemplateController::class, 'addStandard'])->name('lease-templates.standard');
     Route::get('leases/{lease}/agreement', [\App\Http\Controllers\LeaseController::class, 'generateAgreement'])->name('leases.agreement');
 
     // Finance — exports (must be before resource routes)
@@ -75,6 +83,11 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
         return response()->json(['balance' => $lease->securityDepositBalance()]);
     })->name('leases.deposit-balance');
 
+    // Tenant issues (raised in the tenant portal)
+    Route::get('issues', [\App\Http\Controllers\IssueController::class, 'index'])->name('issues.index');
+    Route::get('issues/{issue}', [\App\Http\Controllers\IssueController::class, 'show'])->name('issues.show');
+    Route::put('issues/{issue}', [\App\Http\Controllers\IssueController::class, 'update'])->name('issues.update');
+
     // Operations
     Route::resource('expenses', \App\Http\Controllers\ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('expense-items', \App\Http\Controllers\ExpenseItemController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -90,8 +103,15 @@ Route::middleware(['auth', 'resolve-landlord', 'check-active', 'verified', 'must
         Route::post('users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
         Route::put('users/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('users.update');
         Route::patch('users/{user}/toggle-active', [\App\Http\Controllers\UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::get('subscription', [\App\Http\Controllers\SubscriptionController::class, 'show'])->name('subscription.show');
+        Route::post('subscription/pay', [\App\Http\Controllers\SubscriptionController::class, 'pay'])->middleware('throttle:10,1')->name('subscription.pay');
+        Route::get('subscription/payments/{reference}', [\App\Http\Controllers\LandlordPaymentController::class, 'status'])->middleware('throttle:60,1')->name('subscription.payment-status');
+        Route::get('sms-credits', [\App\Http\Controllers\SmsCreditController::class, 'show'])->name('sms-credits.show');
+        Route::post('sms-credits/buy', [\App\Http\Controllers\SmsCreditController::class, 'buy'])->middleware('throttle:10,1')->name('sms-credits.buy');
+        Route::get('sms-credits/payments/{reference}', [\App\Http\Controllers\LandlordPaymentController::class, 'status'])->middleware('throttle:60,1')->name('sms-credits.payment-status');
         Route::get('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'edit'])->name('company-profile.edit');
         Route::put('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'update'])->name('company-profile.update');
+        Route::put('company-profile/collections', [\App\Http\Controllers\CompanyProfileController::class, 'updateCollections'])->name('company-profile.collections');
     });
 
     // Search API (for searchable dropdowns)

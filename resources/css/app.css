@@ -34,3 +34,6 @@
     --color-navy-800: #1c2230;
     --color-navy-900: #161b26;
 }
+
+/* Alpine: hide x-cloak elements until Alpine has initialised them */
+[x-cloak] { display: none !important; }

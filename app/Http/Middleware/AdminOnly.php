@@ -11,7 +11,8 @@ class AdminOnly
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        // Landlord admins, or staff working in this landlord's portal.
+        if (!Auth::check() || !Auth::user()->isLandlordAdmin()) {
             abort(403, 'Unauthorized. Admin access required.');
         }
 

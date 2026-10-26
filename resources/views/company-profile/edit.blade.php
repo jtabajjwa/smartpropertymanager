@@ -68,6 +68,30 @@
                     </div>
                 </form>
             </div>
+
+            {{-- Tenant mobile money payments --}}
+            <div class="mt-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-base font-semibold text-gray-900">Tenant mobile money payments</h3>
+                @if($landlord->collect_payments)
+                    <p class="mt-1 text-sm text-gray-500">Your tenants can pay invoices and rent in advance by mobile money from the tenant portal ({{ route('tenant.login') }}). Primora collects the money and settles it to you.</p>
+                    <form action="{{ route('company-profile.collections') }}" method="POST" class="mt-4 space-y-4">
+                        @csrf
+                        @method('PUT')
+                        <p class="text-sm font-medium text-gray-700">Who pays the mobile money collection fee?</p>
+                        <label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/40">
+                            <input type="radio" name="pass_collection_fee" value="0" @checked(! $landlord->pass_collection_fee) class="mt-0.5 text-orange-600 focus:ring-orange-500">
+                            <span><span class="block text-sm font-medium text-gray-900">I pay it</span><span class="block text-xs text-gray-500">Tenants pay exactly what they owe. The fee is deducted from what Primora settles to you.</span></span>
+                        </label>
+                        <label class="flex items-start gap-3 rounded-xl border border-gray-200 p-4 cursor-pointer has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50/40">
+                            <input type="radio" name="pass_collection_fee" value="1" @checked($landlord->pass_collection_fee) class="mt-0.5 text-orange-600 focus:ring-orange-500">
+                            <span><span class="block text-sm font-medium text-gray-900">My tenants pay it</span><span class="block text-xs text-gray-500">The fee is added to what tenants pay, and you receive the full amount. Tenants see the fee before they pay.</span></span>
+                        </label>
+                        <div class="flex justify-end"><x-button>Save</x-button></div>
+                    </form>
+                @else
+                    <p class="mt-1 text-sm text-gray-500">Want your tenants to pay rent by mobile money from their phones? Contact Primora to switch it on for your account.</p>
+                @endif
+            </div>
         </div>
     </div>
 </x-app-layout>

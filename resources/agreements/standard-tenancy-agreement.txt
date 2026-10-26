@@ -1,0 +1,213 @@
+THIS TENANCY AGREEMENT is made on {{today}} (Lease reference: {{lease_number}})
+
+BETWEEN
+
+{{landlord_name}} of {{landlord_address}} (telephone {{landlord_phone}}, email {{landlord_email}}) (the "Landlord"), which expression includes the Landlord's authorised agents and successors in title;
+
+AND
+
+{{tenant_name}}, holder of {{tenant_id_type}} number {{tenant_id_number}} (telephone {{tenant_phone}}, email {{tenant_email}}) (the "Tenant").
+
+The Landlord and the Tenant are together called "the Parties".
+
+
+1. THE PREMISES
+
+1.1 The Landlord lets to the Tenant, and the Tenant takes, the premises known as {{unit_name}} in {{estate_name}}, {{property_address}} (the "Premises"), together with the fixtures and fittings listed in the Schedule at the end of this Agreement.
+
+1.2 The Tenant may also use the shared areas of {{estate_name}} (such as the compound, corridors, parking and refuse area) in common with other occupants, subject to the estate rules.
+
+
+2. TERM
+
+2.1 The tenancy begins on {{start_date}}. Its end date is: {{end_date}}. The tenancy may be ended earlier in accordance with this Agreement.
+
+2.2 Where no end date is fixed ("Ongoing"), the tenancy continues from one rent period to the next until either Party ends it by notice under clause 12.
+
+
+3. RENT
+
+3.1 The rent is {{rent_amount}} per rent period (billing cycle: {{billing_cycle}}). Rent is stated and payable in Uganda Shillings.
+
+3.2 Before taking possession, the Tenant shall pay rent for the first {{upfront_periods}} in advance. After that, rent is payable in advance on or before [the 5th day] of each rent period.
+
+3.3 Rent may be paid by mobile money, bank transfer, cash or any other method the Landlord accepts in writing. The Landlord shall issue a receipt for every payment received; an SMS or email confirmation counts as a receipt.
+
+3.4 Payments are applied first to any rent or charges that are overdue, then to the current rent period.
+
+3.5 The Landlord may review the rent not more than once in any twelve (12) months, by giving the Tenant at least ninety (90) days' written notice of the new rent. The new rent applies from the start of the first rent period after the notice ends.
+
+
+4. LATE PAYMENT
+
+4.1 Rent not received within [seven (7)] days of its due date is in arrears.
+
+4.2 [The Tenant shall pay a late payment charge of UGX ________ for each rent period in arrears.] (Delete this clause if no late charge applies.)
+
+4.3 Rent in arrears for more than [thirty (30)] days is a breach of this Agreement under clause 12.3.
+
+
+5. SECURITY DEPOSIT
+
+5.1 The Tenant shall pay a security deposit of {{security_deposit}} on or before signing this Agreement.
+
+5.2 The deposit is security for the Tenant's obligations under this Agreement. It is not rent, and the Tenant may not use it to pay the last rent period(s) unless the Landlord agrees in writing.
+
+5.3 Within [thirty (30)] days after the tenancy ends and the Tenant has handed back the Premises and all keys, the Landlord shall refund the deposit, less only:
+   (a) unpaid rent or charges due under this Agreement; and
+   (b) the reasonable cost of repairing damage to the Premises beyond fair wear and tear.
+The Landlord shall give the Tenant a written list of any deductions.
+
+
+6. UTILITIES AND SERVICE CHARGES
+
+6.1 The Tenant shall pay for all electricity, water and other utilities consumed at the Premises during the tenancy, whether billed by the supplier or recharged by the Landlord against a meter reading, together with [garbage collection / security / service charges of UGX ________ per rent period].
+
+6.2 The Tenant shall not tamper with any meter, and shall pay any reconnection charges caused by the Tenant's non-payment.
+
+
+7. USE OF THE PREMISES
+
+7.1 The Tenant shall use the Premises as a private residence only, for the Tenant and the Tenant's household of not more than [____] persons.
+
+7.2 The Tenant shall not use the Premises for any illegal purpose, nor store anything dangerous, flammable or offensive there, nor cause nuisance or disturbance to neighbours or other occupants.
+
+7.3 [No pets may be kept without the Landlord's written consent.]
+
+
+8. THE TENANT'S OBLIGATIONS
+
+The Tenant shall:
+   (a) pay the rent and other charges on time;
+   (b) keep the interior of the Premises, its fixtures and fittings clean and in good condition, fair wear and tear excepted;
+   (c) carry out minor day-to-day repairs (such as replacing bulbs, fuses and tap washers) and unblock drains blocked by the Tenant's use;
+   (d) report promptly to the Landlord any damage, leak or defect that the Landlord is responsible for repairing;
+   (e) not make any structural alteration or addition, paint in a different colour, or fix any satellite dish or antenna, without the Landlord's written consent;
+   (f) not sublet, assign, share or part with possession of the Premises or any part of it without the Landlord's written consent;
+   (g) make good any damage caused by the Tenant, the Tenant's household or visitors;
+   (h) follow the estate rules issued by the Landlord from time to time, provided they are reasonable and given to the Tenant in writing; and
+   (i) at the end of the tenancy, hand back the Premises in the same condition as at the start, fair wear and tear excepted, together with all keys.
+
+
+9. THE LANDLORD'S OBLIGATIONS
+
+The Landlord shall:
+   (a) allow the Tenant quiet and peaceful enjoyment of the Premises for as long as the Tenant keeps to this Agreement;
+   (b) keep the structure and exterior of the Premises (roof, walls, foundations, external doors and windows) and the main water, drainage and electrical installations in good repair;
+   (c) keep the shared areas of {{estate_name}} reasonably clean, lit and maintained;
+   (d) carry out repairs for which the Landlord is responsible within a reasonable time of being notified;
+   (e) pay all land rates, ground rent and taxes payable by the owner of the property; and
+   (f) issue receipts for all payments received from the Tenant.
+
+
+10. ACCESS AND INSPECTION
+
+10.1 The Landlord or the Landlord's agents may enter the Premises at reasonable times to inspect them or carry out repairs, after giving the Tenant at least twenty-four (24) hours' notice.
+
+10.2 In an emergency (such as fire, flooding or a burst pipe) the Landlord may enter without notice, and shall inform the Tenant as soon as possible afterwards.
+
+10.3 During the last [thirty (30)] days of the tenancy, the Tenant shall allow prospective tenants to view the Premises at reasonable times, with notice.
+
+
+11. DAMAGE AND INSURANCE
+
+11.1 The Landlord shall insure the building. The Tenant is responsible for insuring the Tenant's own belongings.
+
+11.2 If the Premises are damaged so that they cannot be lived in, through no fault of the Tenant, rent shall stop being payable until they are made fit again, or either Party may end the tenancy by written notice.
+
+
+12. ENDING THE TENANCY
+
+12.1 Either Party may end a periodic (Ongoing) tenancy by giving the other at least [one (1) full rent period's] written notice, ending on the last day of a rent period.
+
+12.2 A fixed-term tenancy ends on its end date. The Tenant may end it early by giving [two (2) months'] written notice [and paying ________], or by finding a replacement tenant acceptable to the Landlord.
+
+12.3 If either Party breaches this Agreement, the other may give written notice describing the breach and requiring it to be put right within fourteen (14) days. If it is not put right within that time, the Party giving notice may end the tenancy by further written notice, in accordance with the law.
+
+12.4 The Landlord shall not evict the Tenant, cut off utilities, remove the Tenant's belongings or lock the Tenant out except through the procedure provided by law.
+
+
+13. HANDOVER AT THE END OF THE TENANCY
+
+13.1 Before the Tenant leaves, the Parties shall jointly inspect the Premises against the Schedule.
+
+13.2 The Tenant shall remove all of the Tenant's belongings, leave the Premises clean, settle all outstanding utility bills and return all keys, access cards and remote controls.
+
+
+14. NOTICES
+
+14.1 Notices under this Agreement must be in writing and delivered by hand, sent to the email address or telephone number (by SMS or WhatsApp) stated at the top of this Agreement, or to any other address a Party gives in writing.
+
+14.2 Invoices, receipts and payment reminders sent by the Landlord through its property management system by SMS or email are valid written communication.
+
+
+15. DISPUTES
+
+15.1 The Parties shall first try to settle any dispute amicably through discussion.
+
+15.2 If they cannot agree within fourteen (14) days, either Party may refer the dispute to mediation, the local council, or a court or tribunal with jurisdiction in Uganda.
+
+
+16. GOVERNING LAW
+
+This Agreement is governed by the laws of the Republic of Uganda, including the Landlord and Tenant Act, 2022. Nothing in this Agreement takes away any right or protection that either Party has under that Act or any other law; if any clause conflicts with the law, the law prevails and the rest of this Agreement remains in force.
+
+
+17. ENTIRE AGREEMENT
+
+This Agreement, including the Schedule and any Special Conditions below, is the whole agreement between the Parties about the tenancy. Any change must be made in writing and signed by both Parties.
+
+
+18. SPECIAL CONDITIONS
+
+[Add any conditions agreed with this tenant, or write "None".]
+____________________________________________________________________________
+____________________________________________________________________________
+
+
+SIGNED by the Parties on the dates shown below.
+
+
+LANDLORD: {{landlord_name}}
+
+Name of signatory: ______________________________   Title: ____________________
+
+Signature: ______________________________   Date: ____________________
+
+
+TENANT: {{tenant_name}}
+
+Signature: ______________________________   Date: ____________________
+
+
+WITNESS FOR THE LANDLORD
+
+Name: ______________________________   Signature: ______________________________
+
+Address / Telephone: ________________________________________________
+
+
+WITNESS FOR THE TENANT
+
+Name: ______________________________   Signature: ______________________________
+
+Address / Telephone: ________________________________________________
+
+
+
+SCHEDULE: INVENTORY AND CONDITION OF THE PREMISES ({{unit_name}}, {{estate_name}})
+
+To be completed and initialled by both Parties at the start of the tenancy.
+
+Item                                   Quantity      Condition
+____________________________________   ________      ______________________________
+____________________________________   ________      ______________________________
+____________________________________   ________      ______________________________
+____________________________________   ________      ______________________________
+____________________________________   ________      ______________________________
+
+Meter readings at start:   Electricity ____________   Water ____________
+
+Keys handed over: ________   Access cards / remotes: ________
+
+Landlord's initials: ________     Tenant's initials: ________

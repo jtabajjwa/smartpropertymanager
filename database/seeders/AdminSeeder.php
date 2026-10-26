@@ -18,6 +18,12 @@ class AdminSeeder extends Seeder
             'subscription_status' => 'active',
         ]);
 
+        app(\App\Services\StandardLeaseTemplate::class)->installFor($landlord->id);
+
+        if ($landlord->wasRecentlyCreated) {
+            app(\App\Services\SmsCredits::class)->grantStarter($landlord);
+        }
+
         User::updateOrCreate(
             ['email' => 'rhodanansubuga@gmail.com'],
             [

@@ -63,9 +63,20 @@
 
             <div>
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Accounts</p>
-                <x-sidebar-link route="staff.landlords.index" label="Landlords" icon="building" />
-                <x-sidebar-link route="staff.plans.index" label="Plans" icon="tag" />
+                @staffcan('landlords.view')<x-sidebar-link route="staff.landlords.index" label="Landlords" icon="building" />@endstaffcan
+                @staffcan('plans.view')<x-sidebar-link route="staff.plans.index" label="Plans" icon="tag" />@endstaffcan
+                @staffcan('subscriptions.view')<x-sidebar-link route="staff.subscriptions.index" label="Subscriptions" icon="clipboard" />@endstaffcan
+                @staffcan('payments.view')<x-sidebar-link route="staff.payments.index" label="Payments" icon="banknotes" />@endstaffcan
+                @staffcan('sms.view')<x-sidebar-link route="staff.sms.index" label="SMS" icon="chat" />@endstaffcan
             </div>
+
+            @if(auth('staff')->user()->hasPermission('revenue.view') || auth('staff')->user()->hasPermission('collections.view'))
+                <div>
+                    <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Finance</p>
+                    @staffcan('revenue.view')<x-sidebar-link route="staff.revenue.index" label="Revenue" icon="chart" />@endstaffcan
+                    @staffcan('collections.view')<x-sidebar-link route="staff.collections.index" label="Rent Collections" icon="banknotes" />@endstaffcan
+                </div>
+            @endif
 
             @if(auth('staff')->user()->isAdmin())
                 <div>

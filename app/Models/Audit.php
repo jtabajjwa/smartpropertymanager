@@ -21,6 +21,7 @@ class Audit extends Model
         'action',
         'old_values',
         'new_values',
+        'note',
         'ip_address',
     ];
 

@@ -77,7 +77,7 @@
                                 <td class="px-5 py-3 text-gray-700 whitespace-nowrap">
                                     <span title="{{ $audit->created_at->format('Y-m-d H:i:s') }}">{{ $audit->created_at->diffForHumans() }}</span>
                                 </td>
-                                <td class="px-5 py-3 text-gray-700 whitespace-nowrap">{{ $audit->user?->name ?? 'System' }}</td>
+                                <td class="px-5 py-3 text-gray-700 whitespace-nowrap">{{ $audit->user?->name ?? ($audit->staffUser ? $audit->staffUser->name.' (Primora staff)' : 'System') }}</td>
                                 <td class="px-5 py-3 whitespace-nowrap">
                                     @if($audit->action === 'created')
                                         <x-badge color="green">Created</x-badge>
@@ -168,7 +168,7 @@
                                     {{ $audit->record_name }} <span class="text-xs text-gray-400">#{{ $audit->auditable_id }}</span>
                                 </p>
                                 <p class="mt-0.5 text-sm text-gray-600">{{ class_basename($audit->auditable_type) }}</p>
-                                <p class="text-sm text-gray-600">{{ $audit->user?->name ?? 'System' }}</p>
+                                <p class="text-sm text-gray-600">{{ $audit->user?->name ?? ($audit->staffUser ? $audit->staffUser->name.' (Primora staff)' : 'System') }}</p>
                             </div>
                         </div>
                         <div class="mt-3 flex flex-wrap gap-2">

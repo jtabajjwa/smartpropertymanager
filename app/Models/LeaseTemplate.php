@@ -28,16 +28,45 @@ class LeaseTemplate extends Model
         'tenant_name' => "Tenant's full name",
         'tenant_email' => "Tenant's email address",
         'tenant_phone' => "Tenant's phone number",
+        'tenant_id_type' => "Tenant's ID type (National ID, Passport, …)",
+        'tenant_id_number' => "Tenant's ID / passport number",
         'landlord_name' => 'Landlord / company name',
+        'landlord_address' => "Landlord's address (from Company Profile)",
+        'landlord_phone' => "Landlord's contact phone",
+        'landlord_email' => "Landlord's contact email",
         'estate_name' => 'Estate name',
         'unit_name' => 'Unit name',
+        'property_address' => "Estate's location: area, address and district",
         'lease_number' => 'Lease number',
         'start_date' => 'Lease start date',
         'end_date' => 'Lease end date (or "Ongoing")',
         'rent_amount' => 'Rent amount (formatted, with UGX)',
         'billing_cycle' => 'Billing cycle (Monthly, Quarterly, Annual)',
         'security_deposit' => 'Security deposit (formatted, with UGX)',
+        'upfront_periods' => 'Rent periods paid in advance (e.g. "3 months")',
         'today' => "Today's date",
+    ];
+
+    /** Printed in place of a missing detail so it can be written in by hand. */
+    protected const BLANK = '____________________';
+
+    /** Shown for {{tenant_id_type}}; matches the ID types on the tenant form. */
+    protected const ID_TYPE_LABELS = [
+        'national_id' => 'National ID',
+        'passport' => 'Passport',
+        'drivers_license' => "Driver's Licence",
+        'business_registration' => 'Business Registration',
+        'other' => 'ID',
+    ];
+
+    /** Singular/plural period names for {{upfront_periods}}. */
+    protected const PERIOD_NAMES = [
+        'daily' => ['day', 'days'],
+        'weekly' => ['week', 'weeks'],
+        'fortnightly' => ['fortnight', 'fortnights'],
+        'monthly' => ['month', 'months'],
+        'quarterly' => ['quarter', 'quarters'],
+        'yearly' => ['year', 'years'],
     ];
 
     /**
@@ -57,14 +86,36 @@ class LeaseTemplate extends Model
         $tenant = $lease->tenant;
         $unit = $lease->unit;
         $estate = $unit?->estate;
+        // Read the location via the estate's own foreign key, so rendering also
+        // works outside a landlord context (the estate is already this landlord's).
+        $location = match (true) {
+            $estate === null => null,
+            $estate->relationLoaded('location') => $estate->location,
+            default => Location::withoutGlobalScopes()->find($estate->location_id),
+        };
+        $landlord = $lease->landlord;
+
+        $propertyAddress = collect([$location?->name, $location?->address, $location?->district])
+            ->filter()->unique()->implode(', ');
+
+        $periods = (int) ($lease->required_upfront_periods ?: 1);
+        [$singular, $plural] = self::PERIOD_NAMES[$lease->billing_cycle] ?? ['period', 'periods'];
 
         $replacements = [
             '{{tenant_name}}' => $tenant?->name ?? '—',
             '{{tenant_email}}' => $tenant?->email ?? '—',
             '{{tenant_phone}}' => $tenant?->primary_phone ?? '—',
-            '{{landlord_name}}' => $lease->landlord?->name ?? '—',
+            '{{tenant_id_type}}' => self::ID_TYPE_LABELS[$tenant?->id_type] ?? 'ID',
+            // Missing details print as a blank line, so they can be filled in by hand.
+            '{{tenant_id_number}}' => $tenant?->id_number ?: self::BLANK,
+            '{{landlord_name}}' => $landlord?->name ?? '—',
+            '{{landlord_address}}' => $landlord?->address ?: self::BLANK,
+            '{{landlord_phone}}' => $landlord?->contact_phone ?: self::BLANK,
+            '{{landlord_email}}' => $landlord?->contact_email ?: self::BLANK,
             '{{estate_name}}' => $estate?->name ?? '—',
             '{{unit_name}}' => $unit?->name ?? '—',
+            '{{property_address}}' => $propertyAddress ?: self::BLANK,
+            '{{upfront_periods}}' => $periods.' '.($periods === 1 ? $singular : $plural),
             '{{lease_number}}' => $lease->number ?? '—',
             '{{start_date}}' => $lease->start_date?->format('d M Y') ?? '—',
             '{{end_date}}' => $lease->end_date?->format('d M Y') ?? 'Ongoing',

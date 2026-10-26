@@ -19,6 +19,7 @@ class UpdatePlanRequest extends FormRequest
             'name' => 'required|string|max:255|unique:plans,name,' . $this->route('plan')->id,
             'pricing_model' => 'required|in:flat,tiered',
             'currency' => 'required|string|size:3',
+            'show_on_website' => 'nullable|boolean',
 
             'monthly_price' => $flat ? 'required|numeric|min:0' : 'nullable|numeric|min:0',
             'quarterly_price' => $flat ? 'required|numeric|min:0' : 'nullable|numeric|min:0',

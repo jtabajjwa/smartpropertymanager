@@ -33,4 +33,18 @@ class CompanyProfileController extends Controller
 
         return redirect()->back()->with('success', 'Company profile updated successfully.');
     }
+
+    /** Who bears the mobile money collection fee on tenant payments. */
+    public function updateCollections(\Illuminate\Http\Request $request)
+    {
+        $landlord = Landlord::findOrFail(CurrentLandlord::id());
+        abort_unless($landlord->collect_payments, 403);
+
+        $data = $request->validate(['pass_collection_fee' => ['required', 'boolean']]);
+        $landlord->update(['pass_collection_fee' => (bool) $data['pass_collection_fee']]);
+
+        return back()->with('success', $landlord->pass_collection_fee
+            ? 'Saved. Tenants will pay the collection fee on top of what they owe.'
+            : 'Saved. You will pay the collection fee; tenants pay exactly what they owe.');
+    }
 }

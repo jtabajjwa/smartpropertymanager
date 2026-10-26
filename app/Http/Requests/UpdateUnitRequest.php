@@ -20,6 +20,8 @@ class UpdateUnitRequest extends FormRequest
             'description' => 'nullable|string',
             'status' => ['sometimes', 'required', Rule::in(['vacant', 'occupied', 'maintenance'])],
             'estate_id' => ['sometimes', 'required', Rule::exists('estates', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'photo' => \App\Services\PhotoUploader::RULES,
+            'remove_photo' => 'nullable|boolean',
         ];
     }
 }

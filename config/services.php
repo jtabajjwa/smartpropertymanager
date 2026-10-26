@@ -42,4 +42,10 @@ return [
         'base_url' => env('MARZ_SMS_BASE_URL', 'https://sms.wearemarz.com/api/v1'),
     ],
 
+    // The marketing website (primoraproptech.com) reads published plans from
+    // /api/website/plans, authenticating with this shared key. Unset = API off.
+    'website' => [
+        'api_key' => env('WEBSITE_API_KEY'),
+    ],
+
 ];

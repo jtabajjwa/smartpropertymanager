@@ -63,8 +63,13 @@
                                         : 0;
                                 @endphp
                                 <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $estate->name }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                        <div class="flex items-center gap-3">
+                                            <x-photo-thumb :url="$estate->photo_url" icon="building" />
+                                            <span>{{ $estate->name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->units_count }}</td>
                                     <td class="px-6 py-4">
                                         @if($occupancyRate >= 80)
@@ -115,8 +120,11 @@
                         <div class="p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $estate->name }}</p>
-                                    <p class="mt-0.5 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }}</p>
+                                    <div class="flex items-center gap-3">
+                                        <x-photo-thumb :url="$estate->photo_url" icon="building" size="w-12 h-12" />
+                                        <p class="text-sm font-medium text-gray-900 break-words">{{ $estate->name }}</p>
+                                    </div>
+                                    <p class="mt-0.5 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></p>
                                 </div>
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="content">
@@ -162,6 +170,19 @@
         <template x-if="viewModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) viewModal = false })">
                 <x-modal title="Estate Details" maxWidth="lg">
+                    <template x-if="viewing.photo_url">
+                        <a :href="viewing.photo_url" target="_blank" rel="noopener" class="block mb-5" title="Open full photo">
+                            <img :src="viewing.photo_url" alt="" class="w-full h-56 object-cover rounded-xl border border-gray-200">
+                        </a>
+                    </template>
+                    <template x-if="viewing.latitude != null && viewing.longitude != null">
+                        <div class="mb-5" x-data="mapView(viewing.latitude, viewing.longitude)">
+                            <div class="relative z-0"><div x-ref="map" class="h-48 rounded-xl border border-gray-200 bg-gray-100 overflow-hidden"></div></div>
+                            <a :href="`https://www.google.com/maps?q=${viewing.latitude},${viewing.longitude}`" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 transition">
+                                Open in Google Maps &rarr;
+                            </a>
+                        </div>
+                    </template>
                     <div class="grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Name</p>
@@ -187,8 +208,8 @@
         {{-- Create Modal --}}
         <template x-if="createModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) createModal = false })">
-                <x-modal title="Add Estate" maxWidth="lg">
-                    <form action="{{ route('estates.store') }}" method="POST" class="space-y-5">
+                <x-modal title="Add Estate" maxWidth="xl">
+                    <form action="{{ route('estates.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
                         @csrf
                         <div>
                             <x-label :required="true">Name</x-label>
@@ -198,6 +219,8 @@
                             <x-label>Description</x-label>
                             <x-textarea name="description" placeholder="Optional description..."></x-textarea>
                         </div>
+                        <x-photo-input label="Photo (helps identify it)" />
+                        <x-map-picker />
                         <div>
                             <x-label :required="true">Location</x-label>
                             <x-search-select name="location_id" url="{{ route('search.locations') }}" placeholder="Search locations..." required />
@@ -214,8 +237,8 @@
         {{-- Edit Modal --}}
         <template x-if="editModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) editModal = false })">
-                <x-modal title="Edit Estate" maxWidth="lg">
-                    <form :action="'{{ url('estates') }}/' + editing.id" method="POST" class="space-y-5">
+                <x-modal title="Edit Estate" maxWidth="xl">
+                    <form :action="'{{ url('estates') }}/' + editing.id" method="POST" enctype="multipart/form-data" class="space-y-5">
                         @csrf
                         @method('PUT')
                         <div>
@@ -226,6 +249,8 @@
                             <x-label>Description</x-label>
                             <x-textarea name="description" x-model="editing.description"></x-textarea>
                         </div>
+                        <x-photo-input label="Photo (helps identify it)" current="editing.photo_url" />
+                        <x-map-picker lat="editing.latitude" lng="editing.longitude" />
                         <div>
                             <x-label :required="true">Location</x-label>
                             <x-search-select name="location_id" url="{{ route('search.locations') }}" placeholder="Search locations..." required />

@@ -43,6 +43,7 @@ class StaffUserController extends Controller
             'phone' => $request->phone,
             'password' => $request->password,
             'role' => $request->role,
+            'permissions' => $this->permissionsFrom($request),
             'is_active' => true,
             'must_change_password' => true,
         ]);
@@ -52,6 +53,11 @@ class StaffUserController extends Controller
 
     public function update(UpdateStaffUserRequest $request, StaffUser $staff_user)
     {
+        // Nobody changes their own role or permissions (no self-escalation, no self-lockout).
+        if ($staff_user->is($request->user('staff')) && ($request->role !== $staff_user->role || $this->permissionsFrom($request) !== $staff_user->effectivePermissions())) {
+            return redirect()->back()->with('error', "You can't change your own role or permissions. Ask another staff admin.");
+        }
+
         if ($staff_user->isAdmin() && $request->role !== 'admin' && $this->isLastActiveAdmin($staff_user)) {
             return redirect()->back()->with('error', 'Cannot change role. This is the only active admin in the system.');
         }
@@ -61,6 +67,7 @@ class StaffUserController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'role' => $request->role,
+            'permissions' => $this->permissionsFrom($request),
         ]);
 
         return redirect()->back()->with('success', 'Staff user updated successfully.');
@@ -77,6 +84,14 @@ class StaffUserController extends Controller
         $status = $staff_user->is_active ? 'activated' : 'deactivated';
 
         return redirect()->back()->with('success', "Staff user {$status} successfully.");
+    }
+
+    /** Admins have everything implicitly; others get the ticked permissions (plus what they imply). */
+    private function permissionsFrom(\Illuminate\Http\Request $request): array
+    {
+        return $request->role === 'admin'
+            ? \App\Support\StaffPermissions::all()
+            : \App\Support\StaffPermissions::normalize((array) $request->input('permissions', []));
     }
 
     private function isLastActiveAdmin(StaffUser $staff_user): bool

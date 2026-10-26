@@ -1,5 +1,6 @@
 <?php
 $config = require __DIR__ . '/config.php';
+require __DIR__ . '/lib/plans.php';
 
 // Flash message from the contact form (only touch the session if one already exists).
 $flash = null;
@@ -46,19 +47,24 @@ function icon(string $name): string
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' . $paths[$name] . '"/></svg>';
 }
 
-function logoMark(string $roof = '#1c2230'): string
+// The navy parts of the mark follow --logo-ink, so the header can flip it to white over the banner.
+function logoMark(string $ink = 'var(--logo-ink, #1c2230)'): string
 {
     return '<svg class="brand-mark" viewBox="0 0 120 120" fill="none" aria-hidden="true">'
-        . '<path d="M15 55 L60 15 L105 55" stroke="' . $roof . '" stroke-width="11" stroke-linecap="square" stroke-linejoin="miter"/>'
+        . '<path d="M15 55 L60 15 L105 55" style="stroke:' . $ink . '" stroke-width="11" stroke-linecap="square" stroke-linejoin="miter"/>'
         . '<path d="M35 72 L60 50 L85 72" stroke="#c1704a" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter"/>'
-        . '<rect x="54" y="83" width="12" height="17" rx="1" fill="' . $roof . '"/></svg>';
+        . '<rect x="54" y="83" width="12" height="17" rx="1" style="fill:' . $ink . '"/></svg>';
 }
 
 $appUrl   = rtrim($config['app_url'], '/');
 $signup   = $appUrl . '/signup';
 $login    = $appUrl . '/login';
-$currency = $config['currency'];
-$tiers    = $config['tiers'];
+// Prices come live from the Primora app (plans marked "Show on website"); see lib/plans.php.
+$pricing     = primora_pricing($config);
+$currency    = $pricing['currency'];
+$tiers       = $pricing['tiers'];
+$startUnits  = 10;
+$startTier   = primora_tier_for($tiers, $startUnits);
 $maxUnits = 60;
 $year     = date('Y');
 
@@ -105,13 +111,16 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
     <link rel="preload" href="assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="assets/fonts/inter-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/css/style.css?v=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <!-- ============ Header ============ -->
-<header class="site-header" id="top">
+<header class="site-header is-dark" id="top">
     <div class="container nav">
         <a href="#top" class="brand" aria-label="Primora home">
             <?= logoMark() ?>
@@ -157,24 +166,28 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 
 <main id="main">
 
-<!-- ============ Hero ============ -->
-<section class="hero">
-    <div class="container hero-grid">
-        <div class="hero-copy">
-            <span class="hero-badge"><span>New</span> Branded PDF invoices, emailed automatically</span>
-            <h1>Every property, lease and shilling, <em>in one place.</em></h1>
-            <p class="hero-lead">Primora handles rent invoicing, payment tracking, security deposits and tenant reminders for you. Spend less time chasing rent and more time growing your portfolio.</p>
-            <div class="hero-ctas">
-                <a class="btn btn-primary" href="<?= e($signup) ?>">Start your free trial <?= icon('arrow') ?></a>
-                <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
-            </div>
-            <ul class="hero-note">
-                <li><?= icon('check') ?> No card required</li>
-                <li><?= icon('check') ?> Set up in an afternoon</li>
-                <li><?= icon('check') ?> Built for UGX & mobile money</li>
-            </ul>
+<!-- ============ Banner ============ -->
+<section class="banner">
+    <div class="container banner-copy">
+        <span class="hero-badge"><span>New</span> Branded PDF invoices, emailed automatically</span>
+        <h1>Every property, lease and shilling, <em>in one place.</em></h1>
+        <p class="hero-lead">Primora handles rent invoicing, payment tracking, security deposits and tenant reminders for you. Spend less time chasing rent and more time growing your portfolio.</p>
+        <div class="hero-ctas">
+            <a class="btn btn-primary" href="<?= e($signup) ?>">Start your free trial <?= icon('arrow') ?></a>
+            <a class="btn btn-outline-light" href="#how-it-works">See how it works</a>
         </div>
+        <ul class="hero-note">
+            <li><?= icon('check') ?> No card required</li>
+            <li><?= icon('check') ?> Set up in an afternoon</li>
+            <li><?= icon('check') ?> Built for UGX & mobile money</li>
+        </ul>
+    </div>
+    <img class="skyline" src="assets/img/skyline.svg" alt="" width="1600" height="380">
+</section>
 
+<!-- ============ Product showcase ============ -->
+<section class="showcase" aria-label="Product preview">
+    <div class="container">
         <div class="mock-wrap" aria-hidden="true">
             <div class="mock">
                 <div class="mock-bar"><i></i><i></i><i></i><span class="mock-url">primora · dashboard</span></div>
@@ -256,7 +269,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head center">
             <span class="eyebrow">Features</span>
-            <h2 class="section-title">Everything you need to run your rentals, and nothing you don’t</h2>
+            <h2 class="section-title">Everything you need to run your rentals, <em>and nothing you don’t</em></h2>
             <p class="section-lead">From the first viewing to the final deposit refund, Primora keeps every part of your portfolio organised and every shilling accounted for.</p>
         </div>
 
@@ -277,7 +290,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head">
             <span class="eyebrow">How it works</span>
-            <h2 class="section-title">Up and running in three steps</h2>
+            <h2 class="section-title">Up and running in <em>three steps</em></h2>
             <p class="section-lead">Set it up once. From then on, Primora runs the routine work of managing rentals every day.</p>
         </div>
 
@@ -318,7 +331,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container split">
         <div>
             <span class="eyebrow">Built for how you work</span>
-            <h2 class="section-title">Made for landlords in Uganda, not adapted for them</h2>
+            <h2 class="section-title">Made for landlords in Uganda, <em>not adapted for them</em></h2>
             <p class="section-lead">Primora speaks your currency, records the payment methods your tenants actually use and reaches them on the phones they already have.</p>
             <ul class="checklist">
                 <li><span class="ic"><?= icon('check') ?></span><div><strong>Shillings throughout</strong><span>Invoices, receipts, reports and reminders all in UGX.</span></div></li>
@@ -334,10 +347,9 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                 <div class="method"><span class="logo lg-mtn">MoMo</span><span class="label">MTN Mobile Money</span><span class="amt">3,250,000</span></div>
                 <div class="method"><span class="logo lg-airtel">Airtel</span><span class="label">Airtel Money</span><span class="amt">1,400,000</span></div>
                 <div class="method"><span class="logo lg-bank"><?= icon('building') ?></span><span class="label">Bank transfer</span><span class="amt">4,800,000</span></div>
-                <div class="method"><span class="logo lg-flexi">Flexi</span><span class="label">FlexiPay</span><span class="amt">650,000</span></div>
                 <div class="method"><span class="logo lg-cash">UGX</span><span class="label">Cash</span><span class="amt">900,000</span></div>
             </div>
-            <div class="total"><span>Total received</span><strong>UGX 11,000,000</strong></div>
+            <div class="total"><span>Total received</span><strong>UGX 10,350,000</strong></div>
             <p class="foot">Each payment is matched to its invoices automatically, and tenants receive an SMS receipt.</p>
         </div>
     </div>
@@ -348,21 +360,29 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head center">
             <span class="eyebrow">Pricing</span>
-            <h2 class="section-title">Simple pricing that grows with your portfolio</h2>
+            <h2 class="section-title">Simple pricing that <em>grows with your portfolio</em></h2>
             <p class="section-lead">Every feature on every plan. You only pay according to the number of units you manage.</p>
         </div>
 
-        <div class="price-card" id="price-card" data-tiers='<?= e(json_encode($tiers)) ?>' data-max="<?= $maxUnits ?>">
+        <!-- pricing source: <?= e($pricing['source']) ?> -->
+        <div class="price-card" id="price-card" data-tiers='<?= e(json_encode($tiers)) ?>' data-currency="<?= e($currency) ?>" data-max="<?= $maxUnits ?>">
             <div class="price-calc">
-                <label for="units">How many units do you manage?</label>
-                <div class="units-readout"><output id="units-out" for="units">10</output><span>units</span></div>
-                <input class="range" type="range" id="units" min="1" max="<?= $maxUnits ?>" value="10" aria-describedby="price-amount">
+                <fieldset class="cycle">
+                    <legend class="sr-only">Billing cycle</legend>
+                    <?php foreach (['monthly' => 'Monthly', 'quarterly' => 'Quarterly', 'annual' => 'Annual'] as $value => $label): ?>
+                        <label><input type="radio" name="cycle" value="<?= $value ?>"<?= $value === 'monthly' ? ' checked' : '' ?>><span><?= $label ?></span></label>
+                    <?php endforeach; ?>
+                </fieldset>
+
+                <label for="units" class="units-label">How many units do you manage?</label>
+                <div class="units-readout"><output id="units-out" for="units"><?= $startUnits ?></output><span>units</span></div>
+                <input class="range" type="range" id="units" min="1" max="<?= $maxUnits ?>" value="<?= $startUnits ?>" aria-describedby="price-amount">
                 <div class="range-scale"><span>1</span><span>20</span><span>40</span><span><?= $maxUnits ?>+</span></div>
 
                 <div class="price-out" aria-live="polite">
-                    <div class="tier" id="price-tier">7 – 12 units</div>
-                    <div class="amount" id="price-amount"><small><?= e($currency) ?></small><strong id="price-monthly"><?= money($tiers[1][2]) ?></strong><span>/ month</span></div>
-                    <div class="annual" id="price-annual">or <?= e($currency) ?> <?= money($tiers[1][3]) ?> billed yearly</div>
+                    <div class="tier" id="price-tier"><?= $startTier[1] === null ? $startTier[0] . '+ units' : $startTier[0] . ' – ' . $startTier[1] . ' units' ?></div>
+                    <div class="amount" id="price-amount"><small><?= e($currency) ?></small><strong id="price-value"><?= money($startTier[2]) ?></strong><span id="price-period">/ month</span></div>
+                    <div class="annual" id="price-note">Billed monthly</div>
                 </div>
 
                 <a class="btn btn-primary btn-block" href="<?= e($signup) ?>">Start your free trial</a>
@@ -384,10 +404,10 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                 </ul>
 
                 <div class="tier-table">
-                    <h4>All tiers · per month</h4>
+                    <h4>All tiers · <span id="tier-period">per month</span></h4>
                     <ul id="tier-list">
-                        <?php foreach ($tiers as $i => [$min, $max, $monthly]): ?>
-                            <li data-tier="<?= $i ?>"><span><?= $max === null ? $min . '+ units' : $min . ' – ' . $max . ' units' ?></span><b><?= money($monthly) ?></b></li>
+                        <?php foreach ($tiers as $i => [$min, $max, $monthly, $quarterly, $annual]): ?>
+                            <li data-tier="<?= $i ?>"><span><?= $max === null ? $min . '+ units' : $min . ' – ' . $max . ' units' ?></span><b data-monthly="<?= money($monthly) ?>" data-quarterly="<?= money($quarterly) ?>" data-annual="<?= money($annual) ?>"><?= money($monthly) ?></b></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
@@ -401,7 +421,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container faq-grid">
         <div class="faq-aside">
             <span class="eyebrow">FAQ</span>
-            <h2 class="section-title">Questions, answered</h2>
+            <h2 class="section-title">Questions, <em>answered</em></h2>
             <p class="section-lead">Can’t find what you’re looking for? Our team is happy to walk you through Primora.</p>
             <a class="btn btn-ghost" href="#contact">Talk to us</a>
         </div>
@@ -421,7 +441,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="cta-box">
             <div>
-                <h2>Stop chasing rent. Start managing your portfolio.</h2>
+                <h2>Stop chasing rent. <em>Start managing your portfolio.</em></h2>
                 <p>Swap spreadsheets, receipt books and phone reminders for one system that keeps up with you.</p>
             </div>
             <div class="cta-actions">
@@ -437,7 +457,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container contact-grid">
         <div>
             <span class="eyebrow">Contact</span>
-            <h2 class="section-title">Let’s talk about your properties</h2>
+            <h2 class="section-title">Let’s talk about <em>your properties</em></h2>
             <p class="section-lead">Want a guided demo, help moving your records over or answers to a specific question? Send us a message and we’ll get back to you shortly.</p>
             <ul class="contact-points">
                 <?php if ($config['contact_email']): ?>
@@ -550,6 +570,6 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     </div>
 </footer>
 
-<script src="assets/js/main.js?v=1" defer></script>
+<script src="assets/js/main.js?v=4" defer></script>
 </body>
 </html>

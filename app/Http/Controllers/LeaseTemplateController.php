@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreLeaseTemplateRequest;
 use App\Http\Requests\UpdateLeaseTemplateRequest;
 use App\Models\LeaseTemplate;
+use App\Services\CurrentLandlord;
+use App\Services\StandardLeaseTemplate;
 use Illuminate\Support\Facades\DB;
 
 class LeaseTemplateController extends Controller
@@ -48,6 +50,14 @@ class LeaseTemplateController extends Controller
         });
 
         return redirect()->back()->with('success', 'Lease template updated successfully.');
+    }
+
+    /** Adds a fresh copy of the ready-made agreement (e.g. after the original was edited or deleted). */
+    public function addStandard(StandardLeaseTemplate $standard)
+    {
+        $template = $standard->installFor(CurrentLandlord::id(), freshCopy: true);
+
+        return redirect()->back()->with('success', "Added \"{$template->name}\". Edit the [bracketed] parts to suit you.");
     }
 
     public function destroy(LeaseTemplate $lease_template)

@@ -23,7 +23,19 @@ This folder lives inside the Primora app repository but is deployed separately. 
 | `contact_email`, `contact_phone`, `whatsapp`, `address` | Your public contact details. Any left empty are hidden. |
 | `mail_to` | Inbox that should receive contact-form enquiries |
 | `mail_from` | An address **on your Namecheap domain**, e.g. `no-reply@yourdomain.com`. Create it in cPanel → Email Accounts. |
-| `tiers` | Keep in line with the plans in the staff portal |
+| `tiers` | Fallback prices only. Used if the app can't be reached and nothing is cached yet. |
+
+## Live pricing from the app
+
+The Pricing section shows the plans marked **Show on website** in the staff portal (Plans → edit a plan). The website's server fetches them from `https://app.primoraproptech.com/api/website/plans` and caches them for 15 minutes in `cache/`. Visitors' browsers never contact the API.
+
+The API needs a shared secret key:
+
+1. **In the app**, set `WEBSITE_API_KEY` in the app's `.env` to a long random value. Generate one with `php -r "echo bin2hex(random_bytes(32));"`. Then run `php artisan config:clear` (or `config:cache`).
+2. **On the website**, copy `config.local.example.php` to `config.local.php` and paste the same key into it. This file holds the secret, so it is git-ignored and `.htaccess` blocks it from the web. Upload it to the server separately, and don't commit it.
+3. Make sure the `cache/` folder is writable by PHP. It normally is on cPanel.
+
+If the app is down, the site keeps showing the last prices it fetched and retries every minute. If it has never fetched any, it shows the fallback `tiers` from `config.php`. View the page source and search for `pricing source:` to see which is in use (`live`, `cache`, `stale-cache` or `fallback`).
 
 ## Deploy to Namecheap (cPanel)
 

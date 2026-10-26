@@ -1,0 +1,101 @@
+<?php
+
+namespace App\Payments\Purposes;
+
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\PaymentAllocation;
+use App\Models\PaymentTransaction;
+use App\Models\Tenant;
+use App\Payments\Contracts\PaymentPurpose;
+use App\Payments\Msisdn;
+use App\Services\CurrentLandlord;
+use App\Services\NumberGenerator;
+use App\Services\SmsNotificationService;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * A tenant paying their landlord by mobile money, into the Primora pool
+ * (settled to the landlord later). On success it is recorded in the
+ * landlord's books as a tenant payment: allocated to the chosen invoice,
+ * or left unallocated as an advance / credit.
+ *
+ * Context saved on the transaction: tenant_id, tenant_name, invoice_id,
+ * invoice_number, principal (what counts towards rent), fee, fee_bearer;
+ * payment_id once recorded.
+ */
+class RentPurpose implements PaymentPurpose
+{
+    public function code(): string
+    {
+        return 'RNT';
+    }
+
+    public function describe(PaymentTransaction $transaction): string
+    {
+        $c = $transaction->context ?? [];
+        $what = !empty($c['invoice_number']) ? "Invoice {$c['invoice_number']}" : 'Advance payment';
+        $landlordName = $transaction->landlord?->name ?? 'Landlord #'.$transaction->landlord_id;
+
+        return "{$what} | ".($c['tenant_name'] ?? 'Tenant')." | {$landlordName}";
+    }
+
+    public function onSucceeded(PaymentTransaction $transaction): void
+    {
+        $payment = CurrentLandlord::runAs($transaction->landlord_id, fn () => $this->record($transaction));
+
+        $transaction->update(['context' => ($transaction->context ?? []) + ['payment_id' => $payment->id, 'payment_number' => $payment->number]]);
+
+        // Receipt SMS to the tenant (uses the landlord's SMS credit, like any receipt).
+        DB::afterCommit(function () use ($payment, $transaction) {
+            try {
+                CurrentLandlord::runAs($transaction->landlord_id, fn () => app(SmsNotificationService::class)->paymentReceived($payment->fresh('payable')));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+    }
+
+    public function onFailed(PaymentTransaction $transaction): void
+    {
+        // Nothing was recorded for the landlord, so nothing to undo.
+    }
+
+    protected function record(PaymentTransaction $transaction): Payment
+    {
+        $c = $transaction->context ?? [];
+        $principal = (float) ($c['principal'] ?? $transaction->amount);
+        $tenant = Tenant::findOrFail($c['tenant_id'] ?? $transaction->payable_id);
+
+        $payment = Payment::create([
+            'landlord_id' => $transaction->landlord_id,
+            'payable_type' => Tenant::class,
+            'payable_id' => $tenant->id,
+            'amount' => $principal,
+            'payment_date' => ($transaction->completed_at ?? now())->toDateString(),
+            'payment_method' => Msisdn::network($transaction->msisdn) === 'Airtel' ? 'airtel_mobile_money' : 'mtn_mobile_money',
+            'reference' => $transaction->network_reference ?: ($transaction->receipt_number ?: $transaction->reference),
+            'notes' => "Paid by the tenant through Primora ({$transaction->reference}) from {$transaction->displayMsisdn()}.",
+            'status' => 'unallocated',
+        ]);
+        $payment->update(['number' => app(NumberGenerator::class)->next($transaction->landlord_id, 'payment', 'PAY')]);
+
+        if (!empty($c['invoice_id'])) {
+            $invoice = Invoice::whereKey($c['invoice_id'])->lockForUpdate()->first();
+
+            if ($invoice && !in_array($invoice->status, ['cancelled', 'paid', 'written_off'], true)) {
+                $outstanding = (float) bcsub((string) $invoice->amount, (string) $invoice->allocations()->sum('amount'), 2);
+                $allocate = min($principal, $outstanding);
+
+                if ($allocate > 0) {
+                    PaymentAllocation::create(['payment_id' => $payment->id, 'invoice_id' => $invoice->id, 'amount' => $allocate]);
+                    $invoice->syncStatus();
+                }
+            }
+        }
+
+        $payment->updateAllocationStatus();
+
+        return $payment;
+    }
+}

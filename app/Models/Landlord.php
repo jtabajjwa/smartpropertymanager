@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\LandlordScope;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Landlord extends Model
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $fillable = [
         'name',
@@ -21,6 +23,11 @@ class Landlord extends Model
         'invoice_footer_note',
         'status',
         'subscription_status',
+        'plan_id',
+        'billing_cycle',
+        'max_units',
+        'collect_payments',
+        'pass_collection_fee',
         'current_period_end',
         'grace_ends_at',
     ];
@@ -30,12 +37,82 @@ class Landlord extends Model
         return [
             'current_period_end' => 'date',
             'grace_ends_at' => 'date',
+            'max_units' => 'integer',
+            'collect_payments' => 'boolean',
+            'pass_collection_fee' => 'boolean',
         ];
+    }
+
+    public function plan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(LandlordSettlement::class);
+    }
+
+    public function smsCreditTransactions(): HasMany
+    {
+        return $this->hasMany(SmsCreditTransaction::class);
+    }
+
+    /** Days counted as "expiring soon" for an active subscription. */
+    public const EXPIRING_WITHIN_DAYS = 7;
+
+    /**
+     * Where the subscription stands right now, combining the stored status
+     * with the paid-until date: trial, trial_ended, active, expiring,
+     * expired, past_due or cancelled.
+     */
+    public function subscriptionState(): string
+    {
+        $end = $this->current_period_end;
+
+        return match ($this->subscription_status) {
+            'cancelled' => 'cancelled',
+            'past_due' => 'past_due',
+            'trialing' => $end && $end->lt(today()) ? 'trial_ended' : 'trial',
+            default => match (true) {
+                $end === null => 'active',
+                $end->lt(today()) => 'expired',
+                $end->lte(today()->addDays(self::EXPIRING_WITHIN_DAYS)) => 'expiring',
+                default => 'active',
+            },
+        };
     }
 
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /*
+     * Landlord-owned records, for staff-side counts across organisations.
+     * The landlord_id foreign key already restricts each relation to this
+     * landlord, so the "current landlord" scope is lifted (it would throw
+     * outside a landlord context, e.g. on staff list pages).
+     */
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class)->withoutGlobalScope(LandlordScope::class);
+    }
+
+    public function estates(): HasMany
+    {
+        return $this->hasMany(Estate::class)->withoutGlobalScope(LandlordScope::class);
+    }
+
+    public function units(): HasMany
+    {
+        return $this->hasMany(Unit::class)->withoutGlobalScope(LandlordScope::class);
     }
 
     public function isActive(): bool

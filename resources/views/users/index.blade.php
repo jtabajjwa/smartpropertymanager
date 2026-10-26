@@ -99,7 +99,7 @@
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
                                                     <button @click="edit({{ Js::from($user) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                                    @if($user->id !== auth()->id())
+                                                    @if(! $user->is(auth()->user()))
                                                         <form action="{{ route('users.toggle-active', $user) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to {{ $user->is_active ? 'deactivate' : 'activate' }} this user?', $el)">
                                                             @csrf
                                                             @method('PATCH')
@@ -137,7 +137,7 @@
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="content">
                                         <button @click="edit({{ Js::from($user) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                        @if($user->id !== auth()->id())
+                                        @if(! $user->is(auth()->user()))
                                             <form action="{{ route('users.toggle-active', $user) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to {{ $user->is_active ? 'deactivate' : 'activate' }} this user?', $el)">
                                                 @csrf
                                                 @method('PATCH')

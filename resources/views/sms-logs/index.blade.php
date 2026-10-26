@@ -21,14 +21,9 @@
                 <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($stats->today) }}</p>
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
-                <p class="text-xs text-gray-500 uppercase tracking-wider">SMS Balance</p>
-                <p class="text-2xl font-bold text-orange-600 mt-1">
-                    @if($balance !== null)
-                        UGX {{ number_format($balance) }}
-                    @else
-                        <span class="text-gray-500 text-sm">N/A</span>
-                    @endif
-                </p>
+                <p class="text-xs text-gray-500 uppercase tracking-wider">SMS Credit</p>
+                <p class="text-2xl font-bold {{ $balance > 0 ? 'text-orange-600' : 'text-red-600' }} mt-1">{{ number_format($balance) }} <span class="text-sm font-medium text-gray-500">SMS</span></p>
+                <a href="{{ route('sms-credits.show') }}" class="text-xs font-medium text-orange-600 hover:text-orange-700">Buy SMS →</a>
             </div>
         </div>
 
@@ -58,6 +53,7 @@
                         <option value="">All</option>
                         <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
                         <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Failed</option>
+                        <option value="no_credit" {{ request('status') === 'no_credit' ? 'selected' : '' }}>No credit</option>
                     </x-select>
                 </div>
                 <div class="w-44">
@@ -134,6 +130,8 @@
                                 <td class="px-5 py-3 whitespace-nowrap">
                                     @if($log->status === 'sent')
                                         <x-badge color="green">Sent</x-badge>
+                                    @elseif($log->status === 'no_credit')
+                                        <x-badge color="orange">No credit</x-badge>
                                     @else
                                         <x-badge color="red">Failed</x-badge>
                                     @endif
@@ -190,6 +188,8 @@
                                 <div>
                                     @if($log->status === 'sent')
                                         <x-badge color="green">Sent</x-badge>
+                                    @elseif($log->status === 'no_credit')
+                                        <x-badge color="orange">No credit</x-badge>
                                     @else
                                         <x-badge color="red">Failed</x-badge>
                                     @endif

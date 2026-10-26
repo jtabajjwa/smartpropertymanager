@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreSignupRequest;
 use App\Models\Landlord;
 use App\Models\User;
+use App\Services\StandardLeaseTemplate;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -25,6 +26,9 @@ class SignupController extends Controller
                 'status' => 'active',
                 'subscription_status' => 'trialing',
             ]);
+
+            app(StandardLeaseTemplate::class)->installFor($landlord->id);
+            app(\App\Services\SmsCredits::class)->grantStarter($landlord);
 
             return User::create([
                 'landlord_id' => $landlord->id,

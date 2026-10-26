@@ -10,7 +10,7 @@ class AuditController extends Controller
     public function index()
     {
         // Eager load polymorphic auditable relation
-        $query = Audit::with(['user', 'auditable'])
+        $query = Audit::with(['user', 'staffUser', 'auditable'])
             ->where('landlord_id', CurrentLandlord::id())
             ->latest();
 

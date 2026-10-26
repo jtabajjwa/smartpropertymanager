@@ -1,18 +1,49 @@
 (function () {
     'use strict';
 
-    // ---- Header: shadow on scroll ----
+    // ---- Header: dark over the banner, light (with border) once past it ----
     var header = document.querySelector('.site-header');
+    var banner = document.querySelector('.banner');
     function onScroll() {
-        header.classList.toggle('is-scrolled', window.scrollY > 8);
+        var overBanner = banner && banner.getBoundingClientRect().bottom > header.offsetHeight + 260;
+        var menuOpen = header.classList.contains('nav-open');
+        header.classList.toggle('is-dark', overBanner && !menuOpen);
+        header.classList.toggle('is-scrolled', !overBanner && window.scrollY > 8);
     }
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     onScroll();
+
+    // ---- Scroll reveal ----
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if ('IntersectionObserver' in window && !reduceMotion) {
+        var groups = ['.section-head', '.feature', '.step', '.split > *', '.price-card', '.faq-aside', '.faq-list', '.cta-box', '.contact-grid > *', '.strip li'];
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                var el = entry.target;
+                el.classList.add('in');
+                io.unobserve(el);
+                // hand transitions back to the element (e.g. card hover lift) once revealed
+                setTimeout(function () { el.classList.remove('reveal', 'in'); el.style.removeProperty('--d'); }, 1400);
+            });
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+
+        groups.forEach(function (selector) {
+            document.querySelectorAll(selector).forEach(function (el, i) {
+                if (el.getBoundingClientRect().top < window.innerHeight) return; // already on screen: leave as is
+                el.classList.add('reveal');
+                if (/feature|step|strip/.test(selector)) el.style.setProperty('--d', (i % 3) * 90 + 'ms');
+                io.observe(el);
+            });
+        });
+    }
 
     // ---- Mobile menu ----
     var toggle = document.querySelector('.nav-toggle');
     function setMenu(open) {
         header.classList.toggle('nav-open', open);
+        onScroll();
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     }
@@ -37,11 +68,28 @@
         var range = document.getElementById('units');
         var out = document.getElementById('units-out');
         var tierLabel = document.getElementById('price-tier');
-        var monthly = document.getElementById('price-monthly');
-        var annual = document.getElementById('price-annual');
+        var value = document.getElementById('price-value');
+        var period = document.getElementById('price-period');
+        var note = document.getElementById('price-note');
+        var tierPeriod = document.getElementById('tier-period');
         var rows = document.querySelectorAll('#tier-list li');
-        var currency = 'UGX';
+        var currency = card.getAttribute('data-currency') || 'UGX';
         var fmt = function (n) { return Number(n).toLocaleString('en-US'); };
+
+        // Tier columns: [min, max, monthly, quarterly, annual]
+        var cycles = {
+            monthly:   { col: 2, period: '/ month',   every: 'per month',   note: 'Billed monthly' },
+            quarterly: { col: 3, period: '/ quarter', every: 'per quarter', note: 'Billed every 3 months' },
+            annual:    { col: 4, period: '/ year',    every: 'per year',    note: 'Billed once a year' }
+        };
+        var cycle = 'monthly';
+
+        document.querySelectorAll('input[name="cycle"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                cycle = radio.value;
+                update();
+            });
+        });
 
         function update() {
             var units = parseInt(range.value, 10);
@@ -53,11 +101,20 @@
 
             out.textContent = units >= max ? max + '+' : units;
             tierLabel.textContent = t[1] === null ? t[0] + '+ units' : t[0] + ' – ' + t[1] + ' units';
-            monthly.textContent = fmt(t[2]);
-            annual.textContent = 'or ' + currency + ' ' + fmt(t[3]) + ' billed yearly';
+            var c = cycles[cycle];
+            value.textContent = fmt(t[c.col]);
+            period.textContent = c.period;
+            note.textContent = cycle === 'monthly'
+                ? c.note
+                : c.note + ' · works out to ' + currency + ' ' + fmt(Math.round(t[c.col] / (cycle === 'annual' ? 12 : 3))) + ' / month';
+            tierPeriod.textContent = c.every;
             range.style.setProperty('--fill', ((units - 1) / (max - 1) * 100) + '%');
 
-            rows.forEach(function (row, i) { row.classList.toggle('is-active', i === index); });
+            rows.forEach(function (row, i) {
+                row.classList.toggle('is-active', i === index);
+                var price = row.querySelector('b');
+                price.textContent = price.getAttribute('data-' + cycle);
+            });
         }
 
         range.addEventListener('input', update);

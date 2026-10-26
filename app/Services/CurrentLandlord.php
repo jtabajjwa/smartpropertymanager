@@ -16,18 +16,51 @@ class CurrentLandlord
         static::$explicit = true;
     }
 
+    /**
+     * Run $callback with $landlordId as the current landlord, then put back
+     * whatever was there (for work done outside a landlord request, e.g. a
+     * payment confirmed by a gateway callback).
+     */
+    public static function runAs(int $landlordId, callable $callback): mixed
+    {
+        [$id, $explicit] = [static::$id, static::$explicit];
+        static::set($landlordId);
+
+        try {
+            return $callback();
+        } finally {
+            [static::$id, static::$explicit] = [$id, $explicit];
+        }
+    }
+
     public static function clear(): void
     {
         static::$id = null;
         static::$explicit = false;
     }
 
+    /**
+     * The landlord whose data the current request may see.
+     *
+     * Falls back to the signed-in user when nothing was set explicitly. This
+     * matters for route-model binding, which resolves before ResolveLandlord
+     * runs: a landlord user sees their own landlord, and a staff user in
+     * "staff mode" sees the landlord whose portal they opened.
+     */
     public static function id(): ?int
     {
         if (static::$explicit) {
             return static::$id;
         }
 
-        return Auth::guard('web')->check() ? Auth::guard('web')->user()->landlord_id : null;
+        if (Auth::guard('web')->check()) {
+            return Auth::guard('web')->user()->landlord_id;
+        }
+
+        if (Auth::guard('staff')->check()) {
+            return StaffActingSession::landlordId();
+        }
+
+        return null;
     }
 }

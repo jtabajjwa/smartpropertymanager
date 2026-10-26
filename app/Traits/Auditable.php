@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\Request;
 
 trait Auditable
 {
+    /** Reason attached to the next audit entry this model writes (see withAuditNote). */
+    protected ?string $auditNote = null;
+
+    /** Attach a reason to the next change, e.g. $landlord->withAuditNote('Goodwill extension')->update([...]). */
+    public function withAuditNote(?string $note): static
+    {
+        $this->auditNote = $note;
+
+        return $this;
+    }
+
     public static function bootAuditable(): void
     {
         static::created(function ($model) {
@@ -61,13 +72,17 @@ trait Auditable
         Audit::create([
             'user_id' => Auth::guard('web')->id(),
             'staff_user_id' => Auth::guard('staff')->id(),
-            'landlord_id' => $this->landlord_id ?? null,
+            // A landlord's own record is filed under that landlord.
+            'landlord_id' => $this instanceof \App\Models\Landlord ? $this->getKey() : ($this->landlord_id ?? null),
             'auditable_type' => get_class($this),
             'auditable_id' => $this->getKey(),
             'action' => $action,
             'old_values' => $oldValues ?: null,
             'new_values' => $newValues ?: null,
             'ip_address' => Request::ip(),
-        ]);
+        ] + ($this->auditNote !== null ? ['note' => $this->auditNote] : []));
+        // (note only when set: data migrations that run before the note column exists still work)
+
+        $this->auditNote = null;
     }
 }

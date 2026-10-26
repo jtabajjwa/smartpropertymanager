@@ -1,0 +1,6 @@
+# Secrets for this machine/server (see config.local.example.php)
+/config.local.php
+
+# Runtime cache (pricing fetched from the app)
+/cache/*.json
+/cache/*.tmp

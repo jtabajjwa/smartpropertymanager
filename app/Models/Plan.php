@@ -18,6 +18,7 @@ class Plan extends Model
         'annual_price',
         'currency',
         'is_active',
+        'show_on_website',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class Plan extends Model
             'quarterly_price' => 'decimal:2',
             'annual_price' => 'decimal:2',
             'is_active' => 'boolean',
+            'show_on_website' => 'boolean',
         ];
     }
 

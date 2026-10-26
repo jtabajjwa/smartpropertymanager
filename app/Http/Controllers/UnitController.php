@@ -6,6 +6,7 @@ use App\Http\Requests\StoreUnitRequest;
 use App\Http\Requests\UpdateUnitRequest;
 use App\Models\Estate;
 use App\Models\Unit;
+use App\Services\PhotoUploader;
 use App\Services\UnitStatusService;
 
 class UnitController extends Controller
@@ -33,19 +34,30 @@ class UnitController extends Controller
 
         $units = $query->latest()->paginate(15)->withQueryString();
 
-        return view('units.index', compact('units'));
+        // Subscription unit limit (null = none), shown above the list.
+        $landlord = \App\Models\Landlord::find(\App\Services\CurrentLandlord::id());
+        $unitLimit = $landlord?->max_units === null ? null : [
+            'max' => $landlord->max_units,
+            'used' => app(\App\Services\UnitLimit::class)->used($landlord),
+        ];
+
+        return view('units.index', compact('units', 'unitLimit'));
     }
 
-    public function store(StoreUnitRequest $request)
+    public function store(StoreUnitRequest $request, PhotoUploader $photos)
     {
-        Unit::create($request->validated());
+        $landlord = \App\Models\Landlord::findOrFail(\App\Services\CurrentLandlord::id());
+        app(\App\Services\UnitLimit::class)->ensureCanAdd($landlord, asStaff: false);
+
+        $unit = Unit::create($request->safe()->except('photo'));
+        $photos->sync($request, $unit, 'units/photos');
 
         return redirect()->back()->with('success', 'Unit created successfully.');
     }
 
-    public function update(UpdateUnitRequest $request, Unit $unit)
+    public function update(UpdateUnitRequest $request, Unit $unit, PhotoUploader $photos)
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['photo', 'remove_photo']);
 
         if (isset($data['status']) && $data['status'] !== $unit->status) {
             app(UnitStatusService::class)->changeStatus($unit, $data['status']);
@@ -53,6 +65,7 @@ class UnitController extends Controller
         }
 
         $unit->update($data);
+        $photos->sync($request, $unit, 'units/photos');
 
         return redirect()->back()->with('success', 'Unit updated successfully.');
     }

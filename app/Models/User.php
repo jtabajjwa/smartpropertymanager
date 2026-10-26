@@ -51,6 +51,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return $this->role === 'admin';
     }
 
+    /** May manage this landlord's admin areas (users, audit log, company profile). */
+    public function isLandlordAdmin(): bool
+    {
+        return $this->isAdmin();
+    }
+
     public function isActive(): bool
     {
         return $this->is_active;

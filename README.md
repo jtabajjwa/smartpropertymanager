@@ -79,6 +79,16 @@ This creates one default "landlord" organization and seeds an admin login (see `
 
 You'll be forced to change the password on first login. Additional landlord organizations can self-register at `/signup` — each gets its own fully isolated data.
 
+### 4b. Make uploaded files viewable
+
+Logos and estate/unit photos are stored in `storage/app/public`. Link that folder into `public/` once per machine or server:
+
+```bash
+php artisan storage:link
+```
+
+For photo uploads, PHP must accept files up to 10 MB. In `php.ini`, set `upload_max_filesize = 10M` and `post_max_size = 12M`, and enable `extension=gd` and `extension=exif`. EXIF lets the app straighten phone photos before resizing them; without it, photos are stored unresized. On cPanel hosting these are under **Select PHP Version → Options/Extensions**.
+
 ### 5. Build frontend assets
 
 ```bash
@@ -94,6 +104,55 @@ C:\dev-tools\php8.4.25\php.exe artisan serve
 ```
 
 Visit **http://127.0.0.1:8000**.
+
+---
+
+## Daily development startup
+
+Once setup is done, this is all you need to start working each day. Run the commands from the project root, each in its own terminal.
+
+**1. Start the database.** Start WAMP (or whichever MySQL/MariaDB you use) so the database is reachable on `127.0.0.1:3306`.
+
+**2. Start the app server** (required):
+
+```bash
+C:\dev-tools\php8.4.25\php.exe artisan serve
+```
+
+- Landlord app: **http://127.0.0.1:8000** (login at `/login`, signup at `/signup`)
+- Staff portal: **http://127.0.0.1:8000/staff/login**
+
+> Tip: `php84.bat` in the project root is a local shortcut for the PHP 8.4 binary. `.\php84.bat artisan serve` does the same thing. The file isn't committed (it's in `.gitignore`), so create it on a new machine if you want it.
+
+**3. Start Vite** (optional, only when editing Blade views, CSS or JS):
+
+```bash
+npm run dev
+```
+
+This hot-reloads frontend changes in the browser. Without it, the app uses the last production build in `public/build`, so run `npm run build` before you stop working if you changed any frontend files. Vite creates a `public/hot` file while it runs. If assets ever fail to load after Vite has stopped, delete that file.
+
+**4. Run scheduled jobs** (optional, only when testing them):
+
+```bash
+# run the scheduler continuously, as production cron would
+C:\dev-tools\php8.4.25\php.exe artisan schedule:work
+
+# or trigger a single job once
+C:\dev-tools\php8.4.25\php.exe artisan invoices:generate-recurring
+C:\dev-tools\php8.4.25\php.exe artisan sms:overdue-reminders
+C:\dev-tools\php8.4.25\php.exe artisan sms:expiring-leases
+C:\dev-tools\php8.4.25\php.exe artisan sms:upcoming-invoices
+```
+
+You don't need a queue worker: all email is sent immediately, not queued.
+
+**Stopping:** press `Ctrl+C` in each terminal.
+
+**When something goes wrong:**
+- Errors are logged to `storage/logs/laravel.log`.
+- After changing `.env`, run `artisan config:clear`.
+- After pulling new code, run `composer install`, `npm install` and `artisan migrate`.
 
 ---
 

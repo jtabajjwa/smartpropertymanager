@@ -21,6 +21,9 @@ class StaffUserFactory extends Factory
             'phone' => fake()->unique()->e164PhoneNumber(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => 'user',
+            // Like existing staff after the permissions migration: everything except
+            // staff management. Use withPermissions() to test restricted staff.
+            'permissions' => \App\Support\StaffPermissions::all(),
             'is_active' => true,
             'must_change_password' => false,
             'remember_token' => Str::random(10),
@@ -30,6 +33,17 @@ class StaffUserFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn () => ['role' => 'admin']);
+    }
+
+    /** Only these permissions (plus the ones they imply). */
+    public function withPermissions(array $permissions): static
+    {
+        return $this->state(fn () => ['role' => 'user', 'permissions' => \App\Support\StaffPermissions::normalize($permissions)]);
+    }
+
+    public function withoutPermissions(): static
+    {
+        return $this->state(fn () => ['role' => 'user', 'permissions' => []]);
     }
 
     public function inactive(): static

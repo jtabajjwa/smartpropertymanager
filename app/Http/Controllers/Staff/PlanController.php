@@ -30,6 +30,7 @@ class PlanController extends Controller
                 'annual_price' => $isTiered ? 0 : $request->annual_price,
                 'currency' => strtoupper($request->currency),
                 'is_active' => true,
+                'show_on_website' => $request->boolean('show_on_website'),
             ]);
 
             if ($isTiered) {
@@ -52,6 +53,7 @@ class PlanController extends Controller
                 'quarterly_price' => $isTiered ? 0 : $request->quarterly_price,
                 'annual_price' => $isTiered ? 0 : $request->annual_price,
                 'currency' => strtoupper($request->currency),
+                'show_on_website' => $request->boolean('show_on_website'),
             ]);
 
             if ($isTiered) {

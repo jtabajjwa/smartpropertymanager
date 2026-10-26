@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\SmsLog;
-use App\Services\SmsService;
 
 class SmsLogController extends Controller
 {
@@ -46,11 +45,12 @@ class SmsLogController extends Controller
         $stats = (object) [
             'total' => SmsLog::count(),
             'sent' => SmsLog::where('status', 'sent')->count(),
-            'failed' => SmsLog::where('status', 'failed')->count(),
+            'failed' => SmsLog::whereIn('status', ['failed', 'no_credit'])->count(),
             'today' => SmsLog::whereDate('created_at', today())->count(),
         ];
 
-        $balance = app(SmsService::class)->balance();
+        // The landlord's own prepaid SMS credit (not the provider account).
+        $balance = (int) \App\Models\Landlord::whereKey(\App\Services\CurrentLandlord::id())->value('sms_balance');
 
         return view('sms-logs.index', compact('logs', 'stats', 'balance'));
     }

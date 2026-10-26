@@ -13,7 +13,7 @@ class SmsNotificationService
 {
     protected SmsService $sms;
 
-    public function __construct(SmsService $sms)
+    public function __construct(SmsService $sms, protected SmsCredits $credits)
     {
         $this->sms = $sms;
     }
@@ -160,35 +160,60 @@ class SmsNotificationService
         $this->sendAndLog($phone, $message, $tenantId, 'upcoming_reminder', 'Invoice', $invoice->id);
     }
 
+    /**
+     * Send a landlord notification SMS, paid for from the landlord's SMS
+     * credits (one credit per 160-character part). No credit, no SMS: it is
+     * logged as "no_credit" instead. Credit is returned if the send fails.
+     */
     protected function sendAndLog(string $phone, string $message, ?int $tenantId, string $type, string $refType, int $refId): void
     {
-        try {
-            $success = $this->sms->send($phone, $message);
+        $message = mb_substr($message, 0, 320); // what SmsService actually sends
+        $segments = SmsSegments::count($message);
+        $landlordId = CurrentLandlord::id();
+        $log = null;
+        $reserved = false;
 
-            SmsLog::create([
+        try {
+            $log = SmsLog::create([
                 'phone' => $phone,
                 'message' => $message,
+                'segments' => $segments,
                 'tenant_id' => $tenantId,
                 'notification_type' => $type,
                 'reference_type' => $refType,
                 'reference_id' => $refId,
+                'status' => 'pending',
+            ]);
+
+            $reserved = $landlordId && $this->credits->reserve($landlordId, $segments, $log);
+
+            if (!$reserved) {
+                $balance = $landlordId ? $this->credits->balance($landlordId) : 0;
+                $log->update(['status' => 'no_credit', 'error' => "Not enough SMS credit: needs {$segments}, balance {$balance}."]);
+
+                return;
+            }
+
+            $success = $this->sms->send($phone, $message);
+
+            if (!$success) {
+                $this->credits->release($landlordId, $segments, $log);
+                $reserved = false;
+            }
+
+            $log->update([
                 'status' => $success ? 'sent' : 'failed',
+                'credits_charged' => $success ? $segments : 0,
                 'error' => $success ? null : 'API returned failure',
             ]);
         } catch (\Throwable $e) {
             Log::error("SMS notification ({$type}) failed: {$e->getMessage()}");
 
             try {
-                SmsLog::create([
-                    'phone' => $phone,
-                    'message' => $message,
-                    'tenant_id' => $tenantId,
-                    'notification_type' => $type,
-                    'reference_type' => $refType,
-                    'reference_id' => $refId,
-                    'status' => 'failed',
-                    'error' => mb_substr($e->getMessage(), 0, 500),
-                ]);
+                if ($reserved && $log) {
+                    $this->credits->release($landlordId, $segments, $log);
+                }
+                $log?->update(['status' => 'failed', 'credits_charged' => 0, 'error' => mb_substr($e->getMessage(), 0, 500)]);
             } catch (\Throwable $logError) {
                 Log::error("SMS log write also failed: {$logError->getMessage()}");
             }

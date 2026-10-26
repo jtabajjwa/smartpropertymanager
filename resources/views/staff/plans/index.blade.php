@@ -37,6 +37,7 @@
                 quarterly_price: item.quarterly_price,
                 annual_price: item.annual_price,
                 currency: item.currency,
+                show_on_website: !!item.show_on_website,
                 tiers: (item.tiers && item.tiers.length) ? item.tiers.map(t => ({
                     min_units: t.min_units,
                     max_units: t.max_units,
@@ -56,10 +57,10 @@
                     <h3 class="text-lg font-semibold text-gray-900">Subscription Plans</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage the plans landlords can subscribe to — flat-rate or tiered by unit count.</p>
                 </div>
-                <x-button @click="createModal = true" type="button">
+                @staffcan('plans.manage')<x-button @click="createModal = true" type="button">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Add Plan
-                </x-button>
+                </x-button>@endstaffcan
             </div>
 
             {{-- Table (md and up) --}}
@@ -83,6 +84,7 @@
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $plan->name }}</td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="$plan->isTiered() ? 'blue' : 'gray'">{{ $plan->isTiered() ? 'Tiered' : 'Flat' }}</x-badge>
+                                        @if($plan->show_on_website && $plan->is_active) <x-badge color="green" class="ml-1">On website</x-badge> @endif
                                     </td>
                                     @if($plan->isTiered())
                                         <td class="px-6 py-4 text-sm text-gray-600" colspan="3">
@@ -103,7 +105,7 @@
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $plan->currency }}</td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
-                                            <x-dropdown align="right" width="48">
+                                            @staffcan('plans.manage')<x-dropdown align="right" width="48">
                                                 <x-slot name="content">
                                                     <button @click="edit({{ Js::from($plan) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     <form action="{{ route('staff.plans.destroy', $plan) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this plan? This cannot be undone.', $el)">
@@ -112,7 +114,7 @@
                                                         <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
                                                     </form>
                                                 </x-slot>
-                                            </x-dropdown>
+                                            </x-dropdown>@endstaffcan
                                         </div>
                                     </td>
                                 </tr>
@@ -136,9 +138,10 @@
                                     <p class="text-sm font-medium text-gray-900">{{ $plan->name }}</p>
                                     <div class="mt-1">
                                         <x-badge :color="$plan->isTiered() ? 'blue' : 'gray'">{{ $plan->isTiered() ? 'Tiered' : 'Flat' }}</x-badge>
+                                        @if($plan->show_on_website && $plan->is_active) <x-badge color="green" class="ml-1">On website</x-badge> @endif
                                     </div>
                                 </div>
-                                <x-dropdown align="right" width="48">
+                                @staffcan('plans.manage')<x-dropdown align="right" width="48">
                                     <x-slot name="content">
                                         <button @click="edit({{ Js::from($plan) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                         <form action="{{ route('staff.plans.destroy', $plan) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this plan? This cannot be undone.', $el)">
@@ -147,7 +150,7 @@
                                             <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
                                         </form>
                                     </x-slot>
-                                </x-dropdown>
+                                </x-dropdown>@endstaffcan
                             </div>
 
                             <div class="mt-3 text-sm text-gray-600 space-y-1">
@@ -204,6 +207,14 @@
                             <x-label :required="true">Currency</x-label>
                             <x-input name="currency" x-model="createForm.currency" maxlength="3" required class="max-w-[120px]" />
                         </div>
+
+                        <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer">
+                            <input type="checkbox" name="show_on_website" value="1"  class="mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                            <span>
+                                <span class="block text-sm font-medium text-gray-900">Show on website</span>
+                                <span class="block text-xs text-gray-500">Publish this plan's prices on primoraproptech.com. The site picks up changes within about 15 minutes.</span>
+                            </span>
+                        </label>
 
                         {{-- Flat pricing --}}
                         <div x-show="createForm.pricing_model === 'flat'" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -294,6 +305,14 @@
                             <x-label :required="true">Currency</x-label>
                             <x-input name="currency" x-model="editing.currency" maxlength="3" required class="max-w-[120px]" />
                         </div>
+
+                        <label class="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer">
+                            <input type="checkbox" name="show_on_website" value="1" x-model="editing.show_on_website" class="mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                            <span>
+                                <span class="block text-sm font-medium text-gray-900">Show on website</span>
+                                <span class="block text-xs text-gray-500">Publish this plan's prices on primoraproptech.com. The site picks up changes within about 15 minutes.</span>
+                            </span>
+                        </label>
 
                         {{-- Flat pricing --}}
                         <div x-show="editing.pricing_model === 'flat'" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
