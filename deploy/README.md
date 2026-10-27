@@ -83,7 +83,7 @@ sudo primora env staging
 
 This opens `.env` in nano. Save and exit, and the app picks up the changes. Values to set:
 - `YO_API_USERNAME` / `YO_API_PASSWORD`. Staging uses `YO_MODE=sandbox`.
-- SMTP: set `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`. Until then, email goes to the log.
+- SMTP: set `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`. Until then, email goes to the log. Test it with `sudo primora artisan <env> mail:test you@example.com`, which shows the settings in use and the mail server's error if sending fails.
 - `MARZ_SMS_ENABLED=true` with the API key and secret.
 - `WEBSITE_API_KEY`: generated already. For production, copy it into the website's `config.local.php`.
 - The Yo! withdrawal signing key: put it in `/etc/primora/keys/<env>-yo.pem` (owner root, group `primora-<env>`, mode 640) and set `YO_PRIVATE_KEY_PATH`.
