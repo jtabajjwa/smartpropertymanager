@@ -65,6 +65,25 @@ $currency    = $pricing['currency'];
 $tiers       = $pricing['tiers'];
 $startUnits  = 10;
 $startTier   = primora_tier_for($tiers, $startUnits);
+// Two or more published plans with feature lists: show a plan switcher and a comparison.
+$comparePlans = primora_comparable_plans($pricing);
+$catalogue    = $pricing['catalogue'] ?? [];
+// True when no published plan leaves a feature out (so "every feature on every plan" holds).
+$onEveryPlan  = function (string $feature) use ($comparePlans): bool {
+    foreach ($comparePlans as $plan) {
+        if (!in_array($feature, $plan['features'], true)) {
+            return false;
+        }
+    }
+    return true;
+};
+$everyFeatureEverywhere = !$comparePlans || count(array_filter($catalogue, $onEveryPlan)) === count($catalogue);
+$primaryIndex = 0;
+foreach ($comparePlans as $i => $plan) {
+    if (!empty($plan['primary'])) {
+        $primaryIndex = $i;
+    }
+}
 $maxUnits = 60;
 $year     = date('Y');
 
@@ -114,7 +133,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
-    <link rel="stylesheet" href="assets/css/style.css?v=3">
+    <link rel="stylesheet" href="assets/css/style.css?v=4">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -361,12 +380,20 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
         <div class="section-head center">
             <span class="eyebrow">Pricing</span>
             <h2 class="section-title">Simple pricing that <em>grows with your portfolio</em></h2>
-            <p class="section-lead">Every feature on every plan. You only pay according to the number of units you manage.</p>
+            <p class="section-lead"><?= $everyFeatureEverywhere ? 'Every feature on every plan. You only pay according to the number of units you manage.' : 'The essentials on every plan. Choose the plan that fits, and pay according to the number of units you manage.' ?></p>
         </div>
 
         <!-- pricing source: <?= e($pricing['source']) ?> -->
-        <div class="price-card" id="price-card" data-tiers='<?= e(json_encode($tiers)) ?>' data-currency="<?= e($currency) ?>" data-max="<?= $maxUnits ?>">
+        <div class="price-card" id="price-card" data-tiers='<?= e(json_encode($tiers)) ?>' data-plans='<?= e(json_encode(array_map(fn ($p) => ['name' => $p['name'], 'tiers' => $p['tiers']], $comparePlans))) ?>' data-currency="<?= e($currency) ?>" data-max="<?= $maxUnits ?>">
             <div class="price-calc">
+                <?php if ($comparePlans): ?>
+                    <fieldset class="cycle plan-pick" style="grid-template-columns: repeat(<?= count($comparePlans) ?>, 1fr)">
+                        <legend class="sr-only">Plan</legend>
+                        <?php foreach ($comparePlans as $i => $plan): ?>
+                            <label><input type="radio" name="plan" value="<?= $i ?>"<?= $i === $primaryIndex ? ' checked' : '' ?>><span><?= e($plan['name']) ?></span></label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                <?php endif; ?>
                 <fieldset class="cycle">
                     <legend class="sr-only">Billing cycle</legend>
                     <?php foreach (['monthly' => 'Monthly', 'quarterly' => 'Quarterly', 'annual' => 'Annual'] as $value => $label): ?>
@@ -390,16 +417,18 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
             </div>
 
             <div class="price-incl">
-                <h3>Everything included</h3>
-                <p>No add-ons, no feature tiers.</p>
+                <h3><?= $everyFeatureEverywhere ? 'Everything included' : 'On every plan' ?></h3>
+                <p><?= $everyFeatureEverywhere ? 'No add-ons, no feature tiers.' : 'See what each plan adds in the comparison below.' ?></p>
                 <ul class="incl-list">
                     <li><?= icon('check') ?> Unlimited tenants, leases & invoices</li>
                     <li><?= icon('check') ?> Automatic recurring rent invoicing</li>
                     <li><?= icon('check') ?> SMS reminders & payment receipts</li>
                     <li><?= icon('check') ?> Branded PDF invoices by email</li>
                     <li><?= icon('check') ?> Security deposit ledger</li>
-                    <li><?= icon('check') ?> Expenses, vendors & job cards</li>
-                    <li><?= icon('check') ?> Team accounts & full audit log</li>
+                    <li><?= icon('check') ?> <?= $onEveryPlan('Vendors & job cards') ? 'Expenses, vendors & job cards' : 'Expense tracking' ?></li>
+                    <?php if ($onEveryPlan('Team members') && $onEveryPlan('Audit log')): ?>
+                        <li><?= icon('check') ?> Team accounts & full audit log</li>
+                    <?php endif; ?>
                     <li><?= icon('check') ?> Dashboard, reports & CSV exports</li>
                 </ul>
 
@@ -413,6 +442,48 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                 </div>
             </div>
         </div>
+
+        <?php if ($comparePlans): ?>
+            <div class="compare" id="compare">
+                <h3 class="compare-title">Compare plans</h3>
+                <div class="compare-scroll" tabindex="0" role="region" aria-label="Plan comparison">
+                    <table class="compare-table">
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="sr-only">Feature</span></th>
+                                <?php foreach ($comparePlans as $plan): ?>
+                                    <th scope="col">
+                                        <span class="plan-name"><?= e($plan['name']) ?></span>
+                                        <span class="plan-from">From <?= e($currency) ?> <b><?= money($plan['tiers'][0][2]) ?></b> / month</span>
+                                    </th>
+                                <?php endforeach; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th scope="row"><?= $everyFeatureEverywhere ? 'Everything listed above' : 'Everything listed under “On every plan”' ?></th>
+                                <?php foreach ($comparePlans as $plan): ?>
+                                    <td class="yes"><?= icon('check') ?><span class="sr-only">Included</span></td>
+                                <?php endforeach; ?>
+                            </tr>
+                            <?php foreach ($catalogue as $feature): ?>
+                                <tr>
+                                    <th scope="row"><?= e($feature) ?></th>
+                                    <?php foreach ($comparePlans as $plan): ?>
+                                        <?php if (in_array($feature, $plan['features'], true)): ?>
+                                            <td class="yes"><?= icon('check') ?><span class="sr-only">Included</span></td>
+                                        <?php else: ?>
+                                            <td class="no"><span aria-hidden="true">–</span><span class="sr-only">Not included</span></td>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="compare-note">“From” is the price for the fewest units, billed monthly. Use the calculator above for your number of units.</p>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -570,6 +641,6 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     </div>
 </footer>
 
-<script src="assets/js/main.js?v=4" defer></script>
+<script src="assets/js/main.js?v=5" defer></script>
 </body>
 </html>

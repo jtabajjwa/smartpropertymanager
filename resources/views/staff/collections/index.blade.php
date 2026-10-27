@@ -6,7 +6,7 @@
     <div class="py-2" x-data="{
         tierModal: false,
         tier: {},
-        newTier() { this.tier = { id: null, min_amount: '', max_amount: '', fixed_fee: '', percent_fee: 0 }; this.tierModal = true; },
+        newTier(kind) { this.tier = { id: null, kind: kind || 'collection', min_amount: '', max_amount: '', fixed_fee: '', percent_fee: 0 }; this.tierModal = true; },
         editTier(t) { this.tier = { ...t }; this.tierModal = true; },
     }">
         <div class="max-w-7xl mx-auto space-y-6">
@@ -23,10 +23,10 @@
                 <x-stat-card label="Collection fees" :value="$ugx($totals['fees'])">
                     <x-slot name="sub">Covers Yo! inbound charges</x-slot>
                 </x-stat-card>
-                <x-stat-card label="Settled to landlords" :value="$ugx($totals['settled'])" />
-                <div class="bg-white rounded-2xl shadow-sm border {{ $totals['owed'] - $totals['settled'] > 0 ? 'border-orange-300' : 'border-gray-200' }} p-5">
+                <x-stat-card label="Paid out to landlords" :value="$ugx($totals['settled'])" />
+                <div class="bg-white rounded-2xl shadow-sm border {{ $totals['owed'] > 0 ? 'border-orange-300' : 'border-gray-200' }} p-5">
                     <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Owed to landlords</p>
-                    <p class="mt-2 text-2xl font-bold text-gray-900">{{ $ugx($totals['owed'] - $totals['settled']) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-gray-900">{{ $ugx($totals['owed']) }}</p>
                     <p class="mt-1 text-xs text-gray-500">Not yet settled</p>
                 </div>
             </div>
@@ -36,13 +36,13 @@
                 <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <h3 class="text-base font-semibold text-gray-900">Landlords</h3>
-                        <p class="mt-0.5 text-sm text-gray-500">{{ request('show') === 'all' ? 'All landlords.' : 'Landlords switched on, or with collections.' }}</p>
+                        <p class="mt-0.5 text-sm text-gray-500">{{ request('show') === 'enabled' ? 'Landlords switched on, or with collections.' : 'All landlords. Switch tenant mobile money payments on or off here.' }}</p>
                     </div>
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <x-input name="search" value="{{ request('search') }}" placeholder="Search landlord…" class="w-56" />
                         <x-select name="show" class="w-44">
-                            <option value="">Switched on / active</option>
-                            <option value="all" @selected(request('show') === 'all')>All landlords</option>
+                            <option value="">All landlords</option>
+                            <option value="enabled" @selected(request('show') === 'enabled')>Switched on / with collections</option>
                         </x-select>
                         <x-button type="submit">Filter</x-button>
                     </form>
@@ -62,7 +62,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse($landlords as $landlord)
-                                @php $owed = (float) $landlord->rent_owed - (float) $landlord->settled; @endphp
+                                @php $owed = (float) ($payables[$landlord->id] ?? 0); @endphp
                                 <tr>
                                     <td class="px-5 py-3">
                                         <a href="{{ route('staff.collections.show', $landlord) }}" class="font-medium text-gray-900 hover:text-orange-600">{{ $landlord->name }}</a>
@@ -86,7 +86,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="px-5 py-10 text-center text-gray-500">No landlords collect rent through Primora yet. Choose "All landlords" to switch one on.</td></tr>
+                                <tr><td colspan="7" class="px-5 py-10 text-center text-gray-500">No landlords match.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -98,45 +98,45 @@
 
             {{-- Fee bands --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
-                <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h3 class="text-base font-semibold text-gray-900">Collection fee bands</h3>
-                        <p class="mt-0.5 text-sm text-gray-500">The charge per tenant payment, by amount (match Yo!'s inbound charges). Landlords bear it unless they choose to pass it to tenants.</p>
-                    </div>
-                    @staffcan('collections.manage')<x-button type="button" @click="newTier()">Add band</x-button>@endstaffcan
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-base font-semibold text-gray-900">Fee bands</h3>
+                    <p class="mt-0.5 text-sm text-gray-500">Charges by amount. Keep them in line with Yo!'s tariff (and the bank's EFT charge): they set what's charged on tenant payments and deducted from landlord payouts, and how Yo! charges are booked.</p>
                 </div>
-                @if($tiers->isEmpty())
-                    <p class="px-6 py-8 text-center text-sm text-gray-500">No fee bands yet, so no fee is charged on tenant payments.</p>
-                @else
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-200">
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount paid (UGX)</th>
-                                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Fixed fee</th>
-                                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">+ Percent</th>
-                                @staffcan('collections.manage')<th class="px-6 py-3"></th>@endstaffcan
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            @foreach($tiers as $t)
-                                <tr>
-                                    <td class="px-6 py-3 text-gray-900">{{ $t->label() }}</td>
-                                    <td class="px-6 py-3 text-right">{{ number_format((float) $t->fixed_fee) }}</td>
-                                    <td class="px-6 py-3 text-right text-gray-600">{{ (float) $t->percent_fee ? rtrim(rtrim(number_format((float) $t->percent_fee, 3), '0'), '.').'%' : '—' }}</td>
-                                    @staffcan('collections.manage')
-                                        <td class="px-6 py-3 text-right whitespace-nowrap">
-                                            <button type="button" class="text-sm font-medium text-gray-600 hover:text-orange-600" @click="editTier({{ Js::from(['id' => $t->id, 'min_amount' => (float) $t->min_amount, 'max_amount' => $t->max_amount === null ? '' : (float) $t->max_amount, 'fixed_fee' => (float) $t->fixed_fee, 'percent_fee' => (float) $t->percent_fee]) }})">Edit</button>
-                                            <form method="POST" action="{{ route('staff.collections.tiers.destroy', $t) }}" class="inline" @submit.prevent="$store.confirm.open('Delete this fee band?', $el)">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="ml-3 text-sm font-medium text-red-600 hover:text-red-700">Delete</button>
-                                            </form>
-                                        </td>
-                                    @endstaffcan
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
+                <div class="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+                    @foreach(\App\Models\CollectionFeeTier::KINDS as $kind => $kindLabel)
+                        @php $list = $tiers[$kind] ?? collect(); @endphp
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-sm font-semibold text-gray-900">{{ $kindLabel }}</h4>
+                                @staffcan('collections.manage')<button type="button" class="text-sm font-medium text-orange-600 hover:text-orange-700" @click="newTier('{{ $kind }}')">+ Band</button>@endstaffcan
+                            </div>
+                            @if($list->isEmpty())
+                                <p class="text-sm text-gray-500">No bands: no charge.</p>
+                            @else
+                                <table class="min-w-full text-sm">
+                                    <thead><tr class="text-xs uppercase tracking-wide text-gray-500"><th class="py-1 text-left font-semibold">Amount</th><th class="py-1 text-right font-semibold">Fee</th>@staffcan('collections.manage')<th></th>@endstaffcan</tr></thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        @foreach($list as $t)
+                                            <tr>
+                                                <td class="py-2 text-gray-900">{{ $t->label() }}</td>
+                                                <td class="py-2 text-right whitespace-nowrap">{{ $t->feeLabel() }}</td>
+                                                @staffcan('collections.manage')
+                                                    <td class="py-2 pl-3 text-right whitespace-nowrap">
+                                                        <button type="button" class="text-xs text-gray-500 hover:text-orange-600" @click="editTier({{ Js::from(['id' => $t->id, 'kind' => $t->kind, 'min_amount' => (float) $t->min_amount, 'max_amount' => $t->max_amount === null ? '' : (float) $t->max_amount, 'fixed_fee' => (float) $t->fixed_fee, 'percent_fee' => (float) $t->percent_fee]) }})">Edit</button>
+                                                        <form method="POST" action="{{ route('staff.collections.tiers.destroy', $t) }}" class="inline" @submit.prevent="$store.confirm.open('Delete this fee band?', $el)">
+                                                            @csrf @method('DELETE')
+                                                            <button type="submit" class="ml-2 text-xs text-red-600 hover:text-red-700">Delete</button>
+                                                        </form>
+                                                    </td>
+                                                @endstaffcan
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
 
@@ -146,6 +146,8 @@
                     <form method="POST" :action="tier.id ? '{{ url('staff/collections/tiers') }}/' + tier.id : '{{ route('staff.collections.tiers.store') }}'" class="space-y-4">
                         @csrf
                         <template x-if="tier.id"><input type="hidden" name="_method" value="PUT"></template>
+                        <input type="hidden" name="kind" :value="tier.kind">
+                        <p class="text-sm font-medium text-gray-700" x-text="{{ Js::from(\App\Models\CollectionFeeTier::KINDS) }}[tier.kind]"></p>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <x-label :required="true">From (UGX)</x-label>

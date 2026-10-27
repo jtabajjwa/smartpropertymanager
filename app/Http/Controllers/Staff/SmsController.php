@@ -70,6 +70,7 @@ class SmsController extends Controller
     public function storePurchase(Request $request)
     {
         $data = $request->validate($this->purchaseRules());
+        $data['paid_from'] ??= 'bank';
 
         SmsPurchase::create($data + ['recorded_by_staff_user_id' => $request->user('staff')->id]);
 
@@ -78,7 +79,9 @@ class SmsController extends Controller
 
     public function updatePurchase(Request $request, SmsPurchase $purchase)
     {
-        $purchase->update($request->validate($this->purchaseRules()));
+        $data = $request->validate($this->purchaseRules());
+        $data['paid_from'] ??= $purchase->paid_from ?? 'bank';
+        $purchase->update($data);
 
         return back()->with('success', 'Purchase updated.');
     }
@@ -96,6 +99,7 @@ class SmsController extends Controller
             'provider' => ['required', 'string', 'max:100'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100000000'],
             'total_cost' => ['required', 'numeric', 'min:0', 'max:9999999999'],
+            'paid_from' => ['nullable', Rule::in(['bank', 'yo_pool', 'momo_wallet', 'cash'])],
             'purchased_on' => ['required', 'date', 'before_or_equal:today'],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],

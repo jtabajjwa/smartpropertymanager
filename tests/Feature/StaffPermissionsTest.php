@@ -66,6 +66,11 @@ function guardedRoutes(): array
         ['post', 'staff.sms.adjust', fn ($f) => [$f['landlord']], 'sms.credits'],
         ['post', 'staff.sms.sales.store', fn ($f) => [$f['landlord']], 'sms.credits'],
         ['get', 'staff.revenue.index', fn ($f) => [], 'revenue.view'],
+        ['get', 'staff.collections.index', fn ($f) => [], 'collections.view'],
+        ['get', 'staff.collections.show', fn ($f) => [$f['landlord']], 'collections.view'],
+        ['post', 'staff.collections.toggle', fn ($f) => [$f['landlord']], 'collections.manage'],
+        ['post', 'staff.collections.tiers.store', fn ($f) => [], 'collections.manage'],
+        ['post', 'staff.collections.settlements.store', fn ($f) => [$f['landlord']], 'collections.settle'],
     ];
 }
 

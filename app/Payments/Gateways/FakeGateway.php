@@ -3,7 +3,9 @@
 namespace App\Payments\Gateways;
 
 use App\Models\PaymentTransaction;
+use App\Models\Liquidation;
 use App\Payments\Contracts\PaymentGateway;
+use App\Payments\Contracts\PayoutGateway;
 use App\Payments\GatewayNotification;
 use App\Payments\GatewayResult;
 use Illuminate\Http\Request;
@@ -15,7 +17,7 @@ use Illuminate\Http\Request;
  *
  * Refuses to run in production.
  */
-class FakeGateway implements PaymentGateway
+class FakeGateway implements PaymentGateway, PayoutGateway
 {
     public function __construct(protected array $config)
     {
@@ -91,5 +93,62 @@ class FakeGateway implements PaymentGateway
         if (app()->environment('production')) {
             throw new \RuntimeException('The fake payment gateway cannot be used in production.');
         }
+    }
+
+    // --- Payouts ----------------------------------------------------------
+
+    public function canSendPayouts(): bool
+    {
+        return $this->isConfigured();
+    }
+
+    public function sendPayout(Liquidation $liquidation): GatewayResult
+    {
+        $this->guard();
+        $this->logPayout($liquidation, 'withdraw-funds', "Simulated withdrawal of UGX {$liquidation->net_amount} to {$liquidation->destinationSummary()}", 'Simulated: accepted, pending');
+
+        return GatewayResult::pending('Simulated withdrawal accepted.', gatewayReference: 'FAKE-'.$liquidation->external_reference);
+    }
+
+    public function checkPayout(Liquidation $liquidation): GatewayResult
+    {
+        $this->guard();
+
+        if (($liquidation->sent_at ?? now())->diffInSeconds(now()) < ($this->config['succeed_after_seconds'] ?? 8)) {
+            $this->logPayout($liquidation, 'check-status', "Simulated status check for {$liquidation->external_reference}", 'Simulated: still pending');
+
+            return GatewayResult::pending('Withdrawal in progress (simulated).');
+        }
+
+        if (str_ends_with((string) (int) $liquidation->net_amount, '44')) {
+            $this->logPayout($liquidation, 'check-status', "Simulated status check for {$liquidation->external_reference}", 'Simulated: FAILED');
+
+            return GatewayResult::failed('Simulated failure: the receiving number could not be credited.');
+        }
+
+        $this->logPayout($liquidation, 'check-status', "Simulated status check for {$liquidation->external_reference}", 'Simulated: SUCCEEDED');
+
+        return new GatewayResult(
+            \App\Models\PaymentTransaction::SUCCEEDED,
+            gatewayReference: 'FAKE-'.$liquidation->external_reference,
+            networkReference: 'SIM'.random_int(10000000, 99999999),
+            message: 'Simulated withdrawal completed.',
+            amount: (float) $liquidation->net_amount,
+        );
+    }
+
+    public function registerBankAccount(\App\Models\PayoutAccount $account, array $bank): string
+    {
+        $this->guard();
+
+        return 'FAKE-BANK-'.$account->id;
+    }
+
+    protected function logPayout(Liquidation $liquidation, string $action, string $request, string $response): void
+    {
+        app(\App\Payments\GatewayLogger::class)->record(
+            null, $this->name(), $action, \App\Models\PaymentGatewayLog::OUTBOUND,
+            requestBody: $request, responseStatus: 200, responseBody: $response, durationMs: 0, note: 'Simulated (fake gateway)', liquidation: $liquidation,
+        );
     }
 }

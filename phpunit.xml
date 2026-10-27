@@ -18,6 +18,8 @@
         </include>
     </source>
     <php>
+        <!-- PDF and spreadsheet tests need more than the default CLI limit across a full run. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

@@ -16,7 +16,7 @@ class PaymentGatewayLog extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
-        'payment_transaction_id', 'gateway', 'action', 'direction', 'url', 'request_body',
+        'payment_transaction_id', 'liquidation_id', 'gateway', 'action', 'direction', 'url', 'request_body',
         'response_status', 'response_body', 'error', 'duration_ms', 'note',
     ];
 
@@ -28,6 +28,11 @@ class PaymentGatewayLog extends Model
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(PaymentTransaction::class, 'payment_transaction_id');
+    }
+
+    public function liquidation(): BelongsTo
+    {
+        return $this->belongsTo(Liquidation::class);
     }
 
     public function isSuccessfulHttp(): bool

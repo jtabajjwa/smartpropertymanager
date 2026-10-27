@@ -323,6 +323,7 @@ class PaymentService
             if ($to === PaymentTransaction::SUCCEEDED && !$locked->applied_at) {
                 $handler->onSucceeded($locked);
                 $locked->update(['applied_at' => now()]);
+                \App\Accounting\BookKeeper::attempt(fn () => app(\App\Accounting\Postings::class)->paymentSucceeded($locked->fresh(['landlord'])));
             } elseif ($to === PaymentTransaction::FAILED && $from !== PaymentTransaction::FAILED) {
                 $handler->onFailed($locked);
             }

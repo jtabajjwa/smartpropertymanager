@@ -10,7 +10,13 @@ class CollectionFeeTier extends Model
 {
     use Auditable;
 
-    protected $fillable = ['min_amount', 'max_amount', 'fixed_fee', 'percent_fee'];
+    public const KINDS = [
+        'collection' => 'Tenant collections',
+        'payout_mobile_money' => 'Payouts by mobile money',
+        'payout_bank' => 'Payouts by bank transfer (Yo! bank tariff)',
+    ];
+
+    protected $fillable = ['kind', 'min_amount', 'max_amount', 'fixed_fee', 'percent_fee'];
 
     protected function casts(): array
     {
@@ -20,6 +26,20 @@ class CollectionFeeTier extends Model
     public function feeFor(float $amount): float
     {
         return (float) ceil((float) $this->fixed_fee + $amount * (float) $this->percent_fee / 100);
+    }
+
+    /** "300", "2%" or "300 + 2%" (Yo! bands are either a flat fee or a percentage). */
+    public function feeLabel(): string
+    {
+        $fixed = (float) $this->fixed_fee;
+        $percent = (float) $this->percent_fee;
+        $pct = rtrim(rtrim(number_format($percent, 3), '0'), '.').'%';
+
+        return match (true) {
+            $fixed > 0 && $percent > 0 => number_format($fixed).' + '.$pct,
+            $percent > 0 => $pct,
+            default => number_format($fixed),
+        };
     }
 
     public function label(): string

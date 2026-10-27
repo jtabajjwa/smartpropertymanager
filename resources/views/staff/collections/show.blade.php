@@ -3,7 +3,7 @@
 
     @php
         $ugx = fn ($v) => 'UGX '.number_format((float) $v);
-        $owed = (float) $landlord->rent_owed - (float) $landlord->settled;
+        $owed = (float) $owedNow;
         $statusColors = ['succeeded' => 'green', 'pending' => 'orange', 'indeterminate' => 'orange', 'failed' => 'red'];
     @endphp
 

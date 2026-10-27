@@ -92,12 +92,14 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
     Route::resource('expenses', \App\Http\Controllers\ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('expense-items', \App\Http\Controllers\ExpenseItemController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('utilities', \App\Http\Controllers\UtilityController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::resource('vendors', \App\Http\Controllers\VendorController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::resource('vendor-jobs', \App\Http\Controllers\VendorJobController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::middleware('feature:vendors')->group(function () {
+        Route::resource('vendors', \App\Http\Controllers\VendorController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('vendor-jobs', \App\Http\Controllers\VendorJobController::class)->only(['index', 'store', 'update', 'destroy']);
+    });
 
     // Admin-only
     Route::middleware('admin')->group(function () {
-        Route::get('audits', [\App\Http\Controllers\AuditController::class, 'index'])->name('audits.index');
+        Route::get('audits', [\App\Http\Controllers\AuditController::class, 'index'])->middleware('feature:audit_log')->name('audits.index');
         Route::get('sms-logs', [\App\Http\Controllers\SmsLogController::class, 'index'])->name('sms-logs.index');
         Route::get('users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
         Route::post('users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
@@ -109,6 +111,27 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
         Route::get('sms-credits', [\App\Http\Controllers\SmsCreditController::class, 'show'])->name('sms-credits.show');
         Route::post('sms-credits/buy', [\App\Http\Controllers\SmsCreditController::class, 'buy'])->middleware('throttle:10,1')->name('sms-credits.buy');
         Route::get('sms-credits/payments/{reference}', [\App\Http\Controllers\LandlordPaymentController::class, 'status'])->middleware('throttle:60,1')->name('sms-credits.payment-status');
+        // Payouts of rent Primora collected (landlords Primora collects for)
+        Route::get('payouts', [\App\Http\Controllers\PayoutController::class, 'index'])->name('payouts.index');
+        Route::post('payouts', [\App\Http\Controllers\PayoutController::class, 'store'])->middleware('throttle:10,1')->name('payouts.store');
+        Route::post('payouts/{liquidation}/cancel', [\App\Http\Controllers\PayoutController::class, 'cancel'])->name('payouts.cancel');
+        Route::post('payouts/accounts', [\App\Http\Controllers\PayoutController::class, 'storeAccount'])->middleware('throttle:10,1')->name('payouts.accounts.store');
+        Route::delete('payouts/accounts/{payoutAccount}', [\App\Http\Controllers\PayoutController::class, 'destroyAccount'])->name('payouts.accounts.destroy');
+        // Books & taxes (from what the landlord already records)
+        Route::get('books', [\App\Http\Controllers\BooksController::class, 'index'])->middleware('feature:books')->name('books.index');
+        Route::get('books/income-statement', [\App\Http\Controllers\BooksController::class, 'incomeStatement'])->middleware('feature:books')->name('books.income-statement');
+        Route::get('books/by-property', [\App\Http\Controllers\BooksController::class, 'byProperty'])->middleware('feature:books')->name('books.by-property');
+        Route::get('books/trial-balance', [\App\Http\Controllers\BooksController::class, 'trialBalance'])->middleware('feature:books,books_advanced')->name('books.trial-balance');
+        Route::get('books/balance-sheet', [\App\Http\Controllers\BooksController::class, 'balanceSheet'])->middleware('feature:books,books_advanced')->name('books.balance-sheet');
+        Route::get('books/accounts', [\App\Http\Controllers\BooksController::class, 'accounts'])->middleware('feature:books,books_advanced')->name('books.accounts');
+        Route::get('books/accounts/{account}', [\App\Http\Controllers\BooksController::class, 'account'])->where('account', '[a-z_]+(:[0-9]+)?')->middleware('feature:books,books_advanced')->name('books.account');
+        Route::get('books/taxes', [\App\Http\Controllers\BooksController::class, 'taxes'])->middleware('feature:books')->name('books.taxes');
+        Route::get('books/tax-pack', [\App\Http\Controllers\BooksController::class, 'pack'])->middleware('feature:books')->name('books.pack');
+        Route::post('books/tax-payments', [\App\Http\Controllers\BooksController::class, 'storeTaxPayment'])->middleware('feature:books')->name('books.tax-payments.store');
+        Route::delete('books/tax-payments/{taxPayment}', [\App\Http\Controllers\BooksController::class, 'destroyTaxPayment'])->whereNumber('taxPayment')->middleware('feature:books')->name('books.tax-payments.destroy');
+        Route::get('books/settings', [\App\Http\Controllers\BooksController::class, 'settings'])->middleware('feature:books')->name('books.settings');
+        Route::put('books/settings', [\App\Http\Controllers\BooksController::class, 'updateSettings'])->middleware('feature:books')->name('books.settings.update');
+        Route::put('books/settings/taxes', [\App\Http\Controllers\BooksController::class, 'updateTaxes'])->middleware('feature:books')->name('books.settings.taxes');
         Route::get('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'edit'])->name('company-profile.edit');
         Route::put('company-profile', [\App\Http\Controllers\CompanyProfileController::class, 'update'])->name('company-profile.update');
         Route::put('company-profile/collections', [\App\Http\Controllers\CompanyProfileController::class, 'updateCollections'])->name('company-profile.collections');

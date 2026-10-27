@@ -34,6 +34,7 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('landlords', [$L, 'index'])->middleware('staff.can:landlords.view')->name('landlords.index');
         Route::post('landlords', [$L, 'store'])->middleware('staff.can:landlords.create')->name('landlords.store');
         Route::put('landlords/{landlord}', [$L, 'update'])->middleware('staff.can:landlords.edit')->name('landlords.update');
+        Route::put('landlords/{landlord}/features', [$L, 'updateFeatures'])->middleware('staff.can:landlords.edit')->name('landlords.features');
         Route::patch('landlords/{landlord}/suspend', [$L, 'suspend'])->middleware('staff.can:landlords.suspend')->name('landlords.suspend');
         Route::patch('landlords/{landlord}/reactivate', [$L, 'reactivate'])->middleware('staff.can:landlords.suspend')->name('landlords.reactivate');
 
@@ -111,6 +112,39 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('collections/tiers', [$Col, 'storeTier'])->middleware('staff.can:collections.manage')->name('collections.tiers.store');
         Route::put('collections/tiers/{tier}', [$Col, 'updateTier'])->middleware('staff.can:collections.manage')->name('collections.tiers.update');
         Route::delete('collections/tiers/{tier}', [$Col, 'destroyTier'])->middleware('staff.can:collections.manage')->name('collections.tiers.destroy');
+
+        // Landlord payouts: approve (one person), execute (another).
+        $Liq = \App\Http\Controllers\Staff\LiquidationController::class;
+        Route::get('liquidations', [$Liq, 'index'])->middleware('staff.can:liquidations.view')->name('liquidations.index');
+        Route::get('liquidations/{id}', [$Liq, 'show'])->whereNumber('id')->middleware('staff.can:liquidations.view')->name('liquidations.show');
+        Route::post('liquidations/{id}/approve', [$Liq, 'approve'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('liquidations.approve');
+        Route::post('liquidations/{id}/reject', [$Liq, 'reject'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('liquidations.reject');
+        Route::post('liquidations/{id}/send', [$Liq, 'send'])->whereNumber('id')->middleware(['staff.can:liquidations.execute', 'throttle:10,1'])->name('liquidations.send');
+        Route::post('liquidations/{id}/complete-bank', [$Liq, 'completeBank'])->whereNumber('id')->middleware('staff.can:liquidations.execute')->name('liquidations.complete-bank');
+        Route::post('liquidations/{id}/check', [$Liq, 'check'])->whereNumber('id')->middleware(['staff.can:liquidations.view', 'throttle:20,1'])->name('liquidations.check');
+        Route::get('payout-accounts', [$Liq, 'accounts'])->middleware('staff.can:liquidations.view')->name('payout-accounts.index');
+        Route::post('payout-accounts/{id}/verify', [$Liq, 'verifyAccount'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('payout-accounts.verify');
+        Route::post('payout-accounts/{id}/reject', [$Liq, 'rejectAccount'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('payout-accounts.reject');
+        Route::post('payout-accounts/{id}/yo-register', [$Liq, 'registerWithYo'])->whereNumber('id')->middleware(['staff.can:liquidations.approve', 'throttle:10,1'])->name('payout-accounts.yo-register');
+        Route::post('payout-accounts/{id}/yo-identifier', [$Liq, 'setYoIdentifier'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('payout-accounts.yo-identifier');
+
+        // Primora's books.
+        $Bk = \App\Http\Controllers\Staff\BooksController::class;
+        Route::get('books', [$Bk, 'index'])->middleware('staff.can:books.view')->name('books.index');
+        Route::get('books/accounts', [$Bk, 'accounts'])->middleware('staff.can:books.view')->name('books.accounts');
+        Route::post('books/accounts', [$Bk, 'storeAccount'])->middleware('staff.can:books.post')->name('books.accounts.store');
+        Route::put('books/accounts/{ledgerAccount}', [$Bk, 'updateAccount'])->middleware('staff.can:books.post')->name('books.accounts.update');
+        Route::get('books/accounts/{ledgerAccount}', [$Bk, 'ledger'])->middleware('staff.can:books.view')->name('books.ledger');
+        Route::get('books/journal', [$Bk, 'journal'])->middleware('staff.can:books.view')->name('books.journal');
+        Route::post('books/journal', [$Bk, 'storeJournal'])->middleware('staff.can:books.post')->name('books.journal.store');
+        Route::post('books/journal/{journalEntry}/reverse', [$Bk, 'reverse'])->middleware('staff.can:books.post')->name('books.journal.reverse');
+        Route::post('books/expenses', [$Bk, 'storeExpense'])->middleware('staff.can:books.post')->name('books.expenses.store');
+        Route::post('books/transfers', [$Bk, 'storeTransfer'])->middleware('staff.can:books.post')->name('books.transfers.store');
+        Route::get('books/profit-and-loss', [$Bk, 'profitAndLoss'])->middleware('staff.can:books.view')->name('books.pnl');
+        Route::get('books/trial-balance', [$Bk, 'trialBalance'])->middleware('staff.can:books.view')->name('books.trial-balance');
+        Route::get('books/balance-sheet', [$Bk, 'balanceSheet'])->middleware('staff.can:books.view')->name('books.balance-sheet');
+        Route::get('books/tax-rates', [\App\Http\Controllers\Staff\TaxTemplateController::class, 'index'])->middleware('staff.can:books.view')->name('books.tax-rates');
+        Route::put('books/tax-rates/{taxTemplate}', [\App\Http\Controllers\Staff\TaxTemplateController::class, 'update'])->middleware('staff.can:books.tax_rates')->name('books.tax-rates.update');
 
         // Revenue from every stream (subscriptions, SMS sales).
         Route::get('revenue', [\App\Http\Controllers\Staff\RevenueController::class, 'index'])->middleware('staff.can:revenue.view')->name('revenue.index');

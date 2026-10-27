@@ -20,6 +20,8 @@ class StorePlanRequest extends FormRequest
             'pricing_model' => 'required|in:flat,tiered',
             'currency' => 'required|string|size:3',
             'show_on_website' => 'nullable|boolean',
+            'features' => 'nullable|array',
+            'features.*' => 'string|in:'.implode(',', array_keys(\App\Support\PlanFeatures::FEATURES)),
 
             'monthly_price' => $flat ? 'required|numeric|min:0' : 'nullable|numeric|min:0',
             'quarterly_price' => $flat ? 'required|numeric|min:0' : 'nullable|numeric|min:0',

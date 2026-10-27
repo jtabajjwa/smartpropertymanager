@@ -20,7 +20,7 @@ class CollectionFees
 
     public function tiers()
     {
-        return $this->tiers ??= CollectionFeeTier::orderBy('min_amount')->get();
+        return $this->tiers ??= CollectionFeeTier::where('kind', 'collection')->orderBy('min_amount')->get();
     }
 
     /** Fee for collecting exactly $amount (0 when no band covers it). */
@@ -45,18 +45,36 @@ class CollectionFees
             return ['principal' => $principal, 'fee' => $fee, 'charge' => $principal, 'landlord_amount' => max(0, $principal - $fee), 'bearer' => 'landlord'];
         }
 
-        // The fee is charged on the total collected, which includes the fee
-        // itself, so adding it can tip the total into the next band.
+        $fee = $this->grossUpFee($principal);
+
+        return ['principal' => $principal, 'fee' => $fee, 'charge' => $principal + $fee, 'landlord_amount' => $principal, 'bearer' => 'tenant'];
+    }
+
+    /**
+     * The smallest fee F such that the charge on (principal + F) is covered
+     * by F. The charge is on the total collected, which includes the fee
+     * itself, so adding it can move the total into another band, and Yo!'s
+     * bands aren't continuous (a flat 300 up to 10,000, then 2% = ~200
+     * just above), so we follow the fee until it settles and keep the
+     * smallest value that still covers the charge.
+     */
+    public function grossUpFee(float $principal): float
+    {
         $fee = $this->feeFor($principal);
-        for ($i = 0; $i < 5; $i++) {
+        $covering = [];
+
+        for ($i = 0; $i < 10; $i++) {
             $next = $this->feeFor($principal + $fee);
             if ($next <= $fee) {
-                break;
+                $covering[] = $fee;
+                if ($next == $fee) {
+                    break;
+                }
             }
             $fee = $next;
         }
 
-        return ['principal' => $principal, 'fee' => $fee, 'charge' => $principal + $fee, 'landlord_amount' => $principal, 'bearer' => 'tenant'];
+        return $covering ? min($covering) : $fee;
     }
 
     /** Bands in the shape the payment page's calculator uses. */

@@ -216,5 +216,4 @@
         </div>
     </div>
 
-    @include('partials.payment-status-script')
 </x-app-layout>

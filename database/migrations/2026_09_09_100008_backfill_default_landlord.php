@@ -25,6 +25,12 @@ return new class extends Migration
     {
         $landlordId = DB::table('landlords')->where('contact_email', 'default@smartpropertymanager.local')->value('id');
 
+        // A fresh install has nothing to backfill, so no placeholder landlord is needed.
+        $hasUnowned = collect($this->scopedTables)->contains(fn ($t) => DB::table($t)->whereNull('landlord_id')->exists());
+        if (!$landlordId && !$hasUnowned) {
+            return;
+        }
+
         if (!$landlordId) {
             $landlordId = DB::table('landlords')->insertGetId([
                 'name' => config('app.name', 'Default Landlord'),

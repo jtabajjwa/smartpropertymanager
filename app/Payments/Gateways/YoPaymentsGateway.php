@@ -4,7 +4,9 @@ namespace App\Payments\Gateways;
 
 use App\Models\PaymentGatewayLog;
 use App\Models\PaymentTransaction;
+use App\Models\Liquidation;
 use App\Payments\Contracts\PaymentGateway;
+use App\Payments\Contracts\PayoutGateway;
 use App\Payments\GatewayLogger;
 use App\Payments\GatewayNotification;
 use App\Payments\GatewayResult;
@@ -23,8 +25,11 @@ use SimpleXMLElement;
  *    are SHA1-with-RSA, checked against Yo!'s public certificate.
  *  - actransactioncheckstatus: authoritative status, looked up by our own
  *    reference (sent as ExternalReference → PrivateTransactionReference).
+ *  - acwithdrawfunds (landlord payouts): signed with Primora's private key
+ *    (spec §4.1: SHA1-with-RSA over username, amount, account, narrative,
+ *    external reference and a single-use nonce). Never re-sent automatically.
  */
-class YoPaymentsGateway implements PaymentGateway
+class YoPaymentsGateway implements PaymentGateway, PayoutGateway
 {
     public function __construct(protected array $config)
     {
@@ -145,6 +150,244 @@ class YoPaymentsGateway implements PaymentGateway
         return 'OK';
     }
 
+
+    // --- Payouts ------------------------------------------------------------
+    //  mobile money: acwithdrawfunds (§4) / actransactioncheckstatus
+    //  bank:         acwithdrawfundstobank (§5) / accheckbanksettlementstatus (§8),
+    //                to accounts registered on the Yo! account (§16)
+
+    public function canSendPayouts(): bool
+    {
+        // Production accounts have public key authentication on; sandbox may not.
+        return $this->isConfigured() && ($this->privateKey() !== null || $this->mode() !== 'production');
+    }
+
+    public function sendPayout(Liquidation $liquidation): GatewayResult
+    {
+        return $liquidation->isMobileMoney() ? $this->sendMobileMoney($liquidation) : $this->sendToBank($liquidation);
+    }
+
+    public function checkPayout(Liquidation $liquidation): GatewayResult
+    {
+        return $liquidation->isMobileMoney() ? $this->checkMobileMoney($liquidation) : $this->checkBank($liquidation);
+    }
+
+    protected function sendMobileMoney(Liquidation $liquidation): GatewayResult
+    {
+        $nonce = $this->nonce();
+        $fields = [
+            'Method' => 'acwithdrawfunds',
+            'NonBlocking' => 'TRUE',
+            'Amount' => $this->formatAmount($liquidation->net_amount),
+            'Account' => (string) ($liquidation->destination['msisdn'] ?? ''),
+            'Narrative' => mb_substr("Primora payout {$liquidation->reference} to {$liquidation->landlord?->name}", 0, 250),
+            'ExternalReference' => $liquidation->external_reference,
+            'ProviderReferenceText' => $this->config['provider_reference_text'] ?? null,
+        ];
+
+        // §4.1: APIUsername, Amount, Account, Narrative, ExternalReference, nonce.
+        $fields = $this->sign($fields, [$fields['Amount'], $fields['Account'], $fields['Narrative'], $fields['ExternalReference']], $nonce);
+        if ($fields === null) {
+            return GatewayResult::failed('Could not sign the withdrawal request (check the Yo! private key). Nothing was sent.');
+        }
+
+        return $this->sendMoneyOut($fields, $liquidation, fn (SimpleXMLElement $xml) => $this->interpret($xml));
+    }
+
+    protected function sendToBank(Liquidation $liquidation): GatewayResult
+    {
+        $d = $liquidation->destination ?? [];
+        if (empty($d['yo_bank_identifier'])) {
+            return GatewayResult::failed('This bank account is not registered with Yo! Payments. Nothing was sent.');
+        }
+
+        $nonce = $this->nonce();
+        $fields = [
+            'Method' => 'acwithdrawfundstobank',
+            'Amount' => $this->formatAmount($liquidation->net_amount),
+            'CurrencyCode' => 'UGX',
+            'BankAccountName' => (string) ($d['account_name'] ?? ''),
+            'BankAccountNumber' => (string) ($d['account_number'] ?? ''),
+            'BankAccountIdentifier' => (string) $d['yo_bank_identifier'],
+            'TransferTransactionType' => $liquidation->transfer_type,
+            'PrivateTransactionReference' => $liquidation->external_reference,
+        ];
+
+        // §5.1: APIUsername, Amount, CurrencyCode, BankAccountName, BankAccountNumber,
+        // BankAccountIdentifier, TransferTransactionType, PrivateTransactionReference, nonce.
+        $fields = $this->sign($fields, [
+            $fields['Amount'], $fields['CurrencyCode'], $fields['BankAccountName'], $fields['BankAccountNumber'],
+            $fields['BankAccountIdentifier'], (string) $fields['TransferTransactionType'], $fields['PrivateTransactionReference'],
+        ], $nonce);
+        if ($fields === null) {
+            return GatewayResult::failed('Could not sign the bank withdrawal request (check the Yo! private key). Nothing was sent.');
+        }
+
+        return $this->sendMoneyOut($fields, $liquidation, fn (SimpleXMLElement $xml) => $this->interpretBank($xml));
+    }
+
+    protected function checkMobileMoney(Liquidation $liquidation): GatewayResult
+    {
+        $fields = ['Method' => 'actransactioncheckstatus'];
+        if ($liquidation->gateway_reference) {
+            $fields['TransactionReference'] = $liquidation->gateway_reference;
+        } else {
+            $fields['PrivateTransactionReference'] = $liquidation->external_reference;
+        }
+
+        try {
+            $response = $this->send($fields, null, $liquidation);
+        } catch (ConnectionException $e) {
+            return GatewayResult::pending('Could not reach Yo! Payments: '.$e->getMessage());
+        }
+
+        return $this->interpret($response);
+    }
+
+    protected function checkBank(Liquidation $liquidation): GatewayResult
+    {
+        $fields = ['Method' => 'accheckbanksettlementstatus'];
+        if ($liquidation->gateway_reference) {
+            $fields['SettlementTransactionIdentifier'] = $liquidation->gateway_reference;
+        } else {
+            $fields['PrivateTransactionReference'] = $liquidation->external_reference;
+        }
+
+        try {
+            $response = $this->send($fields, null, $liquidation);
+        } catch (ConnectionException $e) {
+            return GatewayResult::pending('Could not reach Yo! Payments: '.$e->getMessage());
+        }
+
+        return $this->interpretBank($response);
+    }
+
+    /** §16: register a verified bank account on Primora's Yo! account; returns its API Bank Identifier. */
+    public function registerBankAccount(\App\Models\PayoutAccount $account, array $bank): string
+    {
+        $info = [
+            'Name' => $bank['name'],
+            'StreetAddressLine1' => $bank['address1'],
+            'StreetAddressLine2' => $bank['address2'],
+            'City' => $bank['city'],
+            'State' => $bank['state'] ?? '',
+            'Country' => $bank['country'],
+            'SwiftCode' => $bank['swift'] ?? '',
+            'SortCode' => '',
+            'ABANumber' => '',
+            'RoutingNumber' => '',
+        ];
+        $fields = [
+            'Method' => 'accreateverifiedbankaccount',
+            'AccountName' => $account->account_name,
+            'AccountNumber' => $account->account_number,
+            'BankInformation' => $info,
+        ];
+
+        // §16.1: APIUsername, AccountName, AccountNumber, the BankInformation fields in order, nonce.
+        $fields = $this->sign($fields, array_merge([$account->account_name, $account->account_number], array_values($info)), $this->nonce());
+        if ($fields === null) {
+            throw new \RuntimeException('Could not sign the request (check the Yo! private key).');
+        }
+
+        try {
+            $response = $this->send($fields, null, null, failoverOnlyIfUnsent: true);
+        } catch (ConnectionException $e) {
+            throw new \RuntimeException($this->neverSent($e)
+                ? 'Could not connect to Yo! Payments. Nothing was registered; try again.'
+                : 'No clear reply from Yo! Payments. It may have registered the account: check the Yo! web portal (Account Information → Bank Account Information) and enter its API Bank Identifier here instead of registering again.');
+        }
+
+        $r = $response->Response;
+        $identifier = trim((string) $r->ApiBankIdentifier);
+        if (strtoupper((string) $r->Status) !== 'OK' || $identifier === '') {
+            throw new \RuntimeException('Yo! Payments did not register the account: '.(trim((string) $r->ErrorMessage) ?: trim((string) $r->StatusMessage) ?: 'no reason given').'.');
+        }
+
+        return $identifier;
+    }
+
+    /** Send a money-out request: only fail over if it never left; never resend once Yo! may have it. */
+    protected function sendMoneyOut(array $fields, Liquidation $liquidation, callable $interpret): GatewayResult
+    {
+        try {
+            $response = $this->send($fields, null, $liquidation, failoverOnlyIfUnsent: true);
+        } catch (ConnectionException $e) {
+            if ($this->neverSent($e)) {
+                return GatewayResult::failed('Could not connect to Yo! Payments, so no money was sent. You can try again.');
+            }
+
+            return new GatewayResult(\App\Models\PaymentTransaction::INDETERMINATE, message: 'No clear reply from Yo! Payments; checking status. Do not resend: '.$e->getMessage());
+        }
+
+        return $interpret($response);
+    }
+
+    /**
+     * Bank withdrawal / bank settlement status (§5.2, §8.2): PENDING, CAPTURED
+     * (taken from the pool for transfer to the bank: done), CANCELLED.
+     */
+    protected function interpretBank(SimpleXMLElement $xml): GatewayResult
+    {
+        $r = $xml->Response;
+        $status = strtoupper((string) $r->Status);
+        $code = (int) $r->StatusCode;
+        $txStatus = strtoupper((string) $r->TransactionStatus);
+        $message = trim((string) $r->ErrorMessage) ?: trim((string) $r->StatusMessage) ?: null;
+        $reference = trim((string) $r->SettlementTransactionIdentifier) ?: trim((string) $r->SettlementRequestIdentifier) ?: null;
+
+        $raw = json_decode(json_encode($r), true) ?: [];
+        unset($raw['APIUsername'], $raw['APIPassword']);
+
+        if ($code === -30) {
+            return new GatewayResult(\App\Models\PaymentTransaction::PENDING, message: $message ?? 'Transaction not found yet.', raw: $raw, notFound: true);
+        }
+
+        $mapped = match (true) {
+            $txStatus === 'CAPTURED' => \App\Models\PaymentTransaction::SUCCEEDED,
+            $txStatus === 'CANCELLED' => \App\Models\PaymentTransaction::FAILED,
+            $txStatus === 'PENDING' => \App\Models\PaymentTransaction::PENDING,
+            $status === 'OK' && $code === 0 => \App\Models\PaymentTransaction::PENDING, // accepted; settlement follows
+            $status === 'ERROR' && $code < 0 => \App\Models\PaymentTransaction::FAILED,
+            default => \App\Models\PaymentTransaction::INDETERMINATE,
+        };
+
+        return new GatewayResult($mapped, gatewayReference: $reference, message: $txStatus === 'CAPTURED' ? 'Captured by Yo! for transfer to the bank.' : $message, amount: (string) $r->Amount !== '' ? (float) $r->Amount : null, raw: $raw);
+    }
+
+    /** Add the public key authentication nonce and signature (SHA1-with-RSA over the username, the given values, then the nonce). */
+    protected function sign(array $fields, array $values, string $nonce): ?array
+    {
+        $key = $this->privateKey();
+        if (!$key) {
+            return $this->mode() === 'production' ? null : $fields; // sandbox may not need signing
+        }
+
+        $data = $this->config['api_username'].implode('', array_map(fn ($v) => mb_substr((string) $v, 0, 255), $values)).mb_substr($nonce, 0, 255);
+        if (!openssl_sign($data, $signature, $key, OPENSSL_ALGO_SHA1)) {
+            return null;
+        }
+
+        return $fields + ['PublicKeyAuthenticationNonce' => $nonce, 'PublicKeyAuthenticationSignatureBase64' => base64_encode($signature)];
+    }
+
+    /** Single-use, [a-zA-Z0-9-] as Yo! requires. */
+    protected function nonce(): string
+    {
+        return now()->format('YmdHisv').'-'.bin2hex(random_bytes(12));
+    }
+
+    /** Primora's private key for signing withdrawals (YO_PRIVATE_KEY_PATH), if configured. */
+    protected function privateKey(): \OpenSSLAsymmetricKey|null
+    {
+        $path = $this->config['private_key'] ?? null;
+        if (!$path || !is_file($path)) {
+            return null;
+        }
+
+        return openssl_pkey_get_private((string) file_get_contents($path), (string) ($this->config['private_key_passphrase'] ?? '')) ?: null;
+    }
+
     // ------------------------------------------------------------------
 
     /**
@@ -194,9 +437,11 @@ class YoPaymentsGateway implements PaymentGateway
 
     /**
      * POST an XML request (spec §3.2). Production has two endpoints; the
-     * second is tried if the first can't be reached.
+     * second is tried if the first can't be reached. With $failoverOnlyIfUnsent
+     * (money going out), the second is tried only when the first definitely
+     * never received the request; otherwise we stop, so nothing is sent twice.
      */
-    protected function send(array $fields, ?PaymentTransaction $transaction = null): SimpleXMLElement
+    protected function send(array $fields, ?PaymentTransaction $transaction = null, ?Liquidation $liquidation = null, bool $failoverOnlyIfUnsent = false): SimpleXMLElement
     {
         $xml = $this->buildXml($fields);
         $urls = $this->config['urls'][$this->mode()] ?? [];
@@ -215,18 +460,26 @@ class YoPaymentsGateway implements PaymentGateway
                     ->withBody($xml, 'text/xml')
                     ->post($url);
             } catch (ConnectionException $e) {
-                $this->logExchange($transaction, $action, $url, $xml, $started, error: $e->getMessage());
+                $this->logExchange($transaction, $action, $url, $xml, $started, error: $e->getMessage(), liquidation: $liquidation);
                 $last = $e;
+
+                if ($failoverOnlyIfUnsent && !$this->neverSent($e)) {
+                    throw $e;
+                }
 
                 continue;
             }
 
-            $this->logExchange($transaction, $action, $url, $xml, $started, $response->status(), $response->body());
+            $this->logExchange($transaction, $action, $url, $xml, $started, $response->status(), $response->body(), liquidation: $liquidation);
 
             $parsed = @simplexml_load_string($response->body());
             if ($parsed === false || !isset($parsed->Response)) {
                 Log::warning('Yo! Payments: unreadable response', ['url' => $url, 'status' => $response->status(), 'body' => mb_substr($response->body(), 0, 500)]);
                 $last = new ConnectionException('Unreadable response from Yo! Payments (HTTP '.$response->status().').');
+
+                if ($failoverOnlyIfUnsent) {
+                    throw $last; // it reached Yo!: don't send again
+                }
 
                 continue;
             }
@@ -238,7 +491,7 @@ class YoPaymentsGateway implements PaymentGateway
     }
 
     /** One request/response pair in payment_gateway_logs, with credentials masked. */
-    protected function logExchange(?PaymentTransaction $transaction, string $action, string $url, string $xml, float $started, ?int $status = null, ?string $body = null, ?string $error = null): void
+    protected function logExchange(?PaymentTransaction $transaction, string $action, string $url, string $xml, float $started, ?int $status = null, ?string $body = null, ?string $error = null, ?Liquidation $liquidation = null): void
     {
         app(GatewayLogger::class)->record(
             transaction: $transaction,
@@ -251,6 +504,7 @@ class YoPaymentsGateway implements PaymentGateway
             responseBody: $body,
             error: $error,
             durationMs: (int) round((microtime(true) - $started) * 1000),
+            liquidation: $liquidation,
         );
     }
 
@@ -258,6 +512,7 @@ class YoPaymentsGateway implements PaymentGateway
     protected function maskCredentials(string $xml): string
     {
         $xml = preg_replace('#<APIPassword>.*?</APIPassword>#s', '<APIPassword>********</APIPassword>', $xml);
+        $xml = preg_replace('#<PublicKeyAuthenticationSignatureBase64>(.{12}).*?</PublicKeyAuthenticationSignatureBase64>#s', '<PublicKeyAuthenticationSignatureBase64>$1…</PublicKeyAuthenticationSignatureBase64>', $xml);
 
         return preg_replace_callback('#<APIUsername>(.*?)</APIUsername>#s', function ($m) {
             $user = html_entity_decode($m[1], ENT_XML1);
@@ -270,15 +525,26 @@ class YoPaymentsGateway implements PaymentGateway
     {
         $fields = ['APIUsername' => $this->config['api_username'], 'APIPassword' => $this->config['api_password']] + $fields;
 
+        return '<?xml version="1.0" encoding="UTF-8"?><AutoCreate><Request>'.$this->xmlElements($fields).'</Request></AutoCreate>';
+    }
+
+    /** Elements for a request; an array value becomes a nested element (e.g. BankInformation). */
+    protected function xmlElements(array $fields): string
+    {
         $body = '';
         foreach ($fields as $name => $value) {
+            if (is_array($value)) {
+                $body .= "<{$name}>".$this->xmlElements($value)."</{$name}>";
+
+                continue;
+            }
             if ($value === null || $value === '') {
                 continue;
             }
             $body .= "<{$name}>".htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8')."</{$name}>";
         }
 
-        return '<?xml version="1.0" encoding="UTF-8"?><AutoCreate><Request>'.$body.'</Request></AutoCreate>';
+        return $body;
     }
 
     /** SHA1-with-RSA signature check against Yo!'s public certificate (spec §6.3.4 / §6.4.3). */

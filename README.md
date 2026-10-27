@@ -188,6 +188,66 @@ MARZ_SMS_API_SECRET=...
 
 ---
 
+## Landlord payouts (Yo! withdrawals)
+
+Mobile money payouts use Yo! Payments `acwithdrawfunds`, which must be signed with Primora's private key once public key authentication is on for the Yo! account (it is in production). Set it up once:
+
+```bash
+# 1. Generate a key pair (keep the private key OUT of the web root and out of git)
+openssl genrsa -out yo-private.pem 2048
+openssl rsa -in yo-private.pem -pubout -out yo-public.pem
+
+# 2. Send yo-public.pem (never the private key) to your Yo! account representative
+#    to configure on the Yo! Payments account.
+```
+
+Then in `.env`:
+
+```env
+YO_PRIVATE_KEY_PATH=/home/primora/keys/yo-private.pem
+# YO_PRIVATE_KEY_PASSPHRASE=   (only if the key has one)
+```
+
+Without a key, payouts can only be sent in sandbox mode. Bank payouts don't use Yo!: staff make the EFT from Primora's bank and record its reference.
+
+Payout charges (deducted from what the landlord receives) and Yo! collection charges come from the fee bands under **Staff → Rent Collections → Fee bands**.
+
+## Primora's books
+
+Payments, payouts, settlements and SMS purchases post to a double-entry ledger automatically (**Staff → Books**). To post anything that happened before the books existed, or a posting that failed, run (safe to repeat):
+
+```bash
+php artisan books:backfill
+```
+
+Enter opening balances (e.g. the bank balance) as a journal entry against Owner's equity.
+
+## Landlord books & taxes
+
+Landlord admins get **Books & Taxes** (income statement, results by property, taxes and levies, and a one-click tax pack as PDF or Excel for a fiscal year). Nothing extra is entered: it's built from invoices, payments, expenses, deposit deductions and Primora's charges (`App\Accounting\LandlordBooks`).
+
+- **Basis:** each landlord chooses cash (income when paid; unallocated payments are rent in advance) or accrual (income when invoiced; write-offs become bad debts). Security deposits are never income.
+- **Taxes:** Primora's catalogue (`tax_templates`, editable under **Staff → Books → Landlord tax rates** with the `books.tax_rates` permission): URA rental income tax (individual: rate above a threshold; company: rate on rent less expenses, capped), local service tax (bands), property rates (% of rateable value, per estate), ground rent and trading licence (fixed amounts). Landlords switch on the ones that apply and can override any figure; payments they record count against the year, and deductible levies count as expenses.
+- **Chart of accounts, trial balance, balance sheet:** `App\Accounting\LandlordLedger` derives a double-entry journal from the same records on every request (nothing stored, so it can never drift from the records): a simple default chart (cash/bank/mobile money, rent collected by Primora, receivables and rent in advance on accrual, deposits held, retained earnings, income, one expense account per expense item, levies, income tax & LST). Income and expenses close to retained earnings at each fiscal year end. The tax pack includes the balance sheet and trial balance.
+- The default rates are estimates — check them against current URA and council figures before each filing season.
+
+## Plan features
+
+Plans can include or leave out these features (`App\Support\PlanFeatures`): Books & taxes, Balance sheet & trial balance, Accrual accounting, Team members, Audit log, Vendors & job cards. Everything else (properties, tenants, invoices, payments, tenant portal, collections, payouts, SMS) is on every plan.
+
+- **Staff → Plans:** tick the features each plan includes. All ticked (the default, and every existing plan) means every feature, including ones added later.
+- **Staff → Landlord → Plan features:** grant one landlord a feature their plan leaves out (e.g. keep what they had when you introduce tiers, or a trial).
+- Landlords without a plan have everything. Locked features show a padlock in the sidebar; their pages show what the feature does, which plans include it and a Change plan button. Routes use the `feature:` middleware, e.g. `->middleware('feature:books')`.
+- A landlord on accrual whose plan drops accrual accounting is reported on the cash basis until it's back (their setting is kept).
+
+---
+
+## Deploying (staging & production)
+
+Staging (staging.primoraproptech.com) and production (app.primoraproptech.com) run on one EL10 VPS. Set up the server once with `deploy/setup-server.sh`, then use the `primora` command on the server (`sudo primora deploy staging`, `sudo primora promote`, `sudo primora rollback <env>`, …). On a new server, create the first staff admin with `php artisan staff:create-admin`. Never run the seeders there: they hold development accounts. Full guide: [deploy/README.md](deploy/README.md).
+
+---
+
 ## Running tests
 
 ```bash

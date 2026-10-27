@@ -30,6 +30,7 @@ class TenantAccount
     {
         return Invoice::whereIn('lease_id', $this->leaseIds())
             ->where('status', '!=', 'cancelled')
+            ->with('lease.unit.estate')
             ->withSum('allocations as paid', 'amount');
     }
 
@@ -40,6 +41,12 @@ class TenantAccount
             ->each(fn (Invoice $i) => $i->balance = max(0, (float) $i->amount - (float) $i->paid))
             ->filter(fn (Invoice $i) => $i->balance > 0)
             ->values();
+    }
+
+    /** Renting more than one unit (so invoices need to say which unit they're for). */
+    public function hasMultipleUnits(): bool
+    {
+        return \App\Models\Lease::whereIn('id', $this->leaseIds())->distinct()->count('unit_id') > 1;
     }
 
     public function findOpenInvoice(int $id): ?Invoice

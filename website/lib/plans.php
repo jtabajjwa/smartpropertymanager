@@ -95,8 +95,13 @@ function primora_fetch_pricing(string $url, string $key): ?array
 }
 
 /**
- * Picks the plan to show (the first tiered plan, else the first plan) and
- * validates it strictly; anything unexpected is rejected rather than shown.
+ * Picks the plan the calculator opens on (the first tiered plan, else the
+ * first plan) and validates every plan strictly; anything unexpected is
+ * rejected rather than shown. Other plans in a different currency, or that
+ * fail validation, are left out of the comparison.
+ *
+ * Also returns `plans` (each: name, tiers, features|null) and `catalogue`
+ * (every feature a plan can include) for the plan comparison.
  */
 function primora_normalise_pricing($data): ?array
 {
@@ -113,6 +118,54 @@ function primora_normalise_pricing($data): ?array
         }
     }
     $plan ??= $plans[0];
+
+    $primary = primora_normalise_plan($plan);
+    if (!$primary) {
+        return null;
+    }
+
+    $all = [];
+    foreach ($plans as $candidate) {
+        $normalised = $candidate === $plan ? $primary : primora_normalise_plan($candidate);
+        if ($normalised && $normalised['currency'] === $primary['currency']) {
+            $all[] = $normalised + ['primary' => $candidate === $plan];
+        }
+    }
+    // Cheapest first, so the comparison reads left to right.
+    usort($all, fn ($a, $b) => $a['tiers'][0][2] <=> $b['tiers'][0][2]);
+
+    return [
+        'currency' => $primary['currency'],
+        'plan_name' => $primary['name'],
+        'tiers' => $primary['tiers'],
+        'plans' => $all,
+        'catalogue' => primora_names($data['feature_catalogue'] ?? null),
+    ];
+}
+
+/** A list of short, plain feature names, or null if it isn't one. */
+function primora_names($list): ?array
+{
+    if (!is_array($list) || count($list) > 30) {
+        return null;
+    }
+    $names = [];
+    foreach ($list as $name) {
+        if (!is_string($name) || $name === '' || strlen($name) > 160) {
+            return null;
+        }
+        $names[] = $name;
+    }
+
+    return $names;
+}
+
+/** @return ?array{name: ?string, currency: string, tiers: array, features: ?array} */
+function primora_normalise_plan($plan): ?array
+{
+    if (!is_array($plan)) {
+        return null;
+    }
 
     $currency = strtoupper((string) ($plan['currency'] ?? ''));
     if (!preg_match('/^[A-Z]{3}$/', $currency) || empty($plan['tiers']) || !is_array($plan['tiers'])) {
@@ -140,10 +193,31 @@ function primora_normalise_pricing($data): ?array
     usort($tiers, fn ($a, $b) => $a[0] <=> $b[0]);
 
     return [
+        'name' => is_string($plan['name'] ?? null) && $plan['name'] !== '' && strlen($plan['name']) <= 120 ? $plan['name'] : null,
         'currency' => $currency,
-        'plan_name' => is_string($plan['name'] ?? null) ? $plan['name'] : null,
         'tiers' => $tiers,
+        'features' => primora_names($plan['features'] ?? null),
     ];
+}
+
+/**
+ * Plans to compare: at least two, each with a name and a feature list, and a
+ * catalogue to compare against. Otherwise [] (the page shows one plan).
+ */
+function primora_comparable_plans(array $pricing): array
+{
+    $plans = $pricing['plans'] ?? [];
+    $catalogue = $pricing['catalogue'] ?? null;
+    if (count($plans) < 2 || !$catalogue) {
+        return [];
+    }
+    foreach ($plans as $plan) {
+        if ($plan['name'] === null || $plan['features'] === null) {
+            return [];
+        }
+    }
+
+    return $plans;
 }
 
 function primora_read_cache(string $file): ?array

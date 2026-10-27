@@ -1,0 +1,12 @@
+# Runs Laravel's scheduler once (started every minute by primora-scheduler@.timer).
+[Unit]
+Description=Primora scheduler (%i)
+After=network.target mariadb.service
+
+[Service]
+Type=oneshot
+User=primora-%i
+Group=primora-%i
+WorkingDirectory=/var/www/primora/%i/current
+ExecStart=/usr/bin/php /var/www/primora/%i/current/artisan schedule:run --no-interaction
+UMask=0027

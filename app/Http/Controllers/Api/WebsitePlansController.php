@@ -30,6 +30,7 @@ class WebsitePlansController extends Controller
                 'name' => $plan->name,
                 'pricing_model' => $plan->pricing_model,
                 'currency' => $plan->currency,
+                'features' => collect($plan->featureKeys())->map(fn ($k) => \App\Support\PlanFeatures::name($k))->values(),
                 'tiers' => $plan->isTiered()
                     ? $plan->tiers->map(fn (PlanTier $tier) => [
                         'min_units' => $tier->min_units,
@@ -46,6 +47,8 @@ class WebsitePlansController extends Controller
                         'annual' => (float) $plan->annual_price,
                     ]],
             ])->values(),
+            // Every feature a plan can include, in order, so the site can show what each plan leaves out.
+            'feature_catalogue' => collect(\App\Support\PlanFeatures::FEATURES)->pluck(0)->values(),
             'generated_at' => now()->toIso8601String(),
         ])->header('Cache-Control', 'private, max-age=300');
     }

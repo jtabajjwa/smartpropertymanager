@@ -1,0 +1,9 @@
+# Nightly database + uploaded-files backup (see `primora backup`).
+[Unit]
+Description=Primora backup (%i)
+After=mariadb.service
+
+[Service]
+Type=oneshot
+Environment=PRIMORA_OFFLINE=1
+ExecStart=/usr/local/sbin/primora backup %i daily

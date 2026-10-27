@@ -92,7 +92,7 @@
                                 [$stateLabel, $stateColor] = $states[$landlord->subscriptionState()];
                                 $end = $landlord->current_period_end;
                             @endphp
-                            <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location='{{ route('staff.subscriptions.show', $landlord) }}'">
+                            <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="if (event.target.closest('a, button, form')) return; this.querySelector('a[href]').click()">
                                 <td class="px-5 py-3 text-sm">
                                     <a href="{{ route('staff.subscriptions.show', $landlord) }}" class="font-medium text-gray-900 hover:text-orange-600">{{ $landlord->name }}</a>
                                     @if($landlord->status !== 'active')<x-badge color="red" class="ml-1">Account {{ $landlord->status }}</x-badge>@endif

@@ -37,6 +37,10 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
+        if (!\App\Support\PlanFeatures::allows('team') && User::exists()) {
+            return redirect()->back()->with('error', 'Team members are not included in your plan. Upgrade your plan to add more people.');
+        }
+
         User::create([
             'landlord_id' => CurrentLandlord::id(),
             'name' => $request->name,

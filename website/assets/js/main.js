@@ -117,6 +117,32 @@
             });
         }
 
+        var plans = JSON.parse(card.getAttribute('data-plans') || '[]');
+        var list = document.getElementById('tier-list');
+        document.querySelectorAll('input[name="plan"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                var plan = plans[parseInt(radio.value, 10)];
+                if (!plan) return;
+                tiers = plan.tiers;
+                list.innerHTML = '';
+                tiers.forEach(function (t, i) {
+                    var li = document.createElement('li');
+                    li.setAttribute('data-tier', i);
+                    var label = document.createElement('span');
+                    label.textContent = t[1] === null ? t[0] + '+ units' : t[0] + ' – ' + t[1] + ' units';
+                    var price = document.createElement('b');
+                    price.setAttribute('data-monthly', fmt(t[2]));
+                    price.setAttribute('data-quarterly', fmt(t[3]));
+                    price.setAttribute('data-annual', fmt(t[4]));
+                    li.appendChild(label);
+                    li.appendChild(price);
+                    list.appendChild(li);
+                });
+                rows = list.querySelectorAll('li');
+                update();
+            });
+        });
+
         range.addEventListener('input', update);
         update();
     }

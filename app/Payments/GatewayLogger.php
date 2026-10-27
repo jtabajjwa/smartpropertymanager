@@ -25,10 +25,12 @@ class GatewayLogger
         ?string $error = null,
         ?int $durationMs = null,
         ?string $note = null,
+        ?\App\Models\Liquidation $liquidation = null,
     ): ?PaymentGatewayLog {
         try {
             return PaymentGatewayLog::create([
                 'payment_transaction_id' => $transaction?->exists ? $transaction->id : null,
+                'liquidation_id' => $liquidation?->exists ? $liquidation->id : null,
                 'gateway' => $gateway,
                 'action' => $action,
                 'direction' => $direction,

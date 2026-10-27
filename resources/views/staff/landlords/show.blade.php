@@ -4,6 +4,84 @@
     <div class="max-w-7xl mx-auto">
         @include('staff.landlords.partials.workspace-header')
 
+        @staffcan('collections.view')
+            @php $heldForLandlord = app(\App\Accounting\Ledger::class)->landlordPayable($landlord->id); @endphp
+            <div class="mb-6 rounded-2xl border {{ $landlord->collect_payments ? 'border-green-200 bg-green-50/60' : 'border-gray-200 bg-white' }} p-5 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-start gap-3">
+                    <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $landlord->collect_payments ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
+                    </span>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">
+                            Tenant mobile money payments
+                            <x-badge :color="$landlord->collect_payments ? 'green' : 'gray'" class="ml-1">{{ $landlord->collect_payments ? 'On' : 'Off' }}</x-badge>
+                        </p>
+                        <p class="mt-0.5 text-sm text-gray-600">
+                            @if($landlord->collect_payments)
+                                Tenants can pay rent by MTN or Airtel Money in the tenant portal. Collection fee paid by <strong>{{ $landlord->pass_collection_fee ? 'tenants' : 'the landlord' }}</strong> (landlord's choice).
+                            @else
+                                Tenants can't pay by mobile money yet. Switch it on to let them pay rent into the Primora pool, held for this landlord until paid out.
+                            @endif
+                            @if(abs($heldForLandlord) >= 0.01) Held for them now: <strong>UGX {{ number_format($heldForLandlord) }}</strong>. @endif
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ route('staff.collections.show', $landlord) }}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-500 hover:text-orange-600">Collections</a>
+                    @staffcan('collections.manage')
+                        <form method="POST" action="{{ route('staff.collections.toggle', $landlord) }}" @submit.prevent="$store.confirm.open('{{ $landlord->collect_payments ? 'Switch off mobile money payments for the tenants of this landlord?' : 'Let the tenants of this landlord pay rent by mobile money into the Primora pool?' }}', $el)">
+                            @csrf
+                            @if($landlord->collect_payments)
+                                <button type="submit" class="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Switch off</button>
+                            @else
+                                <x-button type="submit">Switch on</x-button>
+                            @endif
+                        </form>
+                    @endstaffcan
+                </div>
+            </div>
+        @endstaffcan
+
+        {{-- Plan features: what the plan includes, plus anything granted to this landlord --}}
+        @php $planFeatures = $landlord->plan?->featureKeys() ?? array_keys(\App\Support\PlanFeatures::FEATURES); @endphp
+        <div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" x-data="{ open: false }">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-900">Plan features</p>
+                    <p class="text-xs text-gray-500">
+                        {{ $landlord->plan ? $landlord->plan->name.' plan' : 'No plan yet: every feature' }} ·
+                        {{ collect(array_keys(\App\Support\PlanFeatures::FEATURES))->filter(fn ($k) => $landlord->hasFeature($k))->count() }} of {{ count(\App\Support\PlanFeatures::FEATURES) }} features
+                        @if($landlord->extra_features) · {{ count($landlord->extra_features) }} granted extra @endif
+                    </p>
+                </div>
+                <button type="button" @click="open = !open" class="text-sm font-medium text-orange-600 hover:text-orange-700" x-text="open ? 'Close' : 'Details'">Details</button>
+            </div>
+            <form x-show="open" x-cloak method="POST" action="{{ route('staff.landlords.features', $landlord) }}" class="mt-4 space-y-3">
+                @csrf @method('PUT')
+                <div class="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                    @foreach(\App\Support\PlanFeatures::FEATURES as $key => [$fname, $fgives])
+                        @php $inPlan = in_array($key, $planFeatures, true); @endphp
+                        <label class="flex items-start gap-2.5 rounded-xl border px-3 py-2 {{ $inPlan ? 'border-green-200 bg-green-50/50' : 'border-gray-200' }}">
+                            @if($inPlan)
+                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                            @else
+                                <input type="checkbox" name="extra_features[]" value="{{ $key }}" class="mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500" @checked(in_array($key, $landlord->extra_features ?? [], true)) @disabled(!auth('staff')->user()?->hasPermission('landlords.edit'))>
+                            @endif
+                            <span>
+                                <span class="block text-sm font-medium text-gray-900">{{ $fname }}</span>
+                                <span class="block text-xs text-gray-500">{{ $inPlan ? 'In their plan' : 'Not in their plan; tick to grant it anyway' }}</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+                @staffcan('landlords.edit')
+                    @if(count($planFeatures) < count(\App\Support\PlanFeatures::FEATURES))
+                        <div class="flex justify-end"><x-button type="submit">Save extra features</x-button></div>
+                    @endif
+                @endstaffcan
+            </form>
+        </div>
+
         {{-- Headline metrics --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <x-stat-card label="Units" :value="number_format($summary['units'])" color="orange">

@@ -60,7 +60,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($issues as $issue)
-                            <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{{ route('issues.show', $issue) }}'">
+                            <tr class="hover:bg-gray-50 cursor-pointer" onclick="if (event.target.closest('a')) return; this.querySelector('a').click()">
                                 <td class="px-5 py-3">
                                     <a href="{{ route('issues.show', $issue) }}" class="font-medium text-gray-900 hover:text-orange-600">{{ $issue->title }}</a>
                                     <span class="block text-xs text-gray-500">{{ $issue->number }} · {{ $issue->categoryLabel() }}@if($issue->photo) · 📷 photo @endif</span>

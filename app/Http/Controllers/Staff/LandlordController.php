@@ -112,6 +112,19 @@ class LandlordController extends Controller
         return redirect()->back()->with('success', 'Landlord updated successfully.');
     }
 
+    /** Features this landlord gets whatever their plan (e.g. kept after a plan change, or a trial). */
+    public function updateFeatures(\Illuminate\Http\Request $request, Landlord $landlord)
+    {
+        $data = $request->validate([
+            'extra_features' => ['nullable', 'array'],
+            'extra_features.*' => ['string', \Illuminate\Validation\Rule::in(array_keys(\App\Support\PlanFeatures::FEATURES))],
+        ]);
+        $extra = array_values(array_unique($data['extra_features'] ?? []));
+        $landlord->update(['extra_features' => $extra ?: null]);
+
+        return back()->with('success', $extra ? 'Extra features saved for '.$landlord->name.'.' : 'Extra features removed; '.$landlord->name.' now has what their plan includes.');
+    }
+
     public function suspend(Landlord $landlord)
     {
         $landlord->update(['status' => 'suspended']);

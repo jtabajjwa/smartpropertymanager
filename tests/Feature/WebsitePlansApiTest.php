@@ -76,7 +76,13 @@ test('only public pricing fields are exposed', function () {
 
     $plan = websitePlans($this)->assertOk()->json('plans.0');
 
-    expect(array_keys($plan))->toBe(['name', 'pricing_model', 'currency', 'tiers']);
+    expect(array_keys($plan))->toBe(['name', 'pricing_model', 'currency', 'features', 'tiers'])
+        ->and($plan['features'])->toBe(collect(\App\Support\PlanFeatures::FEATURES)->pluck(0)->all());
+
+    Plan::factory()->create(['show_on_website' => true, 'features' => ['books']]);
+    $response = websitePlans($this)->assertOk();
+    expect($response->json('plans.1.features'))->toBe(['Books & taxes'])
+        ->and($response->json('feature_catalogue'))->toHaveCount(count(\App\Support\PlanFeatures::FEATURES));
 });
 
 // --- Staff control ---

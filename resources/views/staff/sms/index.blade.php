@@ -11,7 +11,7 @@
         purchase: {},
         bundleModal: false,
         bundle: {},
-        newPurchase() { this.purchase = { id: null, provider: '', quantity: '', total_cost: '', purchased_on: '{{ today()->toDateString() }}', reference: '', notes: '' }; this.purchaseModal = true; },
+        newPurchase() { this.purchase = { id: null, provider: '', quantity: '', total_cost: '', paid_from: 'bank', purchased_on: '{{ today()->toDateString() }}', reference: '', notes: '' }; this.purchaseModal = true; },
         editPurchase(p) { this.purchase = { ...p }; this.purchaseModal = true; },
         newBundle() { this.bundle = { id: null, name: '', quantity: '', price: '', sort_order: 0, is_active: true }; this.bundleModal = true; },
         editBundle(b) { this.bundle = { ...b }; this.bundleModal = true; },
@@ -99,7 +99,7 @@
                                         @staffcan('sms.purchases')
                                             <td class="px-6 py-3 text-right whitespace-nowrap">
                                                 <button type="button" class="text-sm font-medium text-gray-600 hover:text-orange-600"
-                                                        @click="editPurchase({{ Js::from(['id' => $p->id, 'provider' => $p->provider, 'quantity' => $p->quantity, 'total_cost' => (float) $p->total_cost, 'purchased_on' => $p->purchased_on->toDateString(), 'reference' => $p->reference, 'notes' => $p->notes]) }})">Edit</button>
+                                                        @click="editPurchase({{ Js::from(['id' => $p->id, 'provider' => $p->provider, 'quantity' => $p->quantity, 'total_cost' => (float) $p->total_cost, 'paid_from' => $p->paid_from, 'purchased_on' => $p->purchased_on->toDateString(), 'reference' => $p->reference, 'notes' => $p->notes]) }})">Edit</button>
                                                 <form action="{{ route('staff.sms.purchases.destroy', $p) }}" method="POST" class="inline" @submit.prevent="$store.confirm.open('Delete this purchase? Stock and cost figures will change.', $el)">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="ml-3 text-sm font-medium text-red-600 hover:text-red-700">Delete</button>
@@ -219,6 +219,15 @@
                                 <x-label :required="true">Total cost (UGX)</x-label>
                                 <x-input type="number" name="total_cost" min="0" step="0.01" x-model="purchase.total_cost" required />
                             </div>
+                        </div>
+                        <div>
+                            <x-label :required="true">Paid from</x-label>
+                            <x-select name="paid_from" x-model="purchase.paid_from">
+                                <option value="bank">Bank account</option>
+                                <option value="yo_pool">Yo! Payments pool</option>
+                                <option value="momo_wallet">Mobile money wallet</option>
+                                <option value="cash">Cash on hand</option>
+                            </x-select>
                         </div>
                         <p class="text-xs text-gray-500" x-show="purchase.quantity > 0 && purchase.total_cost !== ''" x-text="'UGX ' + (purchase.total_cost / purchase.quantity).toFixed(2) + ' per SMS'"></p>
                         <div class="grid grid-cols-2 gap-4">

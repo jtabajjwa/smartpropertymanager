@@ -10,12 +10,12 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('tenant')->name('tenant.')->group(function () {
     $A = TenantPortal\AuthController::class;
     Route::get('login', [$A, 'show'])->name('login');
-    Route::post('login', [$A, 'lookup'])->middleware('throttle:10,1');
+    Route::post('login', [$A, 'lookup'])->middleware('throttle:tenant-auth');
     Route::get('login/choose', [$A, 'choose'])->name('login.choose');
-    Route::post('login/choose', [$A, 'chosen'])->middleware('throttle:10,1');
+    Route::post('login/choose', [$A, 'chosen'])->middleware('throttle:tenant-auth');
     Route::get('verify', [$A, 'showVerify'])->name('verify');
-    Route::post('verify', [$A, 'verify'])->middleware('throttle:10,1');
-    Route::post('verify/resend', [$A, 'resend'])->middleware('throttle:5,1')->name('verify.resend');
+    Route::post('verify', [$A, 'verify'])->middleware('throttle:tenant-auth');
+    Route::post('verify/resend', [$A, 'resend'])->middleware('throttle:tenant-auth')->name('verify.resend');
     Route::get('accounts', [$A, 'accounts'])->name('accounts');
     Route::post('accounts', [$A, 'selectAccount']);
     Route::post('logout', [$A, 'logout'])->name('logout');
@@ -32,14 +32,14 @@ Route::prefix('tenant')->name('tenant.')->group(function () {
 
         $P = TenantPortal\PaymentController::class;
         Route::get('pay', [$P, 'create'])->name('pay');
-        Route::post('pay', [$P, 'store'])->middleware('throttle:10,1');
-        Route::get('pay/{reference}', [$P, 'status'])->middleware('throttle:60,1')->name('pay.status');
+        Route::post('pay', [$P, 'store'])->middleware('throttle:tenant-portal');
+        Route::get('pay/{reference}', [$P, 'status'])->middleware('throttle:tenant-portal')->name('pay.status');
 
         $I = TenantPortal\IssueController::class;
         Route::get('issues', [$I, 'index'])->name('issues.index');
         Route::get('issues/new', [$I, 'create'])->name('issues.create');
-        Route::post('issues', [$I, 'store'])->middleware('throttle:10,1')->name('issues.store');
+        Route::post('issues', [$I, 'store'])->middleware('throttle:tenant-portal')->name('issues.store');
         Route::get('issues/{issue}', [$I, 'show'])->whereNumber('issue')->name('issues.show');
-        Route::post('issues/{issue}/notes', [$I, 'comment'])->whereNumber('issue')->middleware('throttle:20,1')->name('issues.comment');
+        Route::post('issues/{issue}/notes', [$I, 'comment'])->whereNumber('issue')->middleware('throttle:tenant-portal')->name('issues.comment');
     });
 });

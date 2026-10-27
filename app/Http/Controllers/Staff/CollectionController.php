@@ -25,7 +25,7 @@ class CollectionController extends Controller
     {
         $query = $this->withTotals(Landlord::query());
 
-        if ($request->input('show') !== 'all') {
+        if ($request->input('show') === 'enabled') {
             $query->where(fn ($q) => $q->where('collect_payments', true)->orWhereHas('paymentTransactions', fn ($p) => $p->where('purpose', 'rent')));
         }
         if ($search = trim((string) $request->input('search'))) {
@@ -36,12 +36,14 @@ class CollectionController extends Controller
 
         return view('staff.collections.index', [
             'landlords' => $landlords,
-            'tiers' => CollectionFeeTier::orderBy('min_amount')->get(),
+            'tiers' => CollectionFeeTier::orderBy('kind')->orderBy('min_amount')->get()->groupBy('kind'),
+            'payables' => app(\App\Accounting\Ledger::class)->landlordPayables(),
             'totals' => [
                 'collected' => (float) PaymentTransaction::where('purpose', 'rent')->where('status', PaymentTransaction::SUCCEEDED)->sum('amount'),
                 'fees' => (float) PaymentTransaction::where('purpose', 'rent')->where('status', PaymentTransaction::SUCCEEDED)->sum('fee_amount'),
-                'owed' => (float) PaymentTransaction::where('purpose', 'rent')->where('status', PaymentTransaction::SUCCEEDED)->sum('landlord_amount'),
-                'settled' => (float) LandlordSettlement::sum('amount'),
+                // What landlords are owed now comes from the books (collections less settlements and payouts).
+                'owed' => (float) app(\App\Accounting\Ledger::class)->balance('landlord_payable'),
+                'settled' => (float) LandlordSettlement::sum('amount') + (float) \App\Models\Liquidation::withoutGlobalScopes()->where('status', 'completed')->sum('amount'),
                 'month' => (float) PaymentTransaction::where('purpose', 'rent')->where('status', PaymentTransaction::SUCCEEDED)->where('completed_at', '>=', now()->startOfMonth())->sum('amount'),
             ],
             'enabledCount' => Landlord::where('collect_payments', true)->count(),
@@ -56,6 +58,8 @@ class CollectionController extends Controller
             'landlord' => $landlord,
             'collections' => PaymentTransaction::where('landlord_id', $landlord->id)->where('purpose', 'rent')->latest('id')->paginate(20, ['*'], 'collections'),
             'settlements' => LandlordSettlement::with('recordedBy')->where('landlord_id', $landlord->id)->latest('settled_on')->latest('id')->get(),
+            'owedNow' => app(\App\Accounting\Ledger::class)->landlordPayable($landlord->id),
+            'payouts' => \App\Models\Liquidation::withoutGlobalScopes()->where('landlord_id', $landlord->id)->where('status', 'completed')->latest('completed_at')->get(),
         ]);
     }
 
@@ -119,17 +123,19 @@ class CollectionController extends Controller
     protected function tierData(Request $request, ?CollectionFeeTier $ignore = null): array
     {
         $data = $request->validate([
+            'kind' => ['nullable', Rule::in(array_keys(CollectionFeeTier::KINDS))],
             'min_amount' => ['required', 'numeric', 'min:0'],
             'max_amount' => ['nullable', 'numeric', 'gte:min_amount'],
             'fixed_fee' => ['required', 'numeric', 'min:0'],
             'percent_fee' => ['nullable', 'numeric', 'min:0', 'max:20'],
         ]);
         $data['percent_fee'] = $data['percent_fee'] ?? 0;
+        $data['kind'] = $data['kind'] ?? 'collection';
 
         // Bands must not overlap, or an amount would have two fees.
         $min = (float) $data['min_amount'];
         $max = isset($data['max_amount']) ? (float) $data['max_amount'] : PHP_FLOAT_MAX;
-        $overlap = CollectionFeeTier::when($ignore, fn ($q) => $q->whereKeyNot($ignore->id))->get()
+        $overlap = CollectionFeeTier::where('kind', $data['kind'])->when($ignore, fn ($q) => $q->whereKeyNot($ignore->id))->get()
             ->first(fn (CollectionFeeTier $t) => $min <= ($t->max_amount === null ? PHP_FLOAT_MAX : (float) $t->max_amount) && (float) $t->min_amount <= $max);
 
         if ($overlap) {

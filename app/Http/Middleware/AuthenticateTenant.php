@@ -40,6 +40,7 @@ class AuthenticateTenant
         $request->attributes->set('tenant', $tenant);
         View::share('portalTenant', $tenant);
         View::share('portalAccounts', count($session['tenant_ids'] ?? []));
+        View::share('portalMultiUnit', (new \App\Services\TenantPortal\TenantAccount($tenant))->hasMultipleUnits());
 
         return $next($request);
     }

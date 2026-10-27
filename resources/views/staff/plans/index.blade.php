@@ -20,6 +20,7 @@
             quarterly_price: '',
             annual_price: '',
             currency: 'UGX',
+            features: [],
             tiers: [],
         },
         addTier(form) {
@@ -38,6 +39,7 @@
                 annual_price: item.annual_price,
                 currency: item.currency,
                 show_on_website: !!item.show_on_website,
+                features: item.features ?? {{ Js::from(array_keys(\App\Support\PlanFeatures::FEATURES)) }},
                 tiers: (item.tiers && item.tiers.length) ? item.tiers.map(t => ({
                     min_units: t.min_units,
                     max_units: t.max_units,
@@ -85,6 +87,7 @@
                                     <td class="px-6 py-4">
                                         <x-badge :color="$plan->isTiered() ? 'blue' : 'gray'">{{ $plan->isTiered() ? 'Tiered' : 'Flat' }}</x-badge>
                                         @if($plan->show_on_website && $plan->is_active) <x-badge color="green" class="ml-1">On website</x-badge> @endif
+                                        <span class="mt-1 block text-xs text-gray-500" title="{{ collect($plan->featureKeys())->map(fn ($k) => \App\Support\PlanFeatures::name($k))->implode(', ') }}">{{ $plan->features === null ? 'All features' : count($plan->featureKeys()).' of '.count(\App\Support\PlanFeatures::FEATURES).' features' }}</span>
                                     </td>
                                     @if($plan->isTiered())
                                         <td class="px-6 py-4 text-sm text-gray-600" colspan="3">
@@ -139,6 +142,7 @@
                                     <div class="mt-1">
                                         <x-badge :color="$plan->isTiered() ? 'blue' : 'gray'">{{ $plan->isTiered() ? 'Tiered' : 'Flat' }}</x-badge>
                                         @if($plan->show_on_website && $plan->is_active) <x-badge color="green" class="ml-1">On website</x-badge> @endif
+                                        <span class="mt-1 block text-xs text-gray-500" title="{{ collect($plan->featureKeys())->map(fn ($k) => \App\Support\PlanFeatures::name($k))->implode(', ') }}">{{ $plan->features === null ? 'All features' : count($plan->featureKeys()).' of '.count(\App\Support\PlanFeatures::FEATURES).' features' }}</span>
                                     </div>
                                 </div>
                                 @staffcan('plans.manage')<x-dropdown align="right" width="48">
@@ -215,6 +219,20 @@
                                 <span class="block text-xs text-gray-500">Publish this plan's prices on primoraproptech.com. The site picks up changes within about 15 minutes.</span>
                             </span>
                         </label>
+                        {{-- Plan features (everything else is on every plan) --}}
+                        <div>
+                            <input type="hidden" name="features_sent" value="1">
+                            <x-label>Features included</x-label>
+                            <p class="mb-2 text-xs text-gray-500">Properties, tenants, invoices, payments, the tenant portal, collections, payouts and SMS are on every plan. Leave all ticked to include future features too.</p>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach(\App\Support\PlanFeatures::FEATURES as $key => [$fname, $fgives])
+                                    <label class="flex items-start gap-2.5 rounded-xl border border-gray-200 px-3 py-2 cursor-pointer hover:border-gray-300">
+                                        <input type="checkbox" name="features[]" value="{{ $key }}" checked class="mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                        <span><span class="block text-sm font-medium text-gray-900">{{ $fname }}</span><span class="block text-xs text-gray-500">{{ $fgives }}</span></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
 
                         {{-- Flat pricing --}}
                         <div x-show="createForm.pricing_model === 'flat'" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -313,6 +331,20 @@
                                 <span class="block text-xs text-gray-500">Publish this plan's prices on primoraproptech.com. The site picks up changes within about 15 minutes.</span>
                             </span>
                         </label>
+                        {{-- Plan features (everything else is on every plan) --}}
+                        <div>
+                            <input type="hidden" name="features_sent" value="1">
+                            <x-label>Features included</x-label>
+                            <p class="mb-2 text-xs text-gray-500">Properties, tenants, invoices, payments, the tenant portal, collections, payouts and SMS are on every plan. Leave all ticked to include future features too.</p>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach(\App\Support\PlanFeatures::FEATURES as $key => [$fname, $fgives])
+                                    <label class="flex items-start gap-2.5 rounded-xl border border-gray-200 px-3 py-2 cursor-pointer hover:border-gray-300">
+                                        <input type="checkbox" name="features[]" value="{{ $key }}" x-model="editing.features" class="mt-0.5 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                        <span><span class="block text-sm font-medium text-gray-900">{{ $fname }}</span><span class="block text-xs text-gray-500">{{ $fgives }}</span></span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
 
                         {{-- Flat pricing --}}
                         <div x-show="editing.pricing_model === 'flat'" class="grid grid-cols-1 sm:grid-cols-3 gap-4">

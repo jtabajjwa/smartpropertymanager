@@ -33,6 +33,8 @@ class SubscriptionController extends Controller
             'id' => $plan->id,
             'name' => $plan->name,
             'tiered' => $plan->isTiered(),
+            'features' => collect($plan->featureKeys())->map(fn ($k) => \App\Support\PlanFeatures::name($k))->values(),
+            'missing' => collect(\App\Support\PlanFeatures::FEATURES)->keys()->reject(fn ($k) => $plan->includes($k))->map(fn ($k) => \App\Support\PlanFeatures::name($k))->values(),
             'tiers' => $this->billing->tierOptions($plan, $units),
             'default_tier' => $this->billing->defaultTierId($plan, $units, $landlord->max_units),
         ])->filter(fn ($p) => collect($p['tiers'])->contains(fn ($t) => $t['eligible'] && $t['prices']))->values();

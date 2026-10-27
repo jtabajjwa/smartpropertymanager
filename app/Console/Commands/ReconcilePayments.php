@@ -66,6 +66,34 @@ class ReconcilePayments extends Command
 
         $this->info("Checked {$checked} open payment(s); {$changed} changed.");
 
+        // Landlord payouts sent through the gateway and not yet confirmed.
+        if (!$this->option('reference')) {
+            $this->reconcilePayouts();
+        }
+
         return self::SUCCESS;
+    }
+
+    protected function reconcilePayouts(): void
+    {
+        $payouts = \App\Models\Liquidation::withoutGlobalScopes()->where('status', \App\Models\Liquidation::PROCESSING)
+            ->where(fn ($q) => $q->whereNull('last_checked_at')->orWhere('last_checked_at', '<=', now()->subSeconds(50)))
+            ->orderBy('sent_at')->limit(50)->get();
+
+        foreach ($payouts as $liquidation) {
+            try {
+                $after = app(\App\Services\Liquidations::class)->refresh($liquidation)->status;
+                if ($after !== \App\Models\Liquidation::PROCESSING) {
+                    $this->line("{$liquidation->reference}: processing → {$after}");
+                }
+            } catch (\Throwable $e) {
+                $this->error("{$liquidation->reference}: {$e->getMessage()}");
+                report($e);
+            }
+        }
+
+        if ($payouts->isNotEmpty()) {
+            $this->info("Checked {$payouts->count()} payout(s) in progress.");
+        }
     }
 }

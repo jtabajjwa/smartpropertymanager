@@ -19,6 +19,7 @@ class Plan extends Model
         'currency',
         'is_active',
         'show_on_website',
+        'features',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class Plan extends Model
             'annual_price' => 'decimal:2',
             'is_active' => 'boolean',
             'show_on_website' => 'boolean',
+            'features' => 'array',
         ];
     }
 
@@ -40,6 +42,18 @@ class Plan extends Model
     public function tiers(): HasMany
     {
         return $this->hasMany(PlanTier::class)->orderBy('min_units');
+    }
+
+    /** No list = every feature (including ones added later). */
+    public function includes(string $feature): bool
+    {
+        return $this->features === null || in_array($feature, $this->features, true);
+    }
+
+    /** @return list<string> the feature keys this plan includes */
+    public function featureKeys(): array
+    {
+        return array_values(array_filter(array_keys(\App\Support\PlanFeatures::FEATURES), fn ($k) => $this->includes($k)));
     }
 
     public function isTiered(): bool

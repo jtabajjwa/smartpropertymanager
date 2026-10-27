@@ -49,6 +49,16 @@ final class StaffPermissions
             'collections.manage' => ['Manage rent collections', 'Switch tenant mobile money payments on/off for landlords; set collection fee bands.'],
             'collections.settle' => ['Record settlements', 'Record payouts to landlords of rent collected for them.'],
         ],
+        'Payouts' => [
+            'liquidations.view' => ['View payouts', 'See landlord payout requests and payout accounts.'],
+            'liquidations.approve' => ['Approve payouts', 'Approve or reject payout requests, and verify landlord payout accounts.'],
+            'liquidations.execute' => ['Execute payouts', 'Send approved payouts by mobile money (Yo!) or record bank EFTs. Nobody can execute a payout they approved.'],
+        ],
+        'Books' => [
+            'books.view' => ['View books', 'Chart of accounts, ledgers, journal, and profit & loss.'],
+            'books.post' => ['Record in the books', 'Record expenses, transfers and journals, reverse entries, and manage accounts.'],
+            'books.tax_rates' => ['Set landlord tax rates', 'Change the default rates and bands of the taxes and levies landlords can switch on in their Books.'],
+        ],
         'Revenue' => [
             'revenue.view' => ['View revenue', 'See revenue from subscriptions and SMS sales, SMS costs and margins.'],
         ],
@@ -62,11 +72,11 @@ final class StaffPermissions
         ],
         'finance' => [
             'label' => 'Finance',
-            'permissions' => ['landlords.view', 'plans.view', 'subscriptions.view', 'subscriptions.adjust', 'subscriptions.record_payment', 'payments.view', 'payments.check', 'sms.view', 'sms.purchases', 'sms.credits', 'revenue.view', 'collections.view', 'collections.settle'],
+            'permissions' => ['landlords.view', 'plans.view', 'subscriptions.view', 'subscriptions.adjust', 'subscriptions.record_payment', 'payments.view', 'payments.check', 'sms.view', 'sms.purchases', 'sms.credits', 'revenue.view', 'collections.view', 'collections.settle', 'liquidations.view', 'liquidations.approve', 'books.view'],
         ],
         'read_only' => [
             'label' => 'Read-only',
-            'permissions' => ['landlords.view', 'properties.view', 'plans.view', 'subscriptions.view', 'payments.view', 'sms.view', 'collections.view'],
+            'permissions' => ['landlords.view', 'properties.view', 'plans.view', 'subscriptions.view', 'payments.view', 'sms.view', 'collections.view', 'liquidations.view', 'books.view'],
         ],
     ];
 
@@ -88,6 +98,10 @@ final class StaffPermissions
         'sms.manage' => ['sms.view'],
         'collections.manage' => ['collections.view'],
         'collections.settle' => ['collections.view'],
+        'liquidations.approve' => ['liquidations.view'],
+        'liquidations.execute' => ['liquidations.view'],
+        'books.post' => ['books.view'],
+        'books.tax_rates' => ['books.view'],
     ];
 
     /** @return list<string> */

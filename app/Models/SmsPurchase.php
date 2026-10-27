@@ -11,7 +11,7 @@ class SmsPurchase extends Model
 {
     use Auditable;
 
-    protected $fillable = ['provider', 'quantity', 'total_cost', 'purchased_on', 'reference', 'notes', 'recorded_by_staff_user_id'];
+    protected $fillable = ['provider', 'quantity', 'total_cost', 'paid_from', 'purchased_on', 'reference', 'notes', 'recorded_by_staff_user_id'];
 
     protected function casts(): array
     {

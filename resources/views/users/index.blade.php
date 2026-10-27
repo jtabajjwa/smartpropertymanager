@@ -30,11 +30,20 @@
                     <h3 class="text-lg font-semibold text-gray-900">All Users</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage system users and their access.</p>
                 </div>
-                <x-button @click="createModal = true" type="button">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Add User
-                </x-button>
+                @if(\App\Support\PlanFeatures::allows('team'))
+                    <x-button @click="createModal = true" type="button">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add User
+                    </x-button>
+                @endif
             </div>
+
+            @unless(\App\Support\PlanFeatures::allows('team'))
+                <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-orange-200 bg-orange-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="flex items-center gap-2 text-sm text-gray-700"><x-plan-lock /> Your plan has one user. Team members, each with their own sign-in, come with a higher plan.</p>
+                    <a href="{{ route('subscription.show') }}" class="shrink-0 text-sm font-medium text-orange-600 hover:text-orange-700">See plans &rarr;</a>
+                </div>
+            @endunless
 
             {{-- Filters --}}
             <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">

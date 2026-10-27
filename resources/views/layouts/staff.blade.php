@@ -4,9 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="app-shell" content="staff">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <title>Staff Portal — {{ config('app.name', 'Primora') }}</title>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/portal.js'])
 
     <script>
         document.addEventListener('alpine:init', () => {
@@ -32,13 +34,14 @@
         });
     </script>
 </head>
-<body class="font-sans antialiased bg-gray-50 lg:flex" x-data="{ sidebarOpen: true }" x-on:keydown.escape.window="sidebarOpen = false">
+<body class="app-bg font-sans antialiased text-gray-900 lg:flex" x-data="{ sidebarOpen: true }" x-on:keydown.escape.window="sidebarOpen = false" hx-boost="true">
+    <div id="app-progress" aria-hidden="true"></div>
 
     <!-- Sidebar Backdrop (mobile only — desktop sidebar collapses in place, no overlay needed) -->
     <div x-show="sidebarOpen" x-transition:enter="transition-opacity ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 lg:hidden" @click="sidebarOpen = false" style="display: none;"></div>
 
     <!-- Sidebar: overlay drawer on mobile, collapsible panel that reflows content on lg: up -->
-    <aside x-show="sidebarOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 -translate-x-4" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-50 flex flex-col lg:static lg:shrink-0">
+    <aside x-show="sidebarOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 -translate-x-4" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-50 flex flex-col lg:static lg:shrink-0 lg:bg-white/55 lg:backdrop-blur-xl lg:border-white/70 lg:shadow-[1px_0_0_rgba(17,24,39,0.05)]">
 
         <!-- Logo -->
         <div class="h-14 flex items-center justify-between px-5 border-b border-gray-200">
@@ -70,11 +73,13 @@
                 @staffcan('sms.view')<x-sidebar-link route="staff.sms.index" label="SMS" icon="chat" />@endstaffcan
             </div>
 
-            @if(auth('staff')->user()->hasPermission('revenue.view') || auth('staff')->user()->hasPermission('collections.view'))
+            @if(collect(['revenue.view', 'collections.view', 'liquidations.view', 'books.view'])->contains(fn ($p) => auth('staff')->user()->hasPermission($p)))
                 <div>
                     <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Finance</p>
                     @staffcan('revenue.view')<x-sidebar-link route="staff.revenue.index" label="Revenue" icon="chart" />@endstaffcan
                     @staffcan('collections.view')<x-sidebar-link route="staff.collections.index" label="Rent Collections" icon="banknotes" />@endstaffcan
+                    @staffcan('liquidations.view')<x-sidebar-link route="staff.liquidations.index" label="Payouts" icon="arrows" />@endstaffcan
+                    @staffcan('books.view')<x-sidebar-link route="staff.books.index" label="Books" icon="calculator" />@endstaffcan
                 </div>
             @endif
 
@@ -90,7 +95,7 @@
     <!-- Main Content -->
     <div class="lg:flex-1 lg:min-w-0">
         <!-- Top Bar -->
-        <header class="sticky top-0 z-30 h-14 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center px-4 sm:px-6">
+        <header class="sticky top-0 z-30 h-14 bg-white/55 backdrop-blur-xl border-b border-white/70 shadow-[0_1px_0_rgba(17,24,39,0.05)] flex items-center px-4 sm:px-6">
             <button @click="sidebarOpen = !sidebarOpen" title="Show/hide menu" class="p-2 -ml-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
             </button>
@@ -150,6 +155,16 @@
         <main class="p-4 sm:p-6">
             {{ $slot }}
         </main>
+
+        <footer class="px-4 sm:px-6 pb-6">
+            <div class="border-t border-gray-200/80 pt-5 flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-between sm:text-left text-xs text-gray-400">
+                <div class="flex items-center gap-2">
+                    <x-brand :wordmark="false" size="xs" />
+                    <span>© {{ now()->year }} {{ config('app.name', 'Primora') }}. All rights reserved.</span>
+                </div>
+                <p>{{ config('app.name', 'Primora') }} staff portal · <a href="https://primoraproptech.com" target="_blank" rel="noopener" class="hover:text-orange-600">primoraproptech.com</a></p>
+            </div>
+        </footer>
     </div>
 
     <x-confirm-modal />

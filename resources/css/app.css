@@ -37,3 +37,35 @@
 
 /* Alpine: hide x-cloak elements until Alpine has initialised them */
 [x-cloak] { display: none !important; }
+
+/* Portal background: soft colour washes, Gemini-style. Brand terracotta (top right),
+   a calm blue (left) and lavender (bottom), fading into near-white. White cards sit on top. */
+.app-bg { background: #fbfaf9; }
+.app-bg::before, .app-bg::after { content: ''; position: fixed; inset: -15vmax; z-index: -1; pointer-events: none; will-change: transform; }
+.app-bg::before {
+    background:
+        radial-gradient(42vmax 34vmax at 82% 8%, rgba(214, 140, 104, .30), rgba(214, 140, 104, .12) 45%, transparent 72%),
+        radial-gradient(40vmax 36vmax at 6% 42%, rgba(110, 146, 226, .24), rgba(110, 146, 226, .09) 48%, transparent 72%);
+    animation: app-drift-a 28s ease-in-out infinite alternate;
+}
+.app-bg::after {
+    background:
+        radial-gradient(44vmax 32vmax at 62% 100%, rgba(170, 146, 232, .24), rgba(170, 146, 232, .08) 48%, transparent 72%),
+        radial-gradient(30vmax 26vmax at 98% 62%, rgba(236, 170, 190, .18), transparent 70%);
+    animation: app-drift-b 34s ease-in-out infinite alternate;
+}
+@keyframes app-drift-a { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-3vmax, 2.5vmax, 0); } }
+@keyframes app-drift-b { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(3vmax, -2.5vmax, 0); } }
+@media (prefers-reduced-motion: reduce) { .app-bg::before, .app-bg::after { animation: none; } }
+/* Under an opaque desktop sidebar, bring the blue glow into the content area. */
+@media (min-width: 1024px) {
+    .app-bg.opaque-sidebar::before {
+        background:
+            radial-gradient(42vmax 34vmax at 82% 8%, rgba(214, 140, 104, .30), rgba(214, 140, 104, .12) 45%, transparent 72%),
+            radial-gradient(36vmax 32vmax at 30% 55%, rgba(110, 146, 226, .20), rgba(110, 146, 226, .07) 48%, transparent 72%);
+    }
+}
+
+/* Page-load progress bar for background navigation (resources/js/boost.js). */
+#app-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 60; background: #c1704a; opacity: 0; pointer-events: none; transition: width .4s ease, opacity .3s ease; }
+#app-progress.is-loading { width: 75%; opacity: 1; transition: width 8s cubic-bezier(.1, .7, .2, 1), opacity .1s; }

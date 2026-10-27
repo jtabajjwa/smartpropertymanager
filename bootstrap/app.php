@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check-active' => \App\Http\Middleware\CheckActive::class,
             'must-change-password' => \App\Http\Middleware\MustChangePassword::class,
             'admin' => \App\Http\Middleware\AdminOnly::class,
+            'feature' => \App\Http\Middleware\RequirePlanFeature::class,
             'resolve-landlord' => \App\Http\Middleware\ResolveLandlord::class,
             'staff.check-active' => \App\Http\Middleware\StaffCheckActive::class,
             'staff.must-change-password' => \App\Http\Middleware\StaffMustChangePassword::class,

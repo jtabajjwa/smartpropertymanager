@@ -41,7 +41,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($landlords as $landlord)
-                            <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location='{{ route('staff.sms.landlord', $landlord) }}'">
+                            <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="if (event.target.closest('a, button, form')) return; this.querySelector('a[href]').click()">
                                 <td class="px-5 py-3 text-sm">
                                     <a href="{{ route('staff.sms.landlord', $landlord) }}" class="font-medium text-gray-900 hover:text-orange-600">{{ $landlord->name }}</a>
                                     <span class="block text-xs text-gray-400">{{ $landlord->contact_email }}</span>

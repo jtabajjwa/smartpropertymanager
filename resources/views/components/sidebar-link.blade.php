@@ -1,10 +1,15 @@
-@props(['route', 'label', 'icon' => 'circle'])
+@props(['route', 'label', 'icon' => 'circle', 'dark' => false, 'locked' => false])
 
 @php
 $isActive = request()->routeIs($route . '*') || request()->routeIs($route);
-$classes = $isActive
-    ? 'bg-gray-100 text-orange-500'
-    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50';
+if ($dark) {
+    // Navy panel: soft highlight for the current page, orange icon.
+    $classes = $isActive ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white';
+    $iconClasses = $isActive ? 'text-orange-400' : 'text-gray-400 group-hover:text-gray-200';
+} else {
+    $classes = $isActive ? 'bg-gray-100 text-orange-500' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50';
+    $iconClasses = '';
+}
 
 $icons = [
     'home' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>',
@@ -29,7 +34,8 @@ $icons = [
 $iconPath = $icons[$icon] ?? $icons['circle'];
 @endphp
 
-<a href="{{ route($route) }}" class="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition {{ $classes }}">
-    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $iconPath !!}</svg>
+<a href="{{ route($route) }}" class="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition {{ $classes }}" @if($isActive) aria-current="page" @endif>
+    <svg class="w-5 h-5 shrink-0 {{ $iconClasses }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $iconPath !!}</svg>
     {{ $label }}
+    @if($locked)<x-plan-lock :dark="$dark" class="ml-auto" />@endif
 </a>

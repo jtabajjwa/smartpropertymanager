@@ -1,0 +1,10 @@
+[Unit]
+Description=Primora scheduler every minute (%i)
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

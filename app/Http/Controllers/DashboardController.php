@@ -57,7 +57,7 @@ class DashboardController extends Controller
                 return (object) [
                     'unit' => $unit,
                     'vacant_since' => $vacantSince,
-                    'days_vacant' => $vacantSince->diffInDays(now()),
+                    'days_vacant' => (int) $vacantSince->diffInDays(now()),
                 ];
             })
             ->sortByDesc('days_vacant')

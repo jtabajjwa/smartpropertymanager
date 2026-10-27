@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Staff\StorePlanRequest;
 use App\Http\Requests\Staff\UpdatePlanRequest;
 use App\Models\Plan;
+use App\Support\PlanFeatures;
 use Illuminate\Support\Facades\DB;
 
 class PlanController extends Controller
@@ -31,6 +32,8 @@ class PlanController extends Controller
                 'currency' => strtoupper($request->currency),
                 'is_active' => true,
                 'show_on_website' => $request->boolean('show_on_website'),
+                // The form sends features_sent with its checkboxes; without it, a plan has everything.
+                'features' => $request->has('features_sent') ? PlanFeatures::normalise($request->input('features', [])) : null,
             ]);
 
             if ($isTiered) {
@@ -54,6 +57,7 @@ class PlanController extends Controller
                 'annual_price' => $isTiered ? 0 : $request->annual_price,
                 'currency' => strtoupper($request->currency),
                 'show_on_website' => $request->boolean('show_on_website'),
+                'features' => $request->has('features_sent') ? PlanFeatures::normalise($request->input('features', [])) : $plan->features,
             ]);
 
             if ($isTiered) {

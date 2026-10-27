@@ -109,7 +109,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($payments as $payment)
-                            <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="window.location='{{ route('staff.payments.show', $payment) }}'">
+                            <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="if (event.target.closest('a, button, form')) return; this.querySelector('a[href]').click()">
                                 <td class="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{{ $payment->created_at->format('d M Y, H:i') }}</td>
                                 <td class="px-5 py-3 text-sm">
                                     <a href="{{ route('staff.payments.show', $payment) }}" class="font-mono font-medium text-gray-900 hover:text-orange-600">{{ $payment->reference }}</a>

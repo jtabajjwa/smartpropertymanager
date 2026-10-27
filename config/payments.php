@@ -62,6 +62,10 @@ return [
             ],
             // Seconds to wait for Yo! to accept a request (NonBlocking, so it's quick).
             'timeout' => (int) env('YO_TIMEOUT', 45),
+            // Primora's private key (PEM) for signing withdrawals (acwithdrawfunds). Its public key
+            // must be configured on the Yo! account. Keep the file outside the web root.
+            'private_key' => env('YO_PRIVATE_KEY_PATH'),
+            'private_key_passphrase' => env('YO_PRIVATE_KEY_PASSPHRASE'),
             // Text added to the mobile-money confirmation SMS the payer receives.
             'provider_reference_text' => env('YO_PROVIDER_REFERENCE_TEXT', 'Primora PropTech'),
         ],

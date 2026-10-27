@@ -1,0 +1,16 @@
+# Primora queue worker for one environment (%i = staging | production).
+[Unit]
+Description=Primora queue worker (%i)
+After=network.target mariadb.service
+
+[Service]
+User=primora-%i
+Group=primora-%i
+WorkingDirectory=/var/www/primora/%i/current
+ExecStart=/usr/bin/php /var/www/primora/%i/current/artisan queue:work --sleep=3 --tries=3 --max-time=3600 --memory=256
+Restart=always
+RestartSec=5
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

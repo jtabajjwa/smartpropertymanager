@@ -156,6 +156,11 @@
                                                 <span x-text="p.tiered ? 'From ' : ''"></span><span class="font-semibold text-gray-900" x-text="'UGX ' + fmt(fromPrice(p))"></span> / <span x-text="per()"></span>
                                             </p>
                                             <p class="mt-1 text-xs text-gray-500" x-text="p.tiered ? 'Priced by number of units' : 'Any number of units'"></p>
+                                            <p class="mt-2 text-xs text-gray-600" x-show="p.missing.length === 0">Includes every feature</p>
+                                            <ul class="mt-2 space-y-0.5 text-xs" x-show="p.missing.length > 0">
+                                                <template x-for="f in p.features" :key="f"><li class="text-gray-700">✓ <span x-text="f"></span></li></template>
+                                                <template x-for="f in p.missing" :key="f"><li class="text-gray-400">– <span x-text="f"></span></li></template>
+                                            </ul>
                                         </div>
                                     </label>
                                 </template>
@@ -252,5 +257,4 @@
         </div>
     </div>
 
-    @include('partials.payment-status-script')
 </x-app-layout>

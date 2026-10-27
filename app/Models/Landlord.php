@@ -28,6 +28,11 @@ class Landlord extends Model
         'max_units',
         'collect_payments',
         'pass_collection_fee',
+        'books_basis',
+        'fiscal_year_start_month',
+        'taxpayer_type',
+        'tin',
+        'extra_features',
         'current_period_end',
         'grace_ends_at',
     ];
@@ -40,7 +45,25 @@ class Landlord extends Model
             'max_units' => 'integer',
             'collect_payments' => 'boolean',
             'pass_collection_fee' => 'boolean',
+            'fiscal_year_start_month' => 'integer',
+            'extra_features' => 'array',
         ];
+    }
+
+    /** Whether this account has a plan feature: their plan includes it, staff granted it, or they have no plan yet. */
+    public function hasFeature(string $feature): bool
+    {
+        if (!array_key_exists($feature, \App\Support\PlanFeatures::FEATURES) || in_array($feature, $this->extra_features ?? [], true)) {
+            return true;
+        }
+
+        return !$this->plan || $this->plan->includes($feature);
+    }
+
+    /** The basis the books are actually kept on: accrual needs the plan feature. */
+    public function booksBasis(): string
+    {
+        return $this->books_basis === 'accrual' && $this->hasFeature('accrual_basis') ? 'accrual' : 'cash';
     }
 
     public function plan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
