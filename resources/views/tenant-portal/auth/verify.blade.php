@@ -1,7 +1,7 @@
 <x-tenant-layout title="Enter your code" :guest="true">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h1 class="text-xl font-bold text-gray-900">Enter your code</h1>
-        <p class="mt-1 text-sm text-gray-500">We sent a 6-digit code by SMS to <strong class="text-gray-800">{{ $masked }}</strong>. It expires in {{ \App\Services\TenantPortal\TenantLogin::CODE_MINUTES }} minutes.</p>
+        <p class="mt-1 text-sm text-gray-500">We sent a 6-digit code by {{ $channel === 'email' ? 'email' : 'SMS' }} to <strong class="text-gray-800">{{ $masked }}</strong>. It expires in {{ \App\Services\TenantPortal\TenantLogin::CODE_MINUTES }} minutes.</p>
 
         <form method="POST" action="{{ route('tenant.verify') }}" class="mt-6 space-y-4">
             @csrf
@@ -14,7 +14,7 @@
         </form>
 
         <div class="mt-5 flex items-center justify-between text-sm">
-            <a href="{{ route('tenant.login') }}" class="text-gray-500 hover:text-gray-900">← Change number</a>
+            <a href="{{ route('tenant.login') }}" class="text-gray-500 hover:text-gray-900">← Use a different {{ $channel === 'email' ? 'email' : 'number' }}</a>
             <form method="POST" action="{{ route('tenant.verify.resend') }}">
                 @csrf
                 <button type="submit" class="font-medium text-orange-600 hover:text-orange-700">Send a new code</button>

@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
-use App\Payments\Msisdn;
 use App\Services\CurrentLandlord;
+use App\Services\TenantPortal\TenantLogin;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  * and scopes the request to that tenant's landlord.
  *
  * The tenant is signed out if their landlord's account is no longer active,
- * or the phone they verified is no longer on their tenant record.
+ * or the phone or email they verified is no longer on their tenant record.
  */
 class AuthenticateTenant
 {
@@ -26,9 +26,10 @@ class AuthenticateTenant
         $session = $request->session()->get(self::SESSION, []);
         $tenant = !empty($session['tenant_id']) ? Tenant::withoutGlobalScopes()->with('landlord')->find($session['tenant_id']) : null;
 
+        [$via, $to] = self::signedInWith($session);
         $valid = $tenant
             && $tenant->landlord?->status === 'active'
-            && in_array($session['msisdn'] ?? null, [Msisdn::normalize($tenant->primary_phone), Msisdn::normalize($tenant->secondary_phone)], true);
+            && TenantLogin::matches($tenant, $via, $to);
 
         if (!$valid) {
             $request->session()->forget(self::SESSION);
@@ -43,5 +44,16 @@ class AuthenticateTenant
         View::share('portalMultiUnit', (new \App\Services\TenantPortal\TenantAccount($tenant))->hasMultipleUnits());
 
         return $next($request);
+    }
+
+    /**
+     * How the tenant proved who they are: [channel, phone number or email].
+     * Sessions from before email sign-in hold just 'msisdn'.
+     *
+     * @return array{0: string, 1: ?string}
+     */
+    public static function signedInWith(array $session): array
+    {
+        return [$session['via'] ?? TenantLogin::SMS, $session['to'] ?? $session['msisdn'] ?? null];
     }
 }

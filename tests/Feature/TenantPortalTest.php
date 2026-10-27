@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateTenant;
 use App\Mail\IssueReportedMail;
+use App\Mail\TenantLoginCodeMail;
 use App\Models\CollectionFeeTier;
 use App\Models\Estate;
 use App\Models\Invoice;
@@ -24,7 +25,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 /*
- * Tenant portal: SMS-code sign-in, dashboard, paying by mobile money into
+ * Tenant portal: sign-in with a code by SMS or email, dashboard, paying by mobile money into
  * the Primora pool (with the tiered collection fee), issues, agreements;
  * and the staff side of rent collections.
  */
@@ -101,6 +102,55 @@ test('a tenant signs in with their phone number and an SMS code', function () {
 
     $this->get(route('tenant.dashboard'))->assertOk()
         ->assertSee('Grace')->assertSee('UGX 500,000')->assertSee('October rent')->assertSee('Kololo Homes');
+});
+
+test('a tenant signs in with their email address and a code sent by email', function () {
+    Mail::fake();
+    ['tenant' => $tenant] = tenancy();
+    Tenant::withoutGlobalScopes()->whereKey($tenant->id)->update(['email' => 'Grace.Namata@Example.com']);
+
+    $this->post(route('tenant.login'), ['identifier' => '  grace.namata@example.COM '])->assertRedirect(route('tenant.verify'));
+    $this->get(route('tenant.verify'))->assertOk()->assertSee('by email')->assertSee('gr•••@example.com', false);
+
+    $code = null;
+    Mail::assertSent(TenantLoginCodeMail::class, function (TenantLoginCodeMail $mail) use (&$code) {
+        $code = $mail->code;
+
+        return $mail->hasTo('grace.namata@example.com') && $mail->recipientName === 'Grace Namata';
+    });
+    expect($this->sentSms)->toBe([]);
+
+    $this->post(route('tenant.verify'), ['code' => '000000'])->assertSessionHasErrors('code');
+    $this->post(route('tenant.verify'), ['code' => $code])->assertRedirect(route('tenant.dashboard'));
+    $this->get(route('tenant.dashboard'))->assertOk()->assertSee('October rent');
+
+    // Changing the email on the tenant record signs them out.
+    Tenant::withoutGlobalScopes()->whereKey($tenant->id)->update(['email' => 'someone.else@example.com']);
+    $this->get(route('tenant.dashboard'))->assertRedirect(route('tenant.login'));
+});
+
+test('an unknown or malformed email gets nowhere, and an SMS code does not work for email', function () {
+    Mail::fake();
+    ['tenant' => $tenant] = tenancy();
+
+    $this->post(route('tenant.login'), ['identifier' => 'nobody@example.com'])->assertSessionHasErrors('identifier');
+    $this->post(route('tenant.login'), ['identifier' => 'not@an@email'])->assertSessionHasErrors('identifier');
+    Mail::assertNothingSent();
+
+    // A code sent by SMS can't be used to finish an email sign-in.
+    $this->post(route('tenant.login'), ['identifier' => '0772123456']);
+    $smsCode = lastCode($this);
+    $this->post(route('tenant.login'), ['identifier' => $tenant->email]);
+    $this->post(route('tenant.verify'), ['code' => $smsCode])->assertSessionHasErrors('code');
+});
+
+test('a unit number reaches a tenant without a usable phone by email', function () {
+    Mail::fake();
+    ['tenant' => $tenant] = tenancy('n/a', 'D7');
+
+    $this->post(route('tenant.login'), ['identifier' => 'D7'])->assertRedirect(route('tenant.verify'));
+    Mail::assertSent(TenantLoginCodeMail::class, fn ($mail) => $mail->hasTo(strtolower($tenant->email)));
+    expect($this->sentSms)->toBe([]);
 });
 
 test('a tenant can sign in with their unit number, choosing their phone if the unit number is shared', function () {

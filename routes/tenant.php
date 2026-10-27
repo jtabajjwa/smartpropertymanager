@@ -4,7 +4,7 @@ use App\Http\Controllers\TenantPortal;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Tenant portal. Tenants sign in with a one-time SMS code (no password),
+ * Tenant portal. Tenants sign in with a one-time code sent by SMS or email (no password),
  * and see only their own account with their landlord.
  */
 Route::prefix('tenant')->name('tenant.')->group(function () {
