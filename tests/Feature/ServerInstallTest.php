@@ -3,6 +3,7 @@
 use App\Models\Landlord;
 use App\Models\StaffUser;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 /*
  * What a fresh server install relies on (see deploy/README.md).
@@ -22,6 +23,17 @@ test('staff:create-admin creates a staff admin', function () {
     expect($staff->isAdmin())->toBeTrue()
         ->and($staff->must_change_password)->toBeFalse()
         ->and(Hash::check('a-long-password', $staff->password))->toBeTrue();
+});
+
+test('mail:test sends a test email, and rejects a bad address', function () {
+    config(['mail.default' => 'array']);
+
+    $this->artisan('mail:test', ['to' => 'ops@example.test'])->assertSuccessful();
+    $this->artisan('mail:test', ['to' => 'not-an-email'])->assertFailed();
+
+    $sent = Mail::mailer('array')->getSymfonyTransport()->messages();
+    expect($sent)->toHaveCount(1)
+        ->and($sent->first()->getOriginalMessage()->getTo()[0]->getAddress())->toBe('ops@example.test');
 });
 
 test('staff:create-admin refuses a short or mismatched password and a taken email', function () {
