@@ -26,6 +26,7 @@ shopt -u patsub_replacement 2>/dev/null || true   # keep '&' literal in ${x//a/b
 
 TOOLS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES="$TOOLS/templates"
+[[ -f "$TEMPLATES/env.template" ]] || { echo "Run this through the 'primora' command (sudo primora ...), not as a copied file." >&2; exit 1; }
 . /etc/primora/primora.conf
 
 DEPLOY_USER="primora"
@@ -120,7 +121,7 @@ EOF
     install -d -m 700 "$BACKUPS/$ENV"
     install -d -m 711 /etc/primora/keys   # Yo! signing keys (see .env)
 
-    if [[ ! -f "$SHARED/.env" ]]; then
+    if [[ ! -s "$SHARED/.env" ]]; then   # missing or empty
         local DB_PASSWORD APP_KEY WEBSITE_API_KEY
         DB_PASSWORD="$(openssl rand -hex 24)"
         APP_KEY="base64:$(openssl rand -base64 32)"
@@ -130,8 +131,10 @@ EOF
                     ALTER USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
                     GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
                     FLUSH PRIVILEGES;"
+        # Written to a temp file first, so a failure never leaves a half-written .env behind.
         ( umask 077
-          render "$TEMPLATES/env.template" ENV DOMAIN APP_KEY LOG_LEVEL DB_NAME DB_USER DB_PASSWORD WEBSITE_API_KEY YO_MODE APP_USER > "$SHARED/.env" )
+          render "$TEMPLATES/env.template" ENV DOMAIN APP_KEY LOG_LEVEL DB_NAME DB_USER DB_PASSWORD WEBSITE_API_KEY YO_MODE APP_USER > "$SHARED/.env.new" )
+        mv -f "$SHARED/.env.new" "$SHARED/.env"
         chown "root:$APP_USER" "$SHARED/.env"
         chmod 640 "$SHARED/.env"
         ok "Database $DB_NAME, user $DB_USER and $SHARED/.env created (passwords generated)."
@@ -230,10 +233,11 @@ cmd_deploy() {
 
     step "1/7 Fetching $short ($subject)"
     install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 755 "$release"
+    # Until it goes live, a failed deploy removes its half-built release.
+    trap 'rm -rf "$release"' EXIT
     git_repo archive "$sha" | as_deploy tar -x -C "$release"
     rm -rf "$release/storage" "$release/.env" "$release/deploy" "$release/website" "$release/tests"
     ln -s "$SHARED/storage" "$release/storage"
-    ln -s "$SHARED/.env" "$release/.env"
     printf 'commit %s\nref %s\ndeployed %s\nsubject %s\n' "$sha" "$ref" "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$subject" > "$release/RELEASE"
 
     step "2/7 Installing PHP packages"
@@ -249,6 +253,8 @@ cmd_deploy() {
     ok "Done."
 
     step "4/7 Preparing the release"
+    # Linked only now: the build runs as the deploy user, which may not read the secrets.
+    ln -s "$SHARED/.env" "$release/.env"
     ln -s ../storage/app/public "$release/public/storage"
     chown -R "$APP_USER:$APP_USER" "$release/bootstrap/cache"
     command -v restorecon >/dev/null && restorecon -R "$release" "$SHARED"
@@ -270,6 +276,7 @@ cmd_deploy() {
     step "7/7 Switching to the new release"
     local previous=""
     [[ -L "$CURRENT" ]] && previous="$(readlink -f "$CURRENT")"
+    trap - EXIT
     activate "$release"
 
     if ! health_check; then
@@ -433,7 +440,7 @@ cmd_env() {
 
 cmd_logs() {
     load_env "${1:-}"
-    local file; file="$(ls -1t "$SHARED/storage/logs/"laravel*.log 2>/dev/null | head -1)"
+    local file; file="$(ls -1t "$SHARED/storage/logs/"laravel*.log 2>/dev/null | head -1 || true)"
     [[ -n "$file" ]] || die "No log file yet."
     tail -n 100 -f "$file"
 }

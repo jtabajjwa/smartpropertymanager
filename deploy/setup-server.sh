@@ -59,9 +59,19 @@ fi
 dnf -y -q install php-cli php-fpm php-common php-mysqlnd php-pdo php-gd php-zip php-intl \
     php-mbstring php-bcmath php-xml php-opcache php-process php-sodium
 php -r 'exit(version_compare(PHP_VERSION, "8.4.0", ">=") ? 0 : 1);' || die "php is $(php -r 'echo PHP_VERSION;'); 8.4 is required."
+missing=()
+# Read the list once: `php -m | grep -q` can fail at random under pipefail
+# (grep exits early, php gets SIGPIPE).
+loaded="$(php -m 2>/dev/null)"
 for ext in pdo_mysql gd zip intl mbstring bcmath dom xml curl fileinfo openssl sodium pcntl posix; do
-    php -m | grep -qix "$ext" || die "PHP extension '$ext' is missing."
+    grep -qix "$ext" <<<"$loaded" || missing+=("$ext")
 done
+if (( ${#missing[@]} )); then
+    warn "PHP extensions not loading: ${missing[*]}. Details:"
+    php -m 2>&1 >/dev/null | grep -i -E 'warning|unable|error' | head -5 | sed 's/^/      /' || true
+    dnf list --installed 'php*' 2>/dev/null | sed 's/^/      /'
+    die "Fix the extensions above (see deploy/README.md, Troubleshooting), then run this script again."
+fi
 cat > /etc/php.d/99-primora.ini <<'EOF'
 ; Primora (written by deploy/setup-server.sh)
 expose_php = Off
@@ -141,6 +151,9 @@ log "Done."
 step "7/11 Firewall, fail2ban and security updates"
 systemctl enable --now firewalld >/dev/null
 firewall-cmd -q --permanent --add-service=ssh --add-service=http --add-service=https
+# Cockpit (web admin on port 9090) comes open on Contabo images; close it.
+# Re-open with: firewall-cmd --permanent --add-service=cockpit && firewall-cmd --reload
+firewall-cmd -q --permanent --remove-service=cockpit 2>/dev/null || true
 firewall-cmd -q --reload
 cat > /etc/fail2ban/jail.d/primora-sshd.local <<'EOF'
 [sshd]
@@ -159,7 +172,7 @@ log "Open: $(firewall-cmd --list-services)"
 step "8/11 SELinux"
 if selinuxenabled 2>/dev/null; then
     # PHP calls Yo! Payments, the SMS gateway, SMTP and MariaDB over the network.
-    setsebool -P httpd_can_network_connect on httpd_can_network_connect_db on httpd_can_sendmail on
+    setsebool -P httpd_can_network_connect=1 httpd_can_network_connect_db=1 httpd_can_sendmail=1
     add_fcontext() { semanage fcontext -a -t "$1" "$2" 2>/dev/null || semanage fcontext -m -t "$1" "$2"; }
     add_fcontext httpd_sys_rw_content_t "$WWW/[^/]+/shared/storage(/.*)?"
     add_fcontext httpd_sys_rw_content_t "$WWW/[^/]+/releases/[^/]+/bootstrap/cache(/.*)?"
@@ -210,6 +223,10 @@ until as_deploy git ls-remote "$REPO_URL" HEAD >/dev/null 2>&1; do
     echo
     read -r -p "    Press Enter once it's added (or type 'skip' to finish later): " answer
     [[ "$answer" == "skip" ]] && { warn "Skipped. Run this script again after adding the key."; break; }
+    if ! err=$(as_deploy git ls-remote "$REPO_URL" HEAD 2>&1 >/dev/null); then
+        warn "GitHub still refuses ($REPO_URL):"
+        echo "$err" | sed 's/^/      /'
+    fi
 done
 if as_deploy git ls-remote "$REPO_URL" HEAD >/dev/null 2>&1; then
     if [[ ! -d "$REPO" ]]; then
@@ -242,7 +259,9 @@ as_deploy git -C "$REPO" archive "${TOOLS_REF:-main}" deploy | tar -x -C "$tools
 bash "$tools/deploy/primora.sh" "$@"
 EOF
 chmod 755 /usr/local/sbin/primora
-log "Installed /usr/local/sbin/primora"
+# sudo's secure_path on EL leaves out /usr/local/sbin, so link it where `sudo primora` finds it.
+ln -sf /usr/local/sbin/primora /usr/bin/primora
+log "Installed /usr/local/sbin/primora (linked as /usr/bin/primora)"
 
 echo
 echo -e "\033[1;32m================================================================\033[0m"
