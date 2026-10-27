@@ -234,7 +234,7 @@ cmd_deploy() {
     step "1/7 Fetching $short ($subject)"
     install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 755 "$release"
     # Until it goes live, a failed deploy removes its half-built release.
-    trap 'rm -rf "$release"' EXIT
+    trap "rm -rf '$release'" EXIT   # expanded now: $release is local and gone by exit time
     git_repo archive "$sha" | as_deploy tar -x -C "$release"
     rm -rf "$release/storage" "$release/.env" "$release/deploy" "$release/website" "$release/tests"
     ln -s "$SHARED/storage" "$release/storage"
@@ -376,7 +376,7 @@ cmd_ssl_inner() {
     if [[ -d "/etc/letsencrypt/live/$DOMAIN" ]]; then ok "Already has one."; return 0; fi
     local server_ip dns_ip
     server_ip="$(curl -fsS4 --max-time 10 https://api.ipify.org 2>/dev/null || true)"
-    dns_ip="$(dig +short A "$DOMAIN" @1.1.1.1 2>/dev/null | tail -1)"
+    dns_ip="$(dig +short A "$DOMAIN" @1.1.1.1 2>/dev/null | tail -1 || true)"
     if [[ -z "$dns_ip" || "$dns_ip" != "$server_ip" ]]; then
         warn "$DOMAIN points to '${dns_ip:-nothing}', but this server is ${server_ip:-unknown}."
         log "Add an A record for $DOMAIN → $server_ip, wait a few minutes, then: sudo primora ssl $ENV"
@@ -408,8 +408,9 @@ cmd_backup_inner() {
     fi
     local keep=$KEEP_DAILY_BACKUPS
     [[ "$kind" == "predeploy" ]] && keep=$KEEP_PREDEPLOY_BACKUPS
-    ls -1t "$dir/$kind-"*.sql.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f
-    ls -1t "$dir/$kind-"*-files.tar.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f
+    # `|| true`: ls fails when there are none yet (predeploy has no file backups), which pipefail would make fatal.
+    ls -1t "$dir/$kind-"*.sql.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f || true
+    ls -1t "$dir/$kind-"*-files.tar.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -f || true
     log "Backup: $LAST_BACKUP ($(du -h "$LAST_BACKUP" | cut -f1))"
 }
 
