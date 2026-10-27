@@ -81,7 +81,7 @@ sudo primora artisan staging staff:create-admin
 sudo primora env staging
 ```
 
-This opens `.env` in nano. Save and exit, and the app picks up the changes. Values to set:
+This opens `.env` in vim (set `PRIMORA_EDITOR` in `/etc/primora/primora.conf` to use another editor). Save and exit, and the app picks up the changes. Values to set:
 - `YO_API_USERNAME` / `YO_API_PASSWORD`. Staging uses `YO_MODE=sandbox`.
 - SMTP: set `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`. Until then, email goes to the log. Test it with `sudo primora artisan <env> mail:test you@example.com`, which shows the settings in use and the mail server's error if sending fails.
 - `MARZ_SMS_ENABLED=true` with the API key and secret.

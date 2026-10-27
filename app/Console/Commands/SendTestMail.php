@@ -48,6 +48,12 @@ class SendTestMail extends Command
             return self::FAILURE;
         }
 
+        if (in_array($mailer, ['log', 'array'], true)) {
+            $this->line("Not sent: the message was written to the log ({$mailer} mailer) instead.");
+
+            return self::SUCCESS;
+        }
+
         $this->info("Sent to {$to}. Check the inbox (and the spam folder).");
 
         return self::SUCCESS;

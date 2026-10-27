@@ -430,7 +430,10 @@ cmd_env() {
     load_env "${1:-}"
     [[ -f "$SHARED/.env" ]] || die "$ENV isn't installed yet."
     local before; before="$(sha256sum "$SHARED/.env")"
-    "${EDITOR:-nano}" "$SHARED/.env"
+    # Editor: PRIMORA_EDITOR in /etc/primora/primora.conf, else vim (vi if vim isn't installed).
+    local editor="${PRIMORA_EDITOR:-vim}"
+    command -v "$editor" >/dev/null || editor=vi
+    "$editor" "$SHARED/.env"
     if [[ "$(sha256sum "$SHARED/.env")" != "$before" ]]; then
         chown "root:$APP_USER" "$SHARED/.env"; chmod 640 "$SHARED/.env"
         [[ -L "$CURRENT" ]] && cmd_reload "$ENV"

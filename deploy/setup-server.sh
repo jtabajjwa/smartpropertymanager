@@ -44,7 +44,7 @@ else
     dnf config-manager --set-enabled crb
     rpm -q epel-release >/dev/null || dnf -y -q install epel-release
 fi
-dnf -y -q install git tar unzip curl nano bind-utils policycoreutils-python-utils \
+dnf -y -q install git tar unzip curl nano vim-enhanced bind-utils policycoreutils-python-utils \
     firewalld nginx mariadb-server nodejs npm certbot python3-certbot-nginx \
     fail2ban dnf-automatic openssl
 log "Done."
@@ -196,6 +196,8 @@ REPO_URL="$REPO_URL_DEFAULT"
 TOOLS_REF="main"
 # Let's Encrypt account email (asked for the first time a certificate is requested)
 CERTBOT_EMAIL=""
+# Editor used by 'primora env' (vim, nano, …)
+PRIMORA_EDITOR="vim"
 EOF
 fi
 . "$CONF_DIR/primora.conf"
