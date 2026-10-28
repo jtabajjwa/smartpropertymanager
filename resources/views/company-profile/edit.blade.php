@@ -8,6 +8,9 @@
             <div class="mb-6">
                 <h3 class="text-lg font-semibold text-gray-900">Company Profile & Invoice Branding</h3>
                 <p class="mt-1 text-sm text-gray-500">Your logo, brand color, and footer note appear on every generated invoice and email.</p>
+                @if($landlord->number)
+                    <p class="mt-2 text-sm text-gray-500">Your landlord number is <strong class="text-gray-900 tabular-nums">{{ $landlord->number }}</strong>. Every unit ID you're given starts with it; tenants sign in to the portal with their unit ID.</p>
+                @endif
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

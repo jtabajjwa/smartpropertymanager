@@ -1,7 +1,7 @@
 <x-tenant-layout title="Choose your phone" :guest="true">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h1 class="text-xl font-bold text-gray-900">Which one is yours?</h1>
-        <p class="mt-1 text-sm text-gray-500">More than one tenant has a unit with that number. Choose your phone (or email) and we'll send the code to it.</p>
+        <p class="mt-1 text-sm text-gray-500">This unit has more than one tenant. Choose your phone (or email) and we'll send the code to it.</p>
 
         <form method="POST" action="{{ route('tenant.login.choose') }}" class="mt-6 space-y-2">
             @csrf

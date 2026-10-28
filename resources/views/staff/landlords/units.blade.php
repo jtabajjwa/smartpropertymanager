@@ -89,6 +89,7 @@
                                         <x-photo-thumb :url="$unit->photo_url" icon="cube" />
                                         <div class="min-w-0">
                                             <p class="font-medium text-gray-900">{{ $unit->name }}</p>
+                                            <p class="text-xs text-gray-500 tabular-nums">ID {{ $unit->code }}</p>
                                             @if($unit->description)<p class="text-xs text-gray-500">{{ Str::limit($unit->description, 50) }}</p>@endif
                                         </div>
                                     </div>
@@ -125,6 +126,7 @@
                         <x-photo-thumb :url="$unit->photo_url" icon="cube" size="w-14 h-14" />
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-medium text-gray-900">{{ $unit->name }}</p>
+                            <p class="text-xs text-gray-500 tabular-nums">ID {{ $unit->code }}</p>
                             <p class="mt-0.5 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }} · {{ $unit->estate?->location?->name ?? '--' }}</p>
                             <div class="mt-2"><x-badge :color="$statusColor($unit->status)">{{ ucfirst($unit->status) }}</x-badge></div>
                         </div>

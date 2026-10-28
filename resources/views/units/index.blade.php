@@ -54,7 +54,7 @@
                 <form method="GET" action="{{ route('units.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
-                        <x-input name="search" value="{{ request('search') }}" placeholder="Unit name, estate..." />
+                        <x-input name="search" value="{{ request('search') }}" placeholder="Unit name, ID, estate..." />
                     </div>
                     <div class="w-40">
                         <x-label>Status</x-label>
@@ -97,7 +97,7 @@
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900">
                                         <div class="flex items-center gap-3">
                                             <x-photo-thumb :url="$unit->photo_url" icon="cube" />
-                                            <span>{{ $unit->name }}</span>
+                                            <span><span class="block">{{ $unit->name }}</span><span class="block text-xs font-normal text-gray-500 tabular-nums" title="Tenants sign in with this ID">ID {{ $unit->code }}</span></span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }}</td>
@@ -142,7 +142,7 @@
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-3">
                                         <x-photo-thumb :url="$unit->photo_url" icon="cube" size="w-12 h-12" />
-                                        <p class="text-sm font-medium text-gray-900 break-words">{{ $unit->name }}</p>
+                                        <div class="min-w-0"><p class="text-sm font-medium text-gray-900 break-words">{{ $unit->name }}</p><p class="text-xs text-gray-500 tabular-nums">ID {{ $unit->code }}</p></div>
                                     </div>
                                     <p class="mt-0.5 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }}</p>
                                 </div>
@@ -193,6 +193,11 @@
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Name</p>
                             <p class="mt-1 text-sm font-medium text-gray-900" x-text="viewing.name || '--'"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Unit ID</p>
+                            <p class="mt-1 text-sm font-medium text-gray-900 tabular-nums" x-text="viewing.code || '--'"></p>
+                            <p class="mt-0.5 text-xs text-gray-500">Tenants sign in to the portal with this.</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Estate</p>

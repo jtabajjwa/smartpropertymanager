@@ -8,7 +8,7 @@ use App\Services\TenantPortal\TenantLogin;
 use Illuminate\Http\Request;
 
 /**
- * Tenant sign-in: phone number, email address or unit number → a code by
+ * Tenant sign-in: phone number, email address or unit ID → a code by
  * SMS (phone) or email → (pick a tenancy if that phone or email is on more
  * than one tenant record) → portal.
  */
@@ -33,7 +33,7 @@ class AuthController extends Controller
     public function lookup(Request $request)
     {
         $data = $request->validate(['identifier' => ['required', 'string', 'max:255']], [
-            'identifier.required' => 'Enter your phone number, email address or unit number.',
+            'identifier.required' => 'Enter your phone number, email address or unit ID.',
         ]);
 
         $destinations = $this->login->destinations($data['identifier']);
@@ -41,7 +41,7 @@ class AuthController extends Controller
         if (!$destinations) {
             $error = str_contains($data['identifier'], '@')
                 ? "We couldn't find a tenant with that email address. Check it, or sign in with your phone number."
-                : "We couldn't find a tenant with that phone or unit number. Check it, or ask your landlord to confirm the phone number they have for you.";
+                : "We couldn't find a tenant with that phone number or unit ID. Check it (your unit ID is on your invoice), or ask your landlord to confirm the phone number they have for you.";
 
             return back()->withInput()->withErrors(['identifier' => $error]);
         }
@@ -55,7 +55,7 @@ class AuthController extends Controller
         return $this->send($request, ...TenantLogin::parseKey(array_key_first($destinations)));
     }
 
-    /** A unit number matched more than one tenant: pick your phone (or email). */
+    /** A unit ID matched more than one current tenant: pick your phone (or email). */
     public function choose(Request $request)
     {
         $choices = $request->session()->get(self::PENDING)['choices'] ?? null;

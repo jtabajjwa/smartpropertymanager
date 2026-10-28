@@ -141,6 +141,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
                 <h3 class="text-sm font-semibold text-gray-900">Tenancy</h3>
                 <dl class="mt-3 divide-y divide-gray-100 text-sm">
+                    <div class="flex justify-between py-2"><dt class="text-gray-500">Landlord number</dt><dd class="font-medium text-gray-900 tabular-nums">{{ $landlord->number ?? '--' }}</dd></div>
                     <div class="flex justify-between py-2"><dt class="text-gray-500">Tenants</dt><dd class="font-medium text-gray-900">{{ number_format($summary['tenants']) }}</dd></div>
                     <div class="flex justify-between py-2"><dt class="text-gray-500">Active leases</dt><dd class="font-medium text-gray-900">{{ number_format($summary['active_leases']) }}</dd></div>
                     <div class="flex justify-between py-2"><dt class="text-gray-500">Expiring in 30 days</dt><dd class="font-medium {{ $summary['expiring_leases'] > 0 ? 'text-orange-600' : 'text-gray-900' }}">{{ number_format($summary['expiring_leases']) }}</dd></div>

@@ -50,6 +50,14 @@ class Landlord extends Model
         ];
     }
 
+    /** Each landlord gets a permanent number (100, 101, …), the start of their unit IDs. */
+    protected static function booted(): void
+    {
+        static::creating(function (Landlord $landlord) {
+            $landlord->number ??= \App\Support\UnitCode::nextLandlordNumber();
+        });
+    }
+
     /** Whether this account has a plan feature: their plan includes it, staff granted it, or they have no plan yet. */
     public function hasFeature(string $feature): bool
     {

@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\CollectionFees;
 use App\Services\CurrentLandlord;
 use App\Services\SmsService;
+use App\Support\UnitCode;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -144,24 +145,76 @@ test('an unknown or malformed email gets nowhere, and an SMS code does not work 
     $this->post(route('tenant.verify'), ['code' => $smsCode])->assertSessionHasErrors('code');
 });
 
-test('a unit number reaches a tenant without a usable phone by email', function () {
+test('a unit ID reaches a tenant without a usable phone by email', function () {
     Mail::fake();
-    ['tenant' => $tenant] = tenancy('n/a', 'D7');
+    ['tenant' => $tenant, 'unit' => $unit] = tenancy('n/a', 'D7');
 
-    $this->post(route('tenant.login'), ['identifier' => 'D7'])->assertRedirect(route('tenant.verify'));
+    $this->post(route('tenant.login'), ['identifier' => $unit->code])->assertRedirect(route('tenant.verify'));
     Mail::assertSent(TenantLoginCodeMail::class, fn ($mail) => $mail->hasTo(strtolower($tenant->email)));
     expect($this->sentSms)->toBe([]);
 });
 
-test('a tenant can sign in with their unit number, choosing their phone if the unit number is shared', function () {
-    tenancy('+256772123456', 'A4', true, 'Kololo Homes');
-    tenancy('0701 999 888', 'a4 ', true, 'Ntinda Flats');
+test('unit IDs are unique across landlords even when unit names are not', function () {
+    ['landlord' => $a, 'unit' => $unitA] = tenancy('+256772123456', 'A4', true, 'Kololo Homes');
+    ['landlord' => $b, 'unit' => $unitB] = tenancy('0701 999 888', 'A4', true, 'Ntinda Flats');
 
-    $this->post(route('tenant.login'), ['identifier' => 'A4'])->assertRedirect(route('tenant.login.choose'));
+    expect($b->number)->toBe($a->number + 1)
+        ->and($unitA->code)->toBe(UnitCode::make($a->number, 1))
+        ->and($unitB->code)->toBe(UnitCode::make($b->number, 1))
+        ->and($unitA->code)->not->toBe($unitB->code);
+
+    // The unit ID goes straight to that landlord's tenant, typed with or without spaces.
+    $spaced = implode(' ', str_split($unitB->code, 3));
+    $this->post(route('tenant.login'), ['identifier' => $spaced])->assertRedirect(route('tenant.verify'));
+    expect($this->sentSms)->toHaveCount(1)->and($this->sentSms[0][0])->toBe('256701999888');
+
+    // A bare unit name no longer signs anyone in, and a mistyped ID fails its check digit.
+    $this->post(route('tenant.login'), ['identifier' => 'A4'])->assertSessionHasErrors('identifier');
+    $typo = substr($unitA->code, 0, 3).((int) $unitA->code[3] + 1) % 10 .substr($unitA->code, 4);
+    expect(UnitCode::normalize($typo))->toBeNull();
+    $this->post(route('tenant.login'), ['identifier' => $typo])->assertSessionHasErrors('identifier');
+    expect($this->sentSms)->toHaveCount(1);
+});
+
+test('a unit with two current tenants lets them choose their phone', function () {
+    ['landlord' => $landlord, 'unit' => $unit] = tenancy('+256772123456', 'A4');
+    CurrentLandlord::set($landlord->id);
+    $other = Tenant::create([
+        'type' => 'individual', 'name' => 'Peter Okello', 'email' => 'peter@example.com', 'primary_phone' => '0701 999 888',
+        'id_type' => 'national_id', 'id_number' => 'NIN-77', 'emergency_contact_name' => 'Emergency',
+        'emergency_contact_relationship' => 'family', 'emergency_contact_phone' => '+256700000000',
+    ]);
+    Lease::create([
+        'tenant_id' => $other->id, 'unit_id' => $unit->id, 'status' => 'active', 'start_date' => '2026-01-01', 'rent_amount' => 500000,
+        'billing_cycle' => 'monthly', 'security_deposit' => 0, 'required_upfront_periods' => 1, 'next_invoice_date' => today()->toDateString(), 'number' => 'LSE-777777',
+    ]);
+    CurrentLandlord::clear();
+
+    $this->post(route('tenant.login'), ['identifier' => $unit->code])->assertRedirect(route('tenant.login.choose'));
     $this->get(route('tenant.login.choose'))->assertOk()->assertSee('07•• ••• 456', false)->assertSee('07•• ••• 888', false);
 
     $this->post(route('tenant.login.choose'), ['choice' => 1])->assertRedirect(route('tenant.verify'));
     expect(end($this->sentSms)[0])->toBe('256701999888');
+});
+
+test('unit IDs are digits with a working check digit, and keep counting per landlord', function () {
+    expect(UnitCode::make(100, 12))->toBe('1000124')
+        ->and(UnitCode::isValid('1000124'))->toBeTrue()
+        ->and(UnitCode::isValid('1000127'))->toBeFalse()
+        ->and(UnitCode::normalize('100-012-4'))->toBe('1000124')
+        ->and(UnitCode::normalize('A4'))->toBeNull();
+
+    ['landlord' => $landlord] = tenancy();
+    CurrentLandlord::set($landlord->id);
+    $estate = Estate::first();
+    $second = Unit::create(['name' => 'A5', 'estate_id' => $estate->id, 'status' => 'vacant']);
+    $third = Unit::create(['name' => 'A4', 'estate_id' => $estate->id, 'status' => 'vacant']);
+    $second->update(['name' => 'B5']);
+    CurrentLandlord::clear();
+
+    // IDs keep counting per landlord and stay put when a unit is renamed.
+    expect($second->fresh()->code)->toBe(UnitCode::make($landlord->number, 2))
+        ->and($third->code)->toBe(UnitCode::make($landlord->number, 3));
 });
 
 test('unknown numbers, ended landlords and wrong codes get nowhere', function () {

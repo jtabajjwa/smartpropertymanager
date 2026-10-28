@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\Auditable;
 use App\Traits\BelongsToLandlord;
 use App\Traits\HasPhoto;
+use App\Support\UnitCode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,14 @@ class Unit extends Model
         'status',
         'estate_id',
     ];
+
+    /** Every unit gets a permanent, platform-wide unique ID that tenants sign in with (see UnitCode). */
+    protected static function booted(): void
+    {
+        static::creating(function (Unit $unit) {
+            $unit->code ??= UnitCode::nextFor($unit->landlord_id);
+        });
+    }
 
     public function estate(): BelongsTo
     {

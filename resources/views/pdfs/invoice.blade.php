@@ -72,7 +72,7 @@
         @if($invoice->lease?->unit)
             <tr>
                 <td class="label">Property</td>
-                <td colspan="3">{{ $invoice->lease->unit->estate?->name }} — {{ $invoice->lease->unit->name }}</td>
+                <td colspan="3">{{ $invoice->lease->unit->estate?->name }} — {{ $invoice->lease->unit->name }}@if($invoice->lease->unit->code) <span style="color:#6b7280;">(Unit ID {{ $invoice->lease->unit->code }})</span>@endif</td>
             </tr>
         @endif
     </table>

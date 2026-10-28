@@ -27,6 +27,7 @@ class UnitController extends Controller
             $search = request('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', $search)
                   ->orWhere('description', 'like', "%{$search}%")
                   ->orWhereHas('estate', fn ($t) => $t->where('name', 'like', "%{$search}%"));
             });

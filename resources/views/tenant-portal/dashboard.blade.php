@@ -222,6 +222,7 @@
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="text-sm font-semibold text-gray-900">Unit {{ $lease->unit?->name }}{{ $lease->unit?->estate ? ', '.$lease->unit->estate->name : '' }}</p>
+                                @if($lease->unit?->code)<p class="text-xs text-gray-500">Unit ID <span class="font-medium text-gray-700 tabular-nums">{{ $lease->unit->code }}</span>: sign in with it from any phone</p>@endif
                                 <p class="text-xs text-gray-500">{{ $lease->number }} · {{ $lease->start_date->format('d M Y') }} – {{ $lease->end_date?->format('d M Y') ?? 'open-ended' }}</p>
                             </div>
                             <x-badge :color="$lease->status === 'active' ? 'green' : 'gray'">{{ ucfirst($lease->status) }}</x-badge>

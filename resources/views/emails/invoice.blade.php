@@ -37,6 +37,9 @@
                                         <p style="margin:0 0 6px 0; font-size:13px; color:#6b7280;">Invoice {{ $invoice->number }}</p>
                                         <p style="margin:0 0 6px 0; font-size:22px; font-weight:700; color:{{ $brandColor }};">UGX {{ number_format($invoice->amount, 2) }}</p>
                                         <p style="margin:0; font-size:13px; color:#6b7280;">Due {{ $invoice->due_date->format('d M Y') }}</p>
+                                        @if($invoice->lease?->unit?->code)
+                                            <p style="margin:10px 0 0 0; font-size:13px; color:#6b7280;">Unit {{ $invoice->lease->unit->name }} · Unit ID <strong style="color:#111827;">{{ $invoice->lease->unit->code }}</strong>. Use it to sign in at <a href="{{ route('tenant.login') }}" style="color:{{ $brandColor }};">{{ route('tenant.login') }}</a> to view and pay.</p>
+                                        @endif
                                     </td>
                                 </tr>
                             </table>

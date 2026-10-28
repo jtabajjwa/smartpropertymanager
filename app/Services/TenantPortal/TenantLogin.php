@@ -9,6 +9,7 @@ use App\Models\TenantLoginCode;
 use App\Models\Unit;
 use App\Payments\Msisdn;
 use App\Services\SmsService;
+use App\Support\UnitCode;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Mail;
 
 /**
  * Tenant sign-in: a tenant gives their phone number, email address or unit
- * number, and proves it is them with a one-time code sent to the phone (by
+ * ID (see UnitCode), and proves it is them with a one-time code sent to the phone (by
  * SMS) or email address on their tenant record. Codes are free to the
  * landlord (Primora pays for the SMS).
  *
@@ -39,8 +40,8 @@ class TenantLogin
 
     /**
      * Where a code can be sent for what the tenant typed, as key => label
-     * (key: see self::key; several when a unit number matches several tenants).
-     * An email address gets an email; a phone number, SMS; a unit number, SMS
+     * (key: see self::key; several when a unit has several current tenants).
+     * An email address gets an email; a phone number, SMS; a unit ID, SMS
      * to its tenants' phones (or email, for a tenant without a usable phone).
      *
      * @return array<string, string>
@@ -57,13 +58,15 @@ class TenantLogin
                 : [];
         }
 
-        if ($msisdn = Msisdn::normalize($input)) {
-            return $this->tenantsWithPhone($msisdn)->isNotEmpty() ? [self::key(self::SMS, $msisdn) => self::label(self::SMS, $msisdn)] : [];
+        $msisdn = Msisdn::normalize($input);
+        if ($msisdn && $this->tenantsWithPhone($msisdn)->isNotEmpty()) {
+            return [self::key(self::SMS, $msisdn) => self::label(self::SMS, $msisdn)];
         }
 
-        // A unit number: the current tenants of units with that name.
-        $units = Unit::withoutGlobalScopes()->with(['estate' => fn ($q) => $q->withoutGlobalScopes()])
-            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($input)])
+        // A unit ID (digits only, unique across landlords): the unit's current tenants.
+        $code = UnitCode::normalize($input);
+        $units = $code === null ? collect() : Unit::withoutGlobalScopes()->with(['estate' => fn ($q) => $q->withoutGlobalScopes()])
+            ->where('code', $code)
             ->whereIn('landlord_id', Landlord::where('status', 'active')->select('id'))
             ->get();
 

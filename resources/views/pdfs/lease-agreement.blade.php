@@ -16,7 +16,7 @@
 <body>
     <div class="header">
         <h1>{{ $lease->landlord->name ?? config('app.name') }}</h1>
-        <p>Tenancy Agreement — Lease {{ $lease->number }}</p>
+        <p>Tenancy Agreement — Lease {{ $lease->number }}@if($lease->unit?->code) · Unit ID {{ $lease->unit->code }}@endif</p>
     </div>
 
     <div class="meta">Generated {{ now()->format('d M Y') }}</div>
