@@ -76,6 +76,7 @@ Route::prefix('staff')->name('staff.')->group(function () {
         // Every landlord's Primora subscription: overview, adjustments, offline payments.
         $S = \App\Http\Controllers\Staff\SubscriptionController::class;
         Route::get('subscriptions', [$S, 'index'])->middleware('staff.can:subscriptions.view')->name('subscriptions.index');
+        Route::put('subscription-settings', [$S, 'updateSettings'])->middleware('staff.can:subscriptions.adjust')->name('subscriptions.settings.update');
         Route::get('subscriptions/{landlord}', [$S, 'show'])->middleware('staff.can:subscriptions.view')->name('subscriptions.show');
         Route::put('subscriptions/{landlord}', [$S, 'update'])->middleware('staff.can:subscriptions.adjust')->name('subscriptions.update');
         Route::post('subscriptions/{landlord}/payments', [$S, 'recordPayment'])->middleware('staff.can:subscriptions.record_payment')->name('subscriptions.payments.store');

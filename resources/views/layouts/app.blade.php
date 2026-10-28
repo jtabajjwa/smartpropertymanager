@@ -285,6 +285,41 @@
             @endif
         @endif
 
+        <!-- Trial / plan ending, grace, read-only (see SubscriptionAccess) -->
+        @if (\App\Services\CurrentLandlord::id() && ($subLandlord = \App\Models\Landlord::find(\App\Services\CurrentLandlord::id())))
+            @php
+                $subLevel = $subLandlord->accessLevel();
+                $subEnd = $subLandlord->current_period_end;
+                $subWhat = $subLandlord->subscription_status === 'trialing' ? 'free trial' : 'plan';
+                $subDaysLeft = $subEnd ? (int) today()->diffInDays($subEnd, false) : null;
+                $subAction = auth()->user()->isLandlordAdmin() || \App\Services\StaffActingSession::active()
+                    ? '<a href="'.route('subscription.show').'" class="ml-auto font-semibold underline underline-offset-2 hover:no-underline">Choose a plan</a>'
+                    : '<span class="ml-auto">Ask your account admin to choose a plan.</span>';
+            @endphp
+            @if ($subLevel === \App\Services\SubscriptionAccess::READ_ONLY)
+                <div class="bg-red-50 border-b border-red-200 text-red-800">
+                    <div class="px-4 sm:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span><strong>Your account is read-only.</strong> Your {{ $subWhat }} ended{{ $subEnd ? ' on '.$subEnd->format('j M Y') : '' }}. You can view and export everything, and tenants can still pay, but you can't add or change records and no SMS are sent.</span>
+                        {!! $subAction !!}
+                    </div>
+                </div>
+            @elseif ($subLevel === \App\Services\SubscriptionAccess::GRACE)
+                <div class="bg-orange-50 border-b border-orange-200 text-orange-800">
+                    <div class="px-4 sm:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span><strong>Your {{ $subWhat }} ended on {{ $subEnd->format('j M Y') }}.</strong> Everything keeps working until {{ \App\Services\SubscriptionAccess::graceEndsOn($subLandlord)->format('j M Y') }}; after that your account becomes read-only.</span>
+                        {!! $subAction !!}
+                    </div>
+                </div>
+            @elseif ($subDaysLeft !== null && $subDaysLeft <= 7)
+                <div class="bg-blue-50 border-b border-blue-200 text-blue-900">
+                    <div class="px-4 sm:px-6 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span>Your {{ $subWhat }} ends {{ $subDaysLeft === 0 ? 'today' : ($subDaysLeft === 1 ? 'tomorrow' : 'in '.$subDaysLeft.' days') }} ({{ $subEnd->format('j M Y') }}).</span>
+                        {!! $subAction !!}
+                    </div>
+                </div>
+            @endif
+        @endif
+
         <!-- Page Content -->
         <main class="p-4 sm:p-6">
             {{ $slot }}

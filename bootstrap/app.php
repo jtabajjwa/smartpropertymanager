@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff.landlord-context' => \App\Http\Middleware\ResolveStaffLandlordContext::class,
             'staff.can' => \App\Http\Middleware\StaffCan::class,
             'auth.tenant' => \App\Http\Middleware\AuthenticateTenant::class,
+            'subscription.access' => \App\Http\Middleware\EnforceSubscriptionAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

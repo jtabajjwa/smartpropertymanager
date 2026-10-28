@@ -9,7 +9,9 @@ use App\Models\PaymentTransaction;
 use App\Models\Plan;
 use App\Payments\PaymentException;
 use App\Payments\PaymentService;
+use App\Services\SubscriptionAccess;
 use App\Services\SubscriptionBilling;
+use App\Support\Settings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -51,7 +53,23 @@ class SubscriptionController extends Controller
             'landlords' => $landlords,
             'stats' => $this->stats(),
             'plans' => Plan::orderBy('name')->get(['id', 'name']),
+            'trialDays' => SubscriptionAccess::trialDays(),
+            'graceDays' => SubscriptionAccess::graceDays(),
         ]);
+    }
+
+    /** How long new trials last, and the grace before an ended trial or plan goes read-only. */
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate([
+            'trial_days' => ['required', 'integer', 'min:1', 'max:365'],
+            'grace_days' => ['required', 'integer', 'min:0', 'max:90'],
+        ]);
+
+        Settings::set(SubscriptionAccess::TRIAL_DAYS_KEY, $data['trial_days']);
+        Settings::set(SubscriptionAccess::GRACE_DAYS_KEY, $data['grace_days']);
+
+        return back()->with('success', 'Trial and grace settings saved. New trials last '.$data['trial_days'].' days.');
     }
 
     public function show(Landlord $landlord)

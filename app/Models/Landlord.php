@@ -55,6 +55,11 @@ class Landlord extends Model
     {
         static::creating(function (Landlord $landlord) {
             $landlord->number ??= \App\Support\UnitCode::nextLandlordNumber();
+
+            // A new trial runs for the configured number of days.
+            if (($landlord->subscription_status ?? 'trialing') === 'trialing' && !$landlord->current_period_end) {
+                $landlord->current_period_end = \App\Services\SubscriptionAccess::trialEndsOn();
+            }
         });
 
         // Every new account starts with the usual expense items.
@@ -120,6 +125,17 @@ class Landlord extends Model
                 default => 'active',
             },
         };
+    }
+
+    /** full | grace | read_only (see SubscriptionAccess). */
+    public function accessLevel(): string
+    {
+        return \App\Services\SubscriptionAccess::level($this);
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->accessLevel() === \App\Services\SubscriptionAccess::READ_ONLY;
     }
 
     public function users(): HasMany

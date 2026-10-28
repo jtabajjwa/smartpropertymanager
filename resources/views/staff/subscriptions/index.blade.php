@@ -37,6 +37,28 @@
             </div>
         </div>
 
+        {{-- Trial and grace lengths (see SubscriptionAccess) --}}
+        <form method="POST" action="{{ route('staff.subscriptions.settings.update') }}" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6 flex flex-wrap items-end gap-4">
+            @csrf
+            @method('PUT')
+            @php $canAdjust = auth('staff')->user()?->hasPermission('subscriptions.adjust'); @endphp
+            <div class="min-w-[220px] flex-1">
+                <p class="text-sm font-semibold text-gray-900">Trial &amp; grace</p>
+                <p class="mt-0.5 text-xs text-gray-500">New sign-ups get a free trial. When a trial or paid plan ends, everything keeps working for the grace days, then the account becomes read-only until a plan is paid.</p>
+            </div>
+            <div class="w-32">
+                <x-label>Trial (days)</x-label>
+                <x-input type="number" name="trial_days" min="1" max="365" value="{{ old('trial_days', $trialDays) }}" :disabled="!$canAdjust" />
+            </div>
+            <div class="w-32">
+                <x-label>Grace (days)</x-label>
+                <x-input type="number" name="grace_days" min="0" max="90" value="{{ old('grace_days', $graceDays) }}" :disabled="!$canAdjust" />
+            </div>
+            @if($canAdjust)
+                <x-button type="submit">Save</x-button>
+            @endif
+        </form>
+
         {{-- Filters --}}
         <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
             <form method="GET" action="{{ route('staff.subscriptions.index') }}" class="flex flex-wrap items-end gap-4">

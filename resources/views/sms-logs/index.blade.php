@@ -54,6 +54,7 @@
                         <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
                         <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Failed</option>
                         <option value="no_credit" {{ request('status') === 'no_credit' ? 'selected' : '' }}>No credit</option>
+                        <option value="read_only" {{ request('status') === 'read_only' ? 'selected' : '' }}>Not sent: read-only</option>
                     </x-select>
                 </div>
                 <div class="w-44">
@@ -132,6 +133,8 @@
                                         <x-badge color="green">Sent</x-badge>
                                     @elseif($log->status === 'no_credit')
                                         <x-badge color="orange">No credit</x-badge>
+                                        @elseif($log->status === 'read_only')
+                                        <x-badge color="gray">Not sent: read-only</x-badge>
                                     @else
                                         <x-badge color="red">Failed</x-badge>
                                     @endif
@@ -190,6 +193,8 @@
                                         <x-badge color="green">Sent</x-badge>
                                     @elseif($log->status === 'no_credit')
                                         <x-badge color="orange">No credit</x-badge>
+                                        @elseif($log->status === 'read_only')
+                                        <x-badge color="gray">Not sent: read-only</x-badge>
                                     @else
                                         <x-badge color="red">Failed</x-badge>
                                     @endif

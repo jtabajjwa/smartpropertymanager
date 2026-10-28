@@ -21,6 +21,10 @@ class GenerateRecurringInvoices extends Command
         $leaseCount = 0;
 
         foreach (Landlord::where('status', 'active')->cursor() as $landlord) {
+            // Read-only accounts (trial or plan ended) don't raise new invoices; they resume once a plan is paid.
+            if ($landlord->isReadOnly()) {
+                continue;
+            }
             CurrentLandlord::set($landlord->id);
 
             try {

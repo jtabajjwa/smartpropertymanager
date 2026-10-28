@@ -208,6 +208,8 @@ test('only landlord admins can pay', function () {
 
 test('a signed IPN, confirmed by a status check, activates the subscription once', function () {
     [$landlord, $admin, $plan] = subscriptionSetup(8);
+    // Paying during the trial: the paid month starts when the trial ends, so no trial days are lost.
+    $paidUntil = $landlord->current_period_end->copy()->addMonthNoOverflow()->toDateString();
     $tx = startPayment($this, $admin, $plan);
     $this->yoStatus = 'SUCCEEDED';
 
@@ -223,11 +225,11 @@ test('a signed IPN, confirmed by a status check, activates the subscription once
         ->and($landlord->subscription_status)->toBe('active')
         ->and($landlord->plan_id)->toBe($plan->id)
         ->and($landlord->billing_cycle)->toBe('monthly')
-        ->and($landlord->current_period_end->toDateString())->toBe(today()->addMonthNoOverflow()->toDateString());
+        ->and($landlord->current_period_end->toDateString())->toBe($paidUntil);
 
     // Yo! retries IPNs: a duplicate must not add another month.
     $this->post(route('payments.callback', ['gateway' => 'yo', 'type' => 'ipn']), $ipn)->assertOk();
-    expect($landlord->fresh()->current_period_end->toDateString())->toBe(today()->addMonthNoOverflow()->toDateString());
+    expect($landlord->fresh()->current_period_end->toDateString())->toBe($paidUntil);
 });
 
 test('an IPN is never trusted on its own: if Yo! says pending, nothing is credited', function () {

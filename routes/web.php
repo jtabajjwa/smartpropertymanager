@@ -44,9 +44,10 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
-// Fully protected routes (auth + landlord scoping + check-active + email verified + must-change-password).
+// Fully protected routes (auth + landlord scoping + check-active + email verified + must-change-password;
+// read-only once a trial or plan has ended, see EnforceSubscriptionAccess).
 // Staff may also enter, but only in "staff mode" for one landlord (see StaffActingSession / ResolveLandlord).
-Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verified', 'must-change-password'])->group(function () {
+Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verified', 'must-change-password', 'subscription.access'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
     // Property

@@ -173,6 +173,17 @@ class SmsNotificationService
         $log = null;
         $reserved = false;
 
+        // A read-only account (trial or plan ended) sends no SMS; the log shows why.
+        if ($landlordId && \App\Models\Landlord::find($landlordId)?->isReadOnly()) {
+            SmsLog::create([
+                'phone' => $phone, 'message' => $message, 'segments' => $segments, 'tenant_id' => $tenantId,
+                'notification_type' => $type, 'reference_type' => $refType, 'reference_id' => $refId,
+                'status' => 'read_only', 'error' => 'Not sent: the account is read-only until a plan is chosen.',
+            ]);
+
+            return;
+        }
+
         try {
             $log = SmsLog::create([
                 'phone' => $phone,
