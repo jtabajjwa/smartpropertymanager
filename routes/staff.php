@@ -44,17 +44,13 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('portal/exit', [\App\Http\Controllers\Staff\LandlordPortalController::class, 'exit'])->name('portal.exit');
 
         // Acting on behalf of one landlord: everything here is scoped to {landlord}.
-        // Child IDs ({location}, {estate}, {unit}) are resolved in the controllers, not bound.
+        // Child IDs ({estate}, {unit}) are resolved in the controllers, not bound.
         Route::middleware('staff.landlord-context')->prefix('landlords/{landlord}')->name('landlords.')->group(function () {
             $view = 'staff.can:properties.view';
             $manage = 'staff.can:properties.manage';
 
             Route::get('/', [\App\Http\Controllers\Staff\LandlordController::class, 'show'])->middleware($view)->name('show');
 
-            Route::get('locations', [\App\Http\Controllers\Staff\LandlordLocationController::class, 'index'])->middleware($view)->name('locations.index');
-            Route::post('locations', [\App\Http\Controllers\Staff\LandlordLocationController::class, 'store'])->middleware($manage)->name('locations.store');
-            Route::put('locations/{location}', [\App\Http\Controllers\Staff\LandlordLocationController::class, 'update'])->middleware($manage)->name('locations.update');
-            Route::delete('locations/{location}', [\App\Http\Controllers\Staff\LandlordLocationController::class, 'destroy'])->middleware($manage)->name('locations.destroy');
 
             Route::get('estates', [\App\Http\Controllers\Staff\LandlordEstateController::class, 'index'])->middleware($view)->name('estates.index');
             Route::post('estates', [\App\Http\Controllers\Staff\LandlordEstateController::class, 'store'])->middleware($manage)->name('estates.store');

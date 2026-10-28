@@ -204,8 +204,8 @@
                             <p class="mt-1 text-sm text-gray-900" x-text="viewing.estate?.name || '--'"></p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wide">Location</p>
-                            <p class="mt-1 text-sm text-gray-900" x-text="viewing.estate?.location?.name || '--'"></p>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Address</p>
+                            <p class="mt-1 text-sm text-gray-900" x-text="[viewing.estate?.address, viewing.estate?.district].filter(Boolean).join(', ') || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Status</p>

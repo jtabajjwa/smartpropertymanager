@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreVendorJobRequest;
 use App\Http\Requests\UpdateVendorJobRequest;
 use App\Models\ExpenseItems;
+use App\Models\Issue;
 use App\Models\VendorJob;
 use App\Services\CurrentLandlord;
+use App\Services\IssueJobUpdates;
 use App\Services\JobCosting;
 use App\Services\NumberGenerator;
 use Illuminate\Support\Arr;
@@ -19,7 +21,7 @@ class VendorJobController extends Controller
 
     public function index()
     {
-        $query = VendorJob::with(['vendor', 'estate', 'unit', 'expense.expenseItem']);
+        $query = VendorJob::with(['vendor', 'estate', 'unit', 'issue:id,number,title', 'expense.expenseItem']);
 
         if (request('vendor_id')) {
             $query->where('vendor_id', request('vendor_id'));
@@ -47,32 +49,57 @@ class VendorJobController extends Controller
         $unrecorded = VendorJob::where('status', 'completed')->whereNull('expense_id')->where('no_charge', false)->count();
         $defaultItem = ExpenseItems::where('name', 'Repairs & maintenance')->first(['id', 'name']);
 
-        return view('vendor-jobs.index', compact('vendorJobs', 'unrecorded', 'defaultItem'));
+        // "Create job card" on an issue opens the form filled in from it.
+        $fromIssue = null;
+        if (request('issue') && ($issue = Issue::with('unit.estate')->find(request('issue')))) {
+            $fromIssue = [
+                'issue_id' => $issue->id,
+                'issue_label' => "{$issue->number} — {$issue->title}",
+                'title' => mb_substr($issue->title, 0, 255),
+                'description' => $issue->description,
+                'unit_id' => $issue->unit_id,
+                'unit_name' => $issue->unit?->name,
+                'estate_id' => $issue->unit?->estate_id,
+                'estate_name' => $issue->unit?->estate?->name,
+            ];
+        }
+
+        return view('vendor-jobs.index', compact('vendorJobs', 'unrecorded', 'defaultItem', 'fromIssue'));
     }
 
-    public function store(StoreVendorJobRequest $request, JobCosting $costing)
+    public function store(StoreVendorJobRequest $request, JobCosting $costing, IssueJobUpdates $issues)
     {
-        $data = $request->validated();
+        $data = $request->validated() + ['share_vendor' => false];
 
-        $note = DB::transaction(function () use ($data, $costing) {
+        $note = DB::transaction(function () use ($data, $costing, $issues) {
             $vendorJob = VendorJob::create(Arr::except($data, self::COSTING_FIELDS));
             $vendorJob->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'vendor_job', 'JC')]);
 
-            return $costing->sync($vendorJob, false, $this->costing($data));
+            $note = $costing->sync($vendorJob, false, $this->costing($data));
+
+            return trim($note.' '.$issues->sync($vendorJob, null));
         });
 
-        return redirect()->back()->with('success', trim('Job card created successfully. '.$note));
+        // Started from an issue: go back to it, where the new job is listed.
+        $back = $request->boolean('from_issue') && !empty($data['issue_id'])
+            ? redirect()->route('issues.show', $data['issue_id'])
+            : redirect()->back();
+
+        return $back->with('success', trim('Job card created successfully. '.$note));
     }
 
-    public function update(UpdateVendorJobRequest $request, VendorJob $vendor_job, JobCosting $costing)
+    public function update(UpdateVendorJobRequest $request, VendorJob $vendor_job, JobCosting $costing, IssueJobUpdates $issues)
     {
-        $data = $request->validated();
+        $data = $request->validated() + ['share_vendor' => false];
 
-        $note = DB::transaction(function () use ($data, $vendor_job, $costing) {
+        $note = DB::transaction(function () use ($data, $vendor_job, $costing, $issues) {
             $wasCompleted = $vendor_job->status === 'completed';
+            $before = ['issue_id' => $vendor_job->issue_id, 'status' => $vendor_job->status, 'job_date' => $vendor_job->job_date?->toDateString()];
             $vendor_job->update(Arr::except($data, self::COSTING_FIELDS));
 
-            return $costing->sync($vendor_job, $wasCompleted, $this->costing($data));
+            $note = $costing->sync($vendor_job, $wasCompleted, $this->costing($data));
+
+            return trim($note.' '.$issues->sync($vendor_job->fresh(), $before));
         });
 
         return redirect()->back()->with('success', trim('Job card updated successfully. '.$note));

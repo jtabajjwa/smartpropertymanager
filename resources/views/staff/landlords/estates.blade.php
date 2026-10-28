@@ -4,20 +4,13 @@
     <div class="max-w-7xl mx-auto" x-data="{
         createModal: false,
         editModal: false,
-        editing: { id: null, name: '', description: '', location_id: '' },
+        editing: { id: null, name: '', description: '', address: '', district: '', country: 'Uganda' },
         edit(item) {
-            this.editing = { ...item, description: item.description || '', location_id: String(item.location_id) };
+            this.editing = { ...item, description: item.description || '', address: item.address || '' };
             this.editModal = true;
         }
     }">
         @include('staff.landlords.partials.workspace-header')
-
-        @if($locations->isEmpty())
-            <div class="mb-4 rounded-2xl border border-orange-100 bg-orange-50 px-5 py-4 text-sm text-orange-800">
-                This landlord has no locations yet. Every estate belongs to a location, so
-                <a href="{{ route('staff.landlords.locations.index', $landlord) }}" class="font-medium underline">add a location</a> first.
-            </div>
-        @endif
 
         {{-- Filters + add --}}
         <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
@@ -27,22 +20,22 @@
                     <x-input name="search" value="{{ request('search') }}" placeholder="Estate name..." />
                 </div>
                 <div class="w-48">
-                    <x-label>Location</x-label>
-                    <x-select name="location_id">
-                        <option value="">All locations</option>
-                        @foreach($locations as $location)
-                            <option value="{{ $location->id }}" @selected((string) request('location_id') === (string) $location->id)>{{ $location->name }}</option>
+                    <x-label>District</x-label>
+                    <x-select name="district">
+                        <option value="">All districts</option>
+                        @foreach($districts as $district)
+                            <option value="{{ $district }}" @selected(request('district') === $district)>{{ $district }}</option>
                         @endforeach
                     </x-select>
                 </div>
                 <div class="flex gap-2">
                     <x-button type="submit">Filter</x-button>
-                    @if(request()->hasAny(['search', 'location_id']))
+                    @if(request()->hasAny(['search', 'district']))
                         <a href="{{ route('staff.landlords.estates.index', $landlord) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition">Clear</a>
                     @endif
                 </div>
                 <div class="ml-auto">
-                    @staffcan('properties.manage')<x-button @click="createModal = true" type="button" :disabled="$locations->isEmpty()">
+                    @staffcan('properties.manage')<x-button @click="createModal = true" type="button">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Add Estate
                     </x-button>@endstaffcan
@@ -56,7 +49,7 @@
                     <thead>
                         <tr class="border-b border-gray-200">
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Units</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Occupancy</th>
                             <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -75,7 +68,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->fullAddress() ?: '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
                                 <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->occupied_count }} / {{ $estate->units_count }} let</td>
                                 <td class="px-6 py-4">
                                     <x-badge :color="$estate->units_count === 0 ? 'gray' : ($rate >= 80 ? 'green' : ($rate >= 50 ? 'orange' : 'red'))">{{ $estate->units_count === 0 ? 'No units' : $rate.'%' }}</x-badge>
@@ -84,7 +77,7 @@
                                     <x-dropdown align="right" width="48">
                                         <x-slot name="content">
                                             <a href="{{ route('staff.landlords.units.index', [$landlord, 'estate_id' => $estate->id]) }}" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View units</a>
-                                            @staffcan('properties.manage')<button @click="edit({{ Js::from($estate->only(['id', 'name', 'description', 'location_id', 'latitude', 'longitude', 'photo_url'])) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>@endstaffcan
+                                            @staffcan('properties.manage')<button @click="edit({{ Js::from($estate->only(['id', 'name', 'description', 'address', 'district', 'country', 'latitude', 'longitude', 'photo_url'])) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>@endstaffcan
                                             @if($estate->units_count === 0)
                                                 @staffcan('properties.manage')<form action="{{ route('staff.landlords.estates.destroy', [$landlord, $estate->id]) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this estate?', $el)">
                                                     @csrf
@@ -110,13 +103,13 @@
                         <x-photo-thumb :url="$estate->photo_url" icon="building" size="w-14 h-14" />
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-medium text-gray-900">{{ $estate->name }}</p>
-                            <p class="mt-0.5 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></p>
+                            <p class="mt-0.5 text-sm text-gray-600">{{ $estate->fullAddress() ?: '--' }} <x-map-link :estate="$estate" class="ml-1" /></p>
                             <p class="mt-1 text-xs text-gray-500">{{ $estate->occupied_count }} / {{ $estate->units_count }} units let · {{ $rate }}%</p>
                         </div>
                         <x-dropdown align="right" width="48">
                             <x-slot name="content">
                                 <a href="{{ route('staff.landlords.units.index', [$landlord, 'estate_id' => $estate->id]) }}" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View units</a>
-                                @staffcan('properties.manage')<button @click="edit({{ Js::from($estate->only(['id', 'name', 'description', 'location_id', 'latitude', 'longitude', 'photo_url'])) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>@endstaffcan
+                                @staffcan('properties.manage')<button @click="edit({{ Js::from($estate->only(['id', 'name', 'description', 'address', 'district', 'country', 'latitude', 'longitude', 'photo_url'])) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>@endstaffcan
                                 @if($estate->units_count === 0)
                                     @staffcan('properties.manage')<form action="{{ route('staff.landlords.estates.destroy', [$landlord, $estate->id]) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this estate?', $el)">
                                         @csrf
@@ -148,20 +141,12 @@
                             <x-input name="name" placeholder="e.g. Kololo Apartments" required />
                         </div>
                         <div>
-                            <x-label :required="true">Location</x-label>
-                            <x-select name="location_id" required>
-                                <option value="">Select a location…</option>
-                                @foreach($locations as $location)
-                                    <option value="{{ $location->id }}">{{ $location->name }} — {{ $location->district }}</option>
-                                @endforeach
-                            </x-select>
-                        </div>
-                        <div>
                             <x-label>Description</x-label>
                             <x-textarea name="description" placeholder="Optional description..."></x-textarea>
                         </div>
                         <x-photo-input label="Photo (helps identify it)" />
                         <x-map-picker />
+                        <x-estate-address />
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
                             <x-button>Save Estate</x-button>
@@ -183,19 +168,12 @@
                             <x-input name="name" x-model="editing.name" required />
                         </div>
                         <div>
-                            <x-label :required="true">Location</x-label>
-                            <x-select name="location_id" x-model="editing.location_id" required>
-                                @foreach($locations as $location)
-                                    <option value="{{ $location->id }}">{{ $location->name }} — {{ $location->district }}</option>
-                                @endforeach
-                            </x-select>
-                        </div>
-                        <div>
                             <x-label>Description</x-label>
                             <x-textarea name="description" x-model="editing.description"></x-textarea>
                         </div>
                         <x-photo-input label="Photo (helps identify it)" current="editing.photo_url" />
                         <x-map-picker lat="editing.latitude" lng="editing.longitude" />
+                        <x-estate-address model="editing" />
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="editModal = false">Cancel</x-button>
                             <x-button>Update Estate</x-button>

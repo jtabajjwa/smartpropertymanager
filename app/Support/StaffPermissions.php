@@ -18,8 +18,8 @@ final class StaffPermissions
             'landlords.suspend' => ['Suspend / reactivate', 'Suspend or reactivate a landlord account.'],
         ],
         'Property workspace' => [
-            'properties.view' => ['View property workspace', "See a landlord's overview, locations, estates and units."],
-            'properties.manage' => ['Manage properties', 'Add, edit and delete locations, estates and units for a landlord.'],
+            'properties.view' => ['View property workspace', "See a landlord's overview, estates and units."],
+            'properties.manage' => ['Manage properties', 'Add, edit and delete estates and units for a landlord.'],
         ],
         'Landlord portal (staff mode)' => [
             'portal.access' => ['Open landlord portal', "Work inside a landlord's portal: tenants, leases, invoices, payments, expenses…"],

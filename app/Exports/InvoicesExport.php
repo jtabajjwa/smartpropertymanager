@@ -16,12 +16,12 @@ class InvoicesExport
 
             fputcsv($handle, ['Number', 'Type', 'Payer', 'Lease', 'Title', 'Amount', 'Balance', 'Due Date', 'Status']);
 
-            $this->buildQuery()->with(['invoiceable', 'lease.tenant', 'utility', 'allocations'])->chunk(500, function ($invoices) use ($handle) {
+            $this->buildQuery()->with(['invoiceable', 'lease.tenant', 'allocations'])->chunk(500, function ($invoices) use ($handle) {
                 foreach ($invoices as $invoice) {
                     $type = match ($invoice->type) {
                         'rent' => 'Rent',
                         'security_deposit' => 'Security Deposit',
-                        'utility' => 'Utility' . ($invoice->utility ? ' - ' . $invoice->utility->name : ''),
+                        'utility' => 'Utility',
                         default => $invoice->type,
                     };
 

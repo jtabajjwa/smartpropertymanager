@@ -25,7 +25,7 @@ class PropertyMetrics
     ];
 
     /**
-     * @return array{locations:int, estates:int, units:int, occupied:int, vacant:int, maintenance:int,
+     * @return array{districts:int, estates:int, units:int, occupied:int, vacant:int, maintenance:int,
      *               occupancy_rate:float, active_leases:int, tenants:int, expiring_leases:int, monthly_rent_roll:float}
      */
     public function summary(?int $landlordId = null): array
@@ -43,7 +43,7 @@ class PropertyMetrics
         $occupied = (int) $units->occupied;
 
         return [
-            'locations' => $this->table('locations', $landlordId)->count(),
+            'districts' => $this->table('estates', $landlordId)->whereNotNull('district')->distinct()->count('district'),
             'estates' => $this->table('estates', $landlordId)->count(),
             'units' => $total,
             'occupied' => $occupied,

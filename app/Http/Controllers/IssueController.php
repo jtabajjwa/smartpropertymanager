@@ -41,7 +41,8 @@ class IssueController extends Controller
     public function show(Issue $issue)
     {
         return view('issues.show', [
-            'issue' => $issue->load(['tenant', 'unit.estate', 'lease', 'updates' => fn ($q) => $q->with(['user', 'staffUser'])->oldest('id')]),
+            'issue' => $issue->load(['tenant', 'unit.estate', 'lease', 'jobs' => fn ($q) => $q->with('vendor')->oldest('job_date'), 'updates' => fn ($q) => $q->with(['user', 'staffUser'])->oldest('id')]),
+            'canBookJobs' => \App\Models\Landlord::find(\App\Services\CurrentLandlord::id())?->hasFeature('vendors') ?? false,
         ]);
     }
 

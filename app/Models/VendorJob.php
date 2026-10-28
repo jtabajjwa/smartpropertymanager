@@ -16,6 +16,8 @@ class VendorJob extends Model
         'vendor_id',
         'estate_id',
         'unit_id',
+        'issue_id',
+        'share_vendor',
         'expense_id',
         'number',
         'title',
@@ -32,6 +34,7 @@ class VendorJob extends Model
             'completed_on' => 'date',
             'cost' => 'decimal:2',
             'no_charge' => 'boolean',
+            'share_vendor' => 'boolean',
         ];
     }
 
@@ -55,6 +58,12 @@ class VendorJob extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    /** The tenant's issue this job was booked for, if any. */
+    public function issue(): BelongsTo
+    {
+        return $this->belongsTo(Issue::class);
     }
 
     public function expense(): BelongsTo

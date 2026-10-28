@@ -37,7 +37,7 @@ class LeaseTemplate extends Model
         'estate_name' => 'Estate name',
         'unit_name' => 'Unit name',
         'unit_id' => 'Unit ID (digits; the tenant signs in to the portal with it)',
-        'property_address' => "Estate's location: area, address and district",
+        'property_address' => "Estate's address and district",
         'lease_number' => 'Lease number',
         'start_date' => 'Lease start date',
         'end_date' => 'Lease end date (or "Ongoing")',
@@ -87,17 +87,9 @@ class LeaseTemplate extends Model
         $tenant = $lease->tenant;
         $unit = $lease->unit;
         $estate = $unit?->estate;
-        // Read the location via the estate's own foreign key, so rendering also
-        // works outside a landlord context (the estate is already this landlord's).
-        $location = match (true) {
-            $estate === null => null,
-            $estate->relationLoaded('location') => $estate->location,
-            default => Location::withoutGlobalScopes()->find($estate->location_id),
-        };
         $landlord = $lease->landlord;
 
-        $propertyAddress = collect([$location?->name, $location?->address, $location?->district])
-            ->filter()->unique()->implode(', ');
+        $propertyAddress = $estate?->fullAddress() ?? '';
 
         $periods = (int) ($lease->required_upfront_periods ?: 1);
         [$singular, $plural] = self::PERIOD_NAMES[$lease->billing_cycle] ?? ['period', 'periods'];

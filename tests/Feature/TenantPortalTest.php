@@ -10,7 +10,6 @@ use App\Models\Issue;
 use App\Models\Landlord;
 use App\Models\LandlordSettlement;
 use App\Models\Lease;
-use App\Models\Location;
 use App\Models\Payment;
 use App\Models\PaymentTransaction;
 use App\Models\StaffUser;
@@ -50,8 +49,7 @@ function tenancy(string $phone = '+256772123456', string $unitName = 'A4', bool 
     $landlord = Landlord::factory()->create(['name' => $landlordName, 'contact_email' => 'owner@'.Str::slug($landlordName).'.test', 'collect_payments' => $collect]);
     CurrentLandlord::set($landlord->id);
 
-    $location = Location::create(['name' => 'Kololo', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 1']);
-    $estate = Estate::create(['name' => 'Acacia Court', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => 'Acacia Court', 'district' => 'Kampala']);
     $unit = Unit::create(['name' => $unitName, 'estate_id' => $estate->id, 'status' => 'occupied']);
     $tenant = Tenant::create([
         'type' => 'individual', 'name' => 'Grace Namata', 'email' => fake()->unique()->safeEmail(), 'primary_phone' => $phone,

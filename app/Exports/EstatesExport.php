@@ -17,7 +17,9 @@ class EstatesExport
             // Header Row
             fputcsv($handle, [
                 'Name',
-                'Location',
+                'Address',
+                'District',
+                'Country',
                 'Total Units',
                 'Vacant Units',
                 'Occupied Units',
@@ -28,14 +30,16 @@ class EstatesExport
 
             // Data Rows
             $this->buildQuery()
-                ->with(['location', 'units.leases.invoices' => function($q) {
+                ->with(['units.leases.invoices' => function($q) {
                     $q->whereIn('status', ['unpaid', 'partial']);
                 }])
                 ->chunk(50, function ($estates) use ($handle) {
                     foreach ($estates as $estate) {
                         fputcsv($handle, [
                             $estate->name ?? '',
-                            $estate->location?->name ?? '',
+                            $estate->address ?? '',
+                            $estate->district ?? '',
+                            $estate->country ?? '',
                             $estate->units->count(),
                             $estate->vacantUnitsCount(),
                             $estate->occupiedUnitsCount(),
@@ -57,7 +61,7 @@ class EstatesExport
         $query = Estate::query();
 
         // Include any applicable filtering from estates index here...
-        // e.g. location_id or search if available.
+        // e.g. district or search if available.
 
         return $query->latest();
     }

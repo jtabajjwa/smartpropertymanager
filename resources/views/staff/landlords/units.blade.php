@@ -2,7 +2,7 @@
     <x-slot name="header">{{ $landlord->name }} · Units</x-slot>
 
     @php
-        $estatesByLocation = $estates->groupBy(fn ($e) => $e->location?->name ?? 'No location');
+        $estatesByDistrict = $estates->groupBy(fn ($e) => $e->district ?: 'No district');
         $statusColor = fn ($s) => match ($s) { 'vacant' => 'green', 'occupied' => 'orange', default => 'gray' };
     @endphp
 
@@ -35,8 +35,8 @@
                     <x-label>Estate</x-label>
                     <x-select name="estate_id">
                         <option value="">All estates</option>
-                        @foreach($estatesByLocation as $locationName => $group)
-                            <optgroup label="{{ $locationName }}">
+                        @foreach($estatesByDistrict as $districtName => $group)
+                            <optgroup label="{{ $districtName }}">
                                 @foreach($group as $estate)
                                     <option value="{{ $estate->id }}" @selected((string) request('estate_id') === (string) $estate->id)>{{ $estate->name }}</option>
                                 @endforeach
@@ -75,7 +75,7 @@
                         <tr class="border-b border-gray-200">
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unit</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estate</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">District</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Leases</th>
                             <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -95,7 +95,7 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->estate?->location?->name ?? '--' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->estate?->district ?? '--' }}</td>
                                 <td class="px-6 py-4"><x-badge :color="$statusColor($unit->status)">{{ ucfirst($unit->status) }}</x-badge></td>
                                 <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->leases_count }}</td>
                                 <td class="px-6 py-4 text-right">
@@ -127,7 +127,7 @@
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-medium text-gray-900">{{ $unit->name }}</p>
                             <p class="text-xs text-gray-500 tabular-nums">ID {{ $unit->code }}</p>
-                            <p class="mt-0.5 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }} · {{ $unit->estate?->location?->name ?? '--' }}</p>
+                            <p class="mt-0.5 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }} · {{ $unit->estate?->district ?? '--' }}</p>
                             <div class="mt-2"><x-badge :color="$statusColor($unit->status)">{{ ucfirst($unit->status) }}</x-badge></div>
                         </div>
                         @staffcan('properties.manage')<x-dropdown align="right" width="48">
@@ -167,8 +167,8 @@
                             <x-label :required="true">Estate</x-label>
                             <x-select name="estate_id" required>
                                 <option value="">Select an estate…</option>
-                                @foreach($estatesByLocation as $locationName => $group)
-                                    <optgroup label="{{ $locationName }}">
+                                @foreach($estatesByDistrict as $districtName => $group)
+                                    <optgroup label="{{ $districtName }}">
                                         @foreach($group as $estate)
                                             <option value="{{ $estate->id }}" @selected((string) request('estate_id') === (string) $estate->id)>{{ $estate->name }}</option>
                                         @endforeach
@@ -212,8 +212,8 @@
                         <div>
                             <x-label :required="true">Estate</x-label>
                             <x-select name="estate_id" x-model="editing.estate_id" required>
-                                @foreach($estatesByLocation as $locationName => $group)
-                                    <optgroup label="{{ $locationName }}">
+                                @foreach($estatesByDistrict as $districtName => $group)
+                                    <optgroup label="{{ $districtName }}">
                                         @foreach($group as $estate)
                                             <option value="{{ $estate->id }}">{{ $estate->name }}</option>
                                         @endforeach

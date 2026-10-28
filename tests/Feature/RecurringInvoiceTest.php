@@ -14,17 +14,10 @@ function createLeaseWithDeps(array $overrides = []): Lease
 {
     $user = User::first();
 
-    $location = \App\Models\Location::create([
-        'name' => 'Test Location',
-        'country' => 'Uganda',
-        'district' => 'Kampala',
-        'address' => '123 Test St',
-        'created_by' => $user->id,
-    ]);
 
     $estate = \App\Models\Estate::create([
         'name' => 'Test Estate',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
         'created_by' => $user->id,
     ]);
 

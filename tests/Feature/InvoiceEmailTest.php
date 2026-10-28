@@ -6,10 +6,8 @@ use App\Models\Estate;
 use App\Models\Invoice;
 use App\Models\Landlord;
 use App\Models\Lease;
-use App\Models\Location;
 use App\Models\Tenant;
 use App\Models\Unit;
-use App\Models\Utility;
 use App\Models\User;
 use App\Services\CurrentLandlord;
 use Illuminate\Support\Facades\Mail;
@@ -18,16 +16,10 @@ function makeLeaseWithTenantEmail(int $landlordId, ?string $tenantEmail): Lease
 {
     CurrentLandlord::set($landlordId);
 
-    $location = Location::create([
-        'name' => 'Test Location',
-        'country' => 'Uganda',
-        'district' => 'Kampala',
-        'address' => '123 Test St',
-    ]);
 
     $estate = Estate::create([
         'name' => 'Test Estate',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
     ]);
 
     $unit = Unit::create([
@@ -114,14 +106,12 @@ test('invoice email is skipped gracefully when the payer has no email', function
 
     CurrentLandlord::set($user->landlord_id);
     $customer = Customer::create(['name' => 'No Email Customer', 'phone' => '+256700111222', 'email' => null]);
-    $utility = Utility::create(['name' => 'Water']);
     CurrentLandlord::clear();
 
     $this->actingAs($user)
         ->post(route('invoices.store'), [
             'customer_id' => $customer->id,
             'type' => 'utility',
-            'utility_id' => $utility->id,
             'title' => 'Water Bill',
             'invoice_date' => '2026-09-01',
             'amount' => 30000,
@@ -139,14 +129,12 @@ test('creating a customer invoice with send_email sends to the customer', functi
 
     CurrentLandlord::set($user->landlord_id);
     $customer = Customer::create(['name' => 'Walk-in Customer', 'phone' => '+256700333444', 'email' => 'customer@example.com']);
-    $utility = Utility::create(['name' => 'Electricity']);
     CurrentLandlord::clear();
 
     $this->actingAs($user)
         ->post(route('invoices.store'), [
             'customer_id' => $customer->id,
             'type' => 'utility',
-            'utility_id' => $utility->id,
             'title' => 'Electricity Bill',
             'invoice_date' => '2026-09-01',
             'amount' => 45000,
@@ -243,12 +231,10 @@ test('resending fails gracefully with a flash error when the payer has no email'
 
     CurrentLandlord::set($user->landlord_id);
     $customer = Customer::create(['name' => 'No Email Resend Customer', 'phone' => '+256700555666', 'email' => null]);
-    $utility = Utility::create(['name' => 'Water Resend Test']);
     $invoice = Invoice::create([
         'invoiceable_type' => Customer::class,
         'invoiceable_id' => $customer->id,
         'type' => 'utility',
-        'utility_id' => $utility->id,
         'title' => 'No Email Water Bill',
         'invoice_date' => '2026-09-01',
         'amount' => 30000,

@@ -21,6 +21,8 @@ class StoreVendorJobRequest extends FormRequest
             'vendor_id' => ['required', Rule::exists('vendors', 'id')->where('landlord_id', CurrentLandlord::id())],
             'estate_id' => ['nullable', Rule::exists('estates', 'id')->where('landlord_id', CurrentLandlord::id())],
             'unit_id' => ['nullable', Rule::exists('units', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'issue_id' => ['nullable', Rule::exists('issues', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'share_vendor' => 'nullable|boolean',
             'expense_id' => ['nullable', Rule::exists('expenses', 'id')->where('landlord_id', CurrentLandlord::id())],
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',

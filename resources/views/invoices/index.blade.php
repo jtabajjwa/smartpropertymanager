@@ -13,7 +13,6 @@
             number: '',
             lease_id: '',
             type: '',
-            utility_id: '',
             title: '',
             invoice_date: '',
             amount: '',
@@ -34,7 +33,6 @@
             this.editModal = true;
             this.$nextTick(() => {
                 this.$dispatch('set-search-select', { name: 'lease_id', id: item.lease_id, text: item.lease ? (item.lease.number + ' — ' + (item.lease.tenant?.name || '')) : '' });
-                this.$dispatch('set-search-select', { name: 'utility_id', id: item.utility_id, text: item.utility?.name || '' });
                 this.$dispatch('set-money-input', { name: 'amount', value: item.amount });
             });
         }
@@ -157,9 +155,6 @@
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $invoice->title }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600 capitalize">
                                         {{ str_replace('_', ' ', $invoice->type) }}
-                                        @if($invoice->type === 'utility' && $invoice->utility)
-                                            <span class="text-xs text-gray-600">({{ $invoice->utility->name }})</span>
-                                        @endif
                                     </td>
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">UGX {{ number_format($invoice->amount, 0) }}</td>
                                     @php $balance = $invoice->unpaidBalance(); @endphp
@@ -283,9 +278,6 @@
                             <div class="mt-3 space-y-1">
                                 <p class="text-sm text-gray-600 capitalize">
                                     <span class="text-gray-500">Type:</span> {{ str_replace('_', ' ', $invoice->type) }}
-                                    @if($invoice->type === 'utility' && $invoice->utility)
-                                        ({{ $invoice->utility->name }})
-                                    @endif
                                 </p>
                                 <p class="text-sm text-gray-600"><span class="text-gray-500">Amount:</span> UGX {{ number_format($invoice->amount, 0) }}</p>
                                 <p class="text-sm font-medium {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}"><span class="text-gray-500 font-normal">Balance:</span> UGX {{ number_format($balance, 0) }}</p>
@@ -332,10 +324,6 @@
                         <div>
                             <p class="text-xs text-gray-500">Payer</p>
                             <p class="text-sm text-gray-900" x-text="viewing.invoiceable ? (viewing.invoiceable_type.includes('Lease') ? (viewing.invoiceable.number + ' — ' + (viewing.invoiceable.tenant?.name || '')) : viewing.invoiceable.name ) : '--'"></p>
-                        </div>
-                        <div x-show="viewing.type === 'utility'">
-                            <p class="text-xs text-gray-500">Utility</p>
-                            <p class="text-sm text-gray-900" x-text="viewing.utility?.name || '--'"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Invoice Date</p>
@@ -408,13 +396,9 @@
                                 <option value="utility">Utility</option>
                             </x-select>
                         </div>
-                        <div x-show="createType === 'utility'">
-                            <x-label>Utility</x-label>
-                            <x-search-select name="utility_id" url="{{ route('search.utilities') }}" placeholder="Search utilities..." />
-                        </div>
                         <div>
                             <x-label :required="true">Title</x-label>
-                            <x-input name="title" placeholder="e.g. January 2026 Rent" required />
+                            <x-input name="title" x-bind:placeholder="createType === 'utility' ? 'e.g. Water – January 2026' : 'e.g. January 2026 Rent'" maxlength="100" required />
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>

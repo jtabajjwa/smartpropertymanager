@@ -2,7 +2,6 @@
 
 use App\Models\Estate;
 use App\Models\Landlord;
-use App\Models\Location;
 use App\Models\StaffUser;
 use App\Models\Unit;
 use App\Models\User;
@@ -16,18 +15,17 @@ beforeEach(function () {
 
 afterEach(fn () => CurrentLandlord::clear());
 
-/** A landlord user plus one location and estate, with the context cleared again. */
+/** A landlord user plus one estate, with the context cleared again. */
 function photoFixture(): array
 {
     $user = User::factory()->create();
     CurrentLandlord::set($user->landlord_id);
 
-    $location = Location::create(['name' => 'Ntinda', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 1']);
-    $estate = Estate::create(['name' => 'Sunrise', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => 'Sunrise', 'district' => 'Kampala']);
 
     CurrentLandlord::clear();
 
-    return [$user, $location, $estate];
+    return [$user, null, $estate];
 }
 
 function estateRow(int $id): object
@@ -36,12 +34,12 @@ function estateRow(int $id): object
 }
 
 test('a landlord can add an estate with a photo, which is resized', function () {
-    [$user, $location] = photoFixture();
+    [$user] = photoFixture();
 
     $this->actingAs($user)
         ->post(route('estates.store'), [
             'name' => 'Kololo Heights',
-            'location_id' => $location->id,
+            'district' => 'Kampala',
             'photo' => UploadedFile::fake()->image('front.jpg', 3200, 2400),
         ])->assertSessionHas('success');
 

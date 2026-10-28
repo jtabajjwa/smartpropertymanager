@@ -41,7 +41,6 @@ function guardedRoutes(): array
         ['get', 'staff.landlords.units.index', fn ($f) => [$f['landlord']], 'properties.view'],
         ['post', 'staff.landlords.units.store', fn ($f) => [$f['landlord']], 'properties.manage'],
         ['post', 'staff.landlords.estates.store', fn ($f) => [$f['landlord']], 'properties.manage'],
-        ['delete', 'staff.landlords.locations.destroy', fn ($f) => [$f['landlord'], 999], 'properties.manage'],
         ['get', 'staff.plans.index', fn ($f) => [], 'plans.view'],
         ['post', 'staff.plans.store', fn ($f) => [], 'plans.manage'],
         ['delete', 'staff.plans.destroy', fn ($f) => [$f['plan']], 'plans.manage'],

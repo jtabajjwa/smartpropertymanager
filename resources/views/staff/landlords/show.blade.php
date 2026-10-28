@@ -86,7 +86,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <x-stat-card label="Units" :value="number_format($summary['units'])" color="orange">
                 <x-slot name="icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg></x-slot>
-                <x-slot name="sub">across {{ $summary['estates'] }} {{ Str::plural('estate', $summary['estates']) }} in {{ $summary['locations'] }} {{ Str::plural('location', $summary['locations']) }}</x-slot>
+                <x-slot name="sub">across {{ $summary['estates'] }} {{ Str::plural('estate', $summary['estates']) }} in {{ $summary['districts'] }} {{ Str::plural('district', $summary['districts']) }}</x-slot>
             </x-stat-card>
 
             <x-stat-card label="Occupancy" :value="$summary['occupancy_rate'].'%'" color="green">
@@ -133,7 +133,7 @@
                         </div>
                     </dl>
                 @else
-                    <p class="mt-3 text-sm text-gray-500">No units yet. Start by adding a <a href="{{ route('staff.landlords.locations.index', $landlord) }}" class="text-orange-600 hover:text-orange-700">location</a>, then an <a href="{{ route('staff.landlords.estates.index', $landlord) }}" class="text-orange-600 hover:text-orange-700">estate</a> and its <a href="{{ route('staff.landlords.units.index', $landlord) }}" class="text-orange-600 hover:text-orange-700">units</a>.</p>
+                    <p class="mt-3 text-sm text-gray-500">No units yet. Start by adding an <a href="{{ route('staff.landlords.estates.index', $landlord) }}" class="text-orange-600 hover:text-orange-700">estate</a> and its <a href="{{ route('staff.landlords.units.index', $landlord) }}" class="text-orange-600 hover:text-orange-700">units</a>.</p>
                 @endif
             </div>
 
@@ -177,7 +177,7 @@
                         <thead>
                             <tr class="border-b border-gray-200">
                                 <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estate</th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
                                 <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Units</th>
                                 <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Occupied</th>
                                 <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Vacant</th>
@@ -192,7 +192,7 @@
                                     <td class="px-5 py-3 text-sm font-medium text-gray-900">
                                         <a href="{{ route('staff.landlords.units.index', [$landlord, 'estate_id' => $estate->id]) }}" class="hover:text-orange-600 transition">{{ $estate->name }}</a>
                                     </td>
-                                    <td class="px-5 py-3 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
+                                    <td class="px-5 py-3 text-sm text-gray-600">{{ $estate->fullAddress() ?: '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
                                     <td class="px-5 py-3 text-sm text-gray-900 text-right">{{ $estate->units_count }}</td>
                                     <td class="px-5 py-3 text-sm text-gray-600 text-right">{{ $estate->occupied_count }}</td>
                                     <td class="px-5 py-3 text-sm text-gray-600 text-right">{{ $estate->vacant_count }}</td>

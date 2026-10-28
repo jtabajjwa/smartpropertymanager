@@ -4,7 +4,6 @@ use App\Models\Estate;
 use App\Models\Landlord;
 use App\Models\Lease;
 use App\Models\LeaseTemplate;
-use App\Models\Location;
 use App\Models\StaffUser;
 use App\Models\Tenant;
 use App\Models\Unit;
@@ -102,8 +101,7 @@ test('the standard agreement is filled in from the lease and renders as a PDF', 
     $template = app(StandardLeaseTemplate::class)->installFor($landlord->id);
 
     CurrentLandlord::set($landlord->id);
-    $location = Location::create(['name' => 'Kololo', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Acacia Avenue']);
-    $estate = Estate::create(['name' => 'Acacia Courts', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => 'Acacia Courts', 'address' => 'Kololo, Acacia Avenue', 'district' => 'Kampala']);
     $unit = Unit::create(['name' => 'B4', 'estate_id' => $estate->id, 'status' => 'vacant']);
     $tenant = Tenant::create([
         'type' => 'individual', 'name' => 'Sarah Nakato', 'email' => 'sarah@example.test', 'primary_phone' => '+256772000333',
@@ -116,7 +114,7 @@ test('the standard agreement is filled in from the lease and renders as a PDF', 
         'security_deposit' => 850000, 'required_upfront_periods' => 3, 'next_invoice_date' => '2027-02-01',
     ]);
 
-    $text = $template->renderFor($lease->load(['tenant', 'unit.estate.location', 'landlord']));
+    $text = $template->renderFor($lease->load(['tenant', 'unit.estate', 'landlord']));
     CurrentLandlord::clear();
 
     expect($text)

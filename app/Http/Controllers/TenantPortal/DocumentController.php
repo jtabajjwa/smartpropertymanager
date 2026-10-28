@@ -42,7 +42,7 @@ class DocumentController extends Controller
         abort_unless($template, 404, 'Your landlord has not added a tenancy agreement yet.');
 
         return Pdf::loadView('pdfs.lease-agreement', [
-            'lease' => $lease->load(['tenant', 'unit.estate.location', 'landlord']),
+            'lease' => $lease->load(['tenant', 'unit.estate', 'landlord']),
             'content' => $template->renderFor($lease),
         ])->stream("agreement-{$lease->number}.pdf");
     }

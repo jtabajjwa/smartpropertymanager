@@ -150,11 +150,6 @@ class Landlord extends Model
      * outside a landlord context, e.g. on staff list pages).
      */
 
-    public function locations(): HasMany
-    {
-        return $this->hasMany(Location::class)->withoutGlobalScope(LandlordScope::class);
-    }
-
     public function estates(): HasMany
     {
         return $this->hasMany(Estate::class)->withoutGlobalScope(LandlordScope::class);

@@ -17,7 +17,9 @@ class Estate extends Model
     protected $fillable = [
         'name',
         'description',
-        'location_id',
+        'address',
+        'district',
+        'country',
         'latitude',
         'longitude',
     ];
@@ -38,9 +40,12 @@ class Estate extends Model
         return $this->hasCoordinates() ? "https://www.google.com/maps?q={$this->latitude},{$this->longitude}" : null;
     }
 
-    public function location(): BelongsTo
+    /** "Plot 4, Kololo Hill Drive, Kampala" (the country is added outside Uganda). */
+    public function fullAddress(): string
     {
-        return $this->belongsTo(Location::class);
+        $country = $this->country && $this->country !== \App\Support\Places::DEFAULT_COUNTRY ? $this->country : null;
+
+        return collect([$this->address, $this->district, $country])->map(fn ($p) => trim((string) $p))->filter()->implode(', ');
     }
 
     public function units(): HasMany

@@ -33,9 +33,7 @@
                         <option value="App\Models\Payment" {{ request('auditable_type') === 'App\Models\Payment' ? 'selected' : '' }}>Payment</option>
                         <option value="App\Models\User" {{ request('auditable_type') === 'App\Models\User' ? 'selected' : '' }}>User</option>
                         <option value="App\Models\PaymentAllocation" {{ request('auditable_type') === 'App\Models\PaymentAllocation' ? 'selected' : '' }}>Payment Allocation</option>
-                        <option value="App\Models\Utility" {{ request('auditable_type') === 'App\Models\Utility' ? 'selected' : '' }}>Utility</option>
                         <option value="App\Models\Estate" {{ request('auditable_type') === 'App\Models\Estate' ? 'selected' : '' }}>Estate</option>
-                        <option value="App\Models\Location" {{ request('auditable_type') === 'App\Models\Location' ? 'selected' : '' }}>Location</option>
                     </x-select>
                 </div>
                 <div class="w-44">

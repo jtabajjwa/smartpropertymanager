@@ -4,7 +4,6 @@ use App\Exceptions\LandlordContextMissingException;
 use App\Models\Estate;
 use App\Models\Landlord;
 use App\Models\Lease;
-use App\Models\Location;
 use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
@@ -14,16 +13,10 @@ function createLeaseForLandlord(Landlord $landlord): Lease
 {
     CurrentLandlord::set($landlord->id);
 
-    $location = Location::create([
-        'name' => 'Test Location',
-        'country' => 'Uganda',
-        'district' => 'Kampala',
-        'address' => '123 Test St',
-    ]);
 
     $estate = Estate::create([
         'name' => 'Test Estate',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
     ]);
 
     $unit = Unit::create([
@@ -77,11 +70,9 @@ test('a landlord user cannot access another landlord\'s lease via route model bi
 test('creating a landlord-scoped model with no landlord context throws', function () {
     CurrentLandlord::clear();
 
-    expect(fn () => Location::create([
+    expect(fn () => Estate::create([
         'name' => 'No Context',
-        'country' => 'Uganda',
         'district' => 'Kampala',
-        'address' => '123 Test St',
     ]))->toThrow(LandlordContextMissingException::class);
 });
 

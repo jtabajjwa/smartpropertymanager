@@ -27,6 +27,56 @@
             @endif
         </div>
 
+        {{-- Every job booked for it is done: suggest resolving (never automatic) --}}
+        @if($issue->isOpen() && $issue->jobsAllDone())
+            <form method="POST" action="{{ route('issues.update', $issue) }}" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4">
+                @csrf @method('PUT')
+                <input type="hidden" name="status" value="resolved">
+                <input type="hidden" name="note" value="The repair work is complete.">
+                <p class="text-sm text-gray-700"><span class="font-semibold text-gray-900">All job cards are completed.</span> Mark this issue resolved? The tenant will see it in their portal.</p>
+                <x-button type="submit">Mark resolved</x-button>
+            </form>
+        @endif
+
+        {{-- Job cards booked for this issue --}}
+        <div class="bg-white rounded-2xl border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Job cards</h3>
+                    <p class="mt-0.5 text-sm text-gray-500">Vendors booked to fix this. The tenant is told the dates.</p>
+                </div>
+                @if($canBookJobs)
+                    @if($issue->isOpen())
+                        <a href="{{ route('vendor-jobs.index', ['issue' => $issue->id]) }}" class="inline-flex items-center rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 transition">Create job card</a>
+                    @endif
+                @elseif(auth()->user()->isLandlordAdmin())
+                    <a href="{{ route('subscription.show') }}" class="text-sm font-medium text-orange-600 hover:text-orange-700">Job cards are on a higher plan &rarr;</a>
+                @else
+                    <span class="text-sm text-gray-500">Job cards aren't on your plan.</span>
+                @endif
+            </div>
+            @if($issue->jobs->isEmpty())
+                <p class="px-6 py-4 text-sm text-gray-500">No job cards yet.</p>
+            @else
+                <ul class="divide-y divide-gray-100">
+                    @foreach($issue->jobs as $job)
+                        <li class="px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                            <span class="font-medium text-gray-900">{{ $job->number }}</span>
+                            <span class="text-gray-600">{{ $job->vendor?->name }}</span>
+                            <span class="text-gray-500">{{ $job->job_date->format('j M Y') }}</span>
+                            <x-badge :color="['scheduled' => 'gray', 'in_progress' => 'blue', 'completed' => 'green', 'cancelled' => 'red'][$job->status] ?? 'gray'">{{ $job->status_label }}</x-badge>
+                            <span class="ml-auto font-medium text-gray-900 tabular-nums">{{ $job->cost !== null ? 'UGX '.number_format((float) $job->cost) : '--' }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                @php $jobsCost = $issue->jobs->where('status', '!=', 'cancelled')->sum(fn ($j) => (float) $j->cost); @endphp
+                <div class="px-6 py-3 border-t border-gray-100 flex justify-between text-sm">
+                    <span class="text-gray-500">Total cost (not shown to the tenant)</span>
+                    <span class="font-semibold text-gray-900 tabular-nums">UGX {{ number_format($jobsCost) }}</span>
+                </div>
+            @endif
+        </div>
+
         {{-- Log --}}
         <div class="bg-white rounded-2xl border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">

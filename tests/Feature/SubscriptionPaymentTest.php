@@ -2,7 +2,6 @@
 
 use App\Models\Estate;
 use App\Models\Landlord;
-use App\Models\Location;
 use App\Models\PaymentTransaction;
 use App\Models\Plan;
 use App\Models\PlanTier;
@@ -85,8 +84,7 @@ function subscriptionSetup(int $units = 8): array
     $admin = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
 
     CurrentLandlord::set($landlord->id);
-    $location = Location::create(['name' => 'Kololo', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 1']);
-    $estate = Estate::create(['name' => 'Acacia', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => 'Acacia', 'district' => 'Kampala']);
     for ($i = 1; $i <= $units; $i++) {
         Unit::create(['name' => "U{$i}", 'estate_id' => $estate->id, 'status' => 'vacant']);
     }

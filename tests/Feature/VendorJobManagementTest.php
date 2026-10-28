@@ -79,16 +79,10 @@ function createExpenseForLandlord(int $landlordId): Expense
 {
     CurrentLandlord::set($landlordId);
 
-    $location = \App\Models\Location::create([
-        'name' => 'Test Location',
-        'country' => 'Uganda',
-        'district' => 'Kampala',
-        'address' => '123 Test St',
-    ]);
 
     $estate = \App\Models\Estate::create([
         'name' => 'Test Estate',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
     ]);
 
     $expenseItem = \App\Models\ExpenseItems::create(['name' => 'Test Item']);

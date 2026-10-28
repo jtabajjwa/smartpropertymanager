@@ -85,7 +85,6 @@
             <!-- Property -->
             <div>
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Property</p>
-                <x-sidebar-link :dark="true" route="locations.index" label="Locations" icon="map-pin" />
                 <x-sidebar-link :dark="true" route="estates.index" label="Estates" icon="building" />
                 <x-sidebar-link :dark="true" route="units.index" label="Units" icon="cube" />
             </div>
@@ -104,7 +103,6 @@
                 <x-sidebar-link :dark="true" route="invoices.index" label="Invoices" icon="receipt" />
                 <x-sidebar-link :dark="true" route="payments.index" label="Payments" icon="banknotes" />
                 <x-sidebar-link :dark="true" route="security-deposit-ledgers.index" label="Security Deposits" icon="shield" />
-                <x-sidebar-link :dark="true" route="utilities.index" label="Utilities" icon="bolt" />
                 @if(auth()->user()->isLandlordAdmin() && ($sidebarCompany?->collect_payments || \App\Models\Liquidation::exists()))
                     <x-sidebar-link :dark="true" route="payouts.index" label="Payouts" icon="arrows" />
                 @endif

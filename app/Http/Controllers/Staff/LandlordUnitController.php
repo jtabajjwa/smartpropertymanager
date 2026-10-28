@@ -20,7 +20,7 @@ class LandlordUnitController extends Controller
 {
     public function index(Landlord $landlord)
     {
-        $query = Unit::with('estate.location')->withCount('leases');
+        $query = Unit::with('estate')->withCount('leases');
 
         if (request('status')) {
             $query->where('status', request('status'));
@@ -40,7 +40,7 @@ class LandlordUnitController extends Controller
         }
 
         $units = $query->orderBy('estate_id')->orderBy('name')->paginate(20)->withQueryString();
-        $estates = Estate::with('location')->orderBy('name')->get();
+        $estates = Estate::orderBy('name')->get();
 
         return view('staff.landlords.units', compact('landlord', 'units', 'estates'));
     }

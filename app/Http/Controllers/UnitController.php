@@ -13,7 +13,7 @@ class UnitController extends Controller
 {
     public function index()
     {
-        $query = Unit::with('estate.location')->withCount('leases');
+        $query = Unit::with('estate')->withCount('leases');
 
         if (request('status')) {
             $query->where('status', request('status'));

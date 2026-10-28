@@ -12,20 +12,20 @@ use App\Services\PhotoUploader;
 
 /**
  * Staff managing a landlord's estates on their behalf. Runs under the
- * staff.landlord-context middleware, so Estate/Location are scoped to $landlord.
+ * staff.landlord-context middleware, so Estate is scoped to $landlord.
  */
 class LandlordEstateController extends Controller
 {
     public function index(Landlord $landlord)
     {
-        $query = Estate::with('location')
+        $query = Estate::query()
             ->withCount([
                 'units',
                 'units as occupied_count' => fn ($q) => $q->where('status', 'occupied'),
             ]);
 
-        if (request('location_id')) {
-            $query->where('location_id', request('location_id'));
+        if (request('district')) {
+            $query->where('district', request('district'));
         }
 
         if (request('search')) {
@@ -33,9 +33,10 @@ class LandlordEstateController extends Controller
         }
 
         $estates = $query->orderBy('name')->paginate(15)->withQueryString();
-        $locations = Location::orderBy('name')->get();
+        // Districts this landlord's estates are in, for the filter.
+        $districts = Estate::whereNotNull('district')->distinct()->orderBy('district')->pluck('district');
 
-        return view('staff.landlords.estates', compact('landlord', 'estates', 'locations'));
+        return view('staff.landlords.estates', compact('landlord', 'estates', 'districts'));
     }
 
     public function store(StoreEstateRequest $request, Landlord $landlord, PhotoUploader $photos)

@@ -3,7 +3,6 @@
 use App\Models\Audit;
 use App\Models\Estate;
 use App\Models\Landlord;
-use App\Models\Location;
 use App\Models\StaffUser;
 use App\Models\Unit;
 use App\Models\User;
@@ -11,16 +10,15 @@ use App\Services\CurrentLandlord;
 use App\Services\PropertyMetrics;
 
 /**
- * Seeds one location → one estate → units with the given statuses for a landlord.
+ * Seeds one estate → units with the given statuses for a landlord.
  *
- * @return array{location: Location, estate: Estate, units: \Illuminate\Support\Collection}
+ * @return array{estate: Estate, units: \Illuminate\Support\Collection}
  */
 function seedPortfolio(Landlord $landlord, array $statuses = ['occupied', 'vacant']): array
 {
     CurrentLandlord::set($landlord->id);
 
-    $location = Location::create(['name' => 'Ntinda', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 1']);
-    $estate = Estate::create(['name' => $landlord->name.' Courts', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => $landlord->name.' Courts', 'district' => 'Kampala']);
     $units = collect($statuses)->map(fn ($status, $i) => Unit::create([
         'name' => 'Unit '.($i + 1),
         'estate_id' => $estate->id,
@@ -29,7 +27,7 @@ function seedPortfolio(Landlord $landlord, array $statuses = ['occupied', 'vacan
 
     CurrentLandlord::clear();
 
-    return compact('location', 'estate', 'units');
+    return compact('estate', 'units');
 }
 
 afterEach(fn () => CurrentLandlord::clear());
@@ -41,7 +39,7 @@ test('staff can open every section of a landlord workspace', function () {
     $landlord = Landlord::factory()->create();
     seedPortfolio($landlord);
 
-    foreach (['show', 'locations.index', 'estates.index', 'units.index'] as $route) {
+    foreach (['show', 'estates.index', 'units.index'] as $route) {
         $this->actingAs($staff, 'staff')
             ->get(route('staff.landlords.'.$route, $landlord))
             ->assertOk();
@@ -90,20 +88,13 @@ test('workspace lists only the selected landlord\'s estates and units', function
 
 // --- Create on behalf of a landlord ---
 
-test('staff can create a location, estate and unit for a landlord', function () {
+test('staff can create an estate and unit for a landlord', function () {
     $staff = StaffUser::factory()->create();
     $landlord = Landlord::factory()->create();
 
     $this->actingAs($staff, 'staff')
-        ->post(route('staff.landlords.locations.store', $landlord), [
-            'name' => 'Kololo', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 9',
-        ])->assertSessionHas('success');
-
-    $locationId = Location::withoutGlobalScopes()->where('name', 'Kololo')->value('id');
-
-    $this->actingAs($staff, 'staff')
         ->post(route('staff.landlords.estates.store', $landlord), [
-            'name' => 'Kololo Heights', 'location_id' => $locationId,
+            'name' => 'Kololo Heights', 'address' => 'Plot 9, Kololo', 'country' => 'Uganda', 'district' => 'Kampala',
         ])->assertSessionHas('success');
 
     $estateId = Estate::withoutGlobalScopes()->where('name', 'Kololo Heights')->value('id');
@@ -113,8 +104,7 @@ test('staff can create a location, estate and unit for a landlord', function () 
             'name' => 'A1', 'status' => 'vacant', 'estate_id' => $estateId,
         ])->assertSessionHas('success');
 
-    $this->assertDatabaseHas('locations', ['name' => 'Kololo', 'landlord_id' => $landlord->id]);
-    $this->assertDatabaseHas('estates', ['name' => 'Kololo Heights', 'landlord_id' => $landlord->id]);
+    $this->assertDatabaseHas('estates', ['name' => 'Kololo Heights', 'address' => 'Plot 9, Kololo', 'district' => 'Kampala', 'country' => 'Uganda', 'landlord_id' => $landlord->id]);
     $this->assertDatabaseHas('units', ['name' => 'A1', 'estate_id' => $estateId, 'landlord_id' => $landlord->id]);
 });
 
@@ -137,18 +127,18 @@ test('changes made by staff are audited under the staff user and the landlord', 
 
 // --- Cross-landlord protection ---
 
-test('staff cannot attach an estate to another landlord\'s location', function () {
+test('a Ugandan estate needs a district from the list; elsewhere it is typed', function () {
     $staff = StaffUser::factory()->create();
     $landlord = Landlord::factory()->create();
-    $other = Landlord::factory()->create();
-    ['location' => $foreignLocation] = seedPortfolio($other);
+    $post = fn (array $fields) => $this->actingAs($staff, 'staff')->post(route('staff.landlords.estates.store', $landlord), ['name' => 'Estate '.uniqid()] + $fields);
 
-    $this->actingAs($staff, 'staff')
-        ->post(route('staff.landlords.estates.store', $landlord), [
-            'name' => 'Sneaky Estate', 'location_id' => $foreignLocation->id,
-        ])->assertSessionHasErrors('location_id');
+    $post(['country' => 'Uganda', 'district' => 'Kampala Central'])->assertSessionHasErrors(['district' => 'Choose the district from the list.']);
+    $post(['country' => 'Narnia', 'district' => 'Kampala'])->assertSessionHasErrors('country');
+    $post(['country' => 'Kenya', 'district' => 'Nairobi'])->assertSessionHasNoErrors();
+    $post(['district' => 'Wakiso'])->assertSessionHasNoErrors(); // no country means Uganda
 
-    $this->assertDatabaseMissing('estates', ['name' => 'Sneaky Estate']);
+    expect(Estate::withoutGlobalScopes()->where('landlord_id', $landlord->id)->pluck('country', 'district')->all())
+        ->toBe(['Nairobi' => 'Kenya', 'Wakiso' => 'Uganda']);
 });
 
 test('a unit cannot be edited through a different landlord\'s workspace', function () {

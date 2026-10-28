@@ -2,7 +2,6 @@
 @php
     $tabs = [
         'show' => 'Overview',
-        'locations.index' => 'Locations',
         'estates.index' => 'Estates',
         'units.index' => 'Units',
     ];

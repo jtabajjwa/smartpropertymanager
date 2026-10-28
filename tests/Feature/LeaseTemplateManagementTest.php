@@ -4,7 +4,6 @@ use App\Models\Estate;
 use App\Models\Landlord;
 use App\Models\Lease;
 use App\Models\LeaseTemplate;
-use App\Models\Location;
 use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
@@ -14,16 +13,10 @@ function makeLeaseForLandlord(int $landlordId): Lease
 {
     CurrentLandlord::set($landlordId);
 
-    $location = Location::create([
-        'name' => 'Test Location',
-        'country' => 'Uganda',
-        'district' => 'Kampala',
-        'address' => '123 Test St',
-    ]);
 
     $estate = Estate::create([
         'name' => 'Sunset Gardens',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
     ]);
 
     $unit = Unit::create([

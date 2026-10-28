@@ -44,7 +44,6 @@ class StoreInvoiceRequest extends FormRequest
                     }
                 },
             ],
-            'utility_id' => ['required_if:type,utility', 'nullable', Rule::exists('utilities', 'id')->where('landlord_id', CurrentLandlord::id())],
             'title' => 'required|string|max:100',
             'invoice_date' => 'required|date',
             'amount' => 'required|numeric|min:0.01|max:99999999.99',

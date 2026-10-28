@@ -36,7 +36,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
                 <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Estates</p>
                 <p class="mt-2 text-2xl font-bold text-gray-900">{{ number_format($portfolio['estates']) }}</p>
-                <p class="mt-1 text-xs text-gray-500">in {{ number_format($portfolio['locations']) }} {{ Str::plural('location', $portfolio['locations']) }}</p>
+                <p class="mt-1 text-xs text-gray-500">in {{ number_format($portfolio['districts']) }} {{ Str::plural('district', $portfolio['districts']) }}</p>
             </div>
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
                 <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Units</p>

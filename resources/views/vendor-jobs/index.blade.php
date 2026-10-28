@@ -1,7 +1,8 @@
 <x-app-layout>
     <x-slot name="header">Job Cards</x-slot>
 
-    <div class="py-8" x-data="{
+    <div class="py-8" x-init="if (prefill) createModal = true" x-data="{
+        prefill: @js($fromIssue),
         createModal: false,
         editModal: false,
         viewModal: false,
@@ -125,6 +126,9 @@
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $job->vendor->name }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ $job->title }}
+                                        @if($job->issue)
+                                            <a href="{{ route('issues.show', $job->issue) }}" class="text-xs text-orange-600 hover:text-orange-700 block font-normal">Issue {{ $job->issue->number }}</a>
+                                        @endif
                                         @if($job->estate || $job->unit)
                                             <span class="text-xs text-gray-500 block font-normal">{{ $job->estate?->name }}{{ $job->unit ? ' — ' . $job->unit->name : '' }}</span>
                                         @endif
@@ -180,6 +184,9 @@
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
                                     <p class="text-sm font-medium text-gray-900 break-words">{{ $job->number }} — {{ $job->title }}</p>
+                                    @if($job->issue)
+                                        <a href="{{ route('issues.show', $job->issue) }}" class="text-xs text-orange-600 hover:text-orange-700">Issue {{ $job->issue->number }}</a>
+                                    @endif
                                     <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $job->vendor->name }}</p>
                                     @if($job->estate || $job->unit)
                                         <p class="text-sm text-gray-500 break-words">{{ $job->estate?->name }}{{ $job->unit ? ' — ' . $job->unit->name : '' }}</p>
@@ -286,22 +293,23 @@
                 <x-modal title="Add Job Card" maxWidth="lg">
                     <form action="{{ route('vendor-jobs.store') }}" method="POST" class="space-y-5" x-data="{ f: costingFor({}) }">
                         @csrf
+                        <input type="hidden" name="from_issue" x-bind:value="prefill ? 1 : ''">
                         <div>
                             <x-label :required="true">Vendor</x-label>
                             <x-search-select name="vendor_id" url="{{ route('search.vendors') }}" placeholder="Search vendors..." required />
                         </div>
                         <div>
                             <x-label :required="true">Title</x-label>
-                            <x-input name="title" placeholder="e.g. Compound landscaping — Q1 maintenance" required />
+                            <x-input name="title" placeholder="e.g. Compound landscaping — Q1 maintenance" x-bind:value="prefill?.title || ''" required />
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label>Estate</x-label>
-                                <x-search-select name="estate_id" url="{{ route('search.estates') }}" placeholder="Optional" />
+                                <x-search-select name="estate_id" url="{{ route('search.estates') }}" placeholder="Optional" x-init="prefill && setValue(prefill.estate_id, prefill.estate_name)" />
                             </div>
                             <div>
                                 <x-label>Unit</x-label>
-                                <x-search-select name="unit_id" url="{{ route('search.units') }}" placeholder="Optional" />
+                                <x-search-select name="unit_id" url="{{ route('search.units') }}" placeholder="Optional" x-init="prefill && setValue(prefill.unit_id, prefill.unit_name)" />
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -322,10 +330,11 @@
                             <x-label>Cost</x-label>
                             <x-money-input name="cost" placeholder="0" />
                         </div>
+                        @include('vendor-jobs._issue', ['init' => "[prefill?.issue_id, prefill?.issue_label, false]"])
                         @include('vendor-jobs._costing')
                         <div>
                             <x-label>Description / Work Done</x-label>
-                            <x-textarea name="description" placeholder="Describe the scope of work..."></x-textarea>
+                            <x-textarea name="description" placeholder="Describe the scope of work..." x-init="$el.value = prefill?.description || ''"></x-textarea>
                         </div>
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
@@ -379,6 +388,7 @@
                             <x-label>Cost</x-label>
                             <x-money-input name="cost" placeholder="0" x-init="setValue(editing.cost)" />
                         </div>
+                        @include('vendor-jobs._issue', ['init' => "[editing.issue_id, editing.issue ? (editing.issue.number + ' — ' + editing.issue.title) : '', !!editing.share_vendor]"])
                         @include('vendor-jobs._costing')
                         <div>
                             <x-label>Description / Work Done</x-label>

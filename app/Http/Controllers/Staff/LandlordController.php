@@ -50,7 +50,7 @@ class LandlordController extends Controller
     {
         $summary = $metrics->summary($landlord->id);
 
-        $estates = Estate::with('location')
+        $estates = Estate::query()
             ->withCount([
                 'units',
                 'units as occupied_count' => fn ($q) => $q->where('status', 'occupied'),

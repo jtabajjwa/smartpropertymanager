@@ -3,7 +3,6 @@
 use App\Models\Estate;
 use App\Models\Expense;
 use App\Models\ExpenseItems;
-use App\Models\Location;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Vendor;
@@ -17,8 +16,7 @@ function jobSetup(): array
 {
     $user = User::factory()->create();
     CurrentLandlord::set($user->landlord_id);
-    $location = Location::create(['name' => 'Ntinda', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 9']);
-    $estate = Estate::create(['name' => 'Acacia Court', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => 'Acacia Court', 'district' => 'Kampala']);
     $unit = Unit::create(['name' => 'B2', 'estate_id' => $estate->id, 'status' => 'occupied']);
     $vendor = Vendor::create(['name' => 'Kato Plumbers', 'category' => 'plumber']);
     $repairs = ExpenseItems::where('name', 'Repairs & maintenance')->first();

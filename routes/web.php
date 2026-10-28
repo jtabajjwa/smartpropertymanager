@@ -51,7 +51,6 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
     // Property
-    Route::resource('locations', \App\Http\Controllers\LocationController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('estates', \App\Http\Controllers\EstateController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('units', \App\Http\Controllers\UnitController::class)->only(['index', 'store', 'update', 'destroy']);
 
@@ -92,7 +91,6 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
     // Operations
     Route::resource('expenses', \App\Http\Controllers\ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('expense-items', \App\Http\Controllers\ExpenseItemController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::resource('utilities', \App\Http\Controllers\UtilityController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::middleware('feature:vendors')->group(function () {
         Route::resource('vendors', \App\Http\Controllers\VendorController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::resource('vendor-jobs', \App\Http\Controllers\VendorJobController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -140,15 +138,14 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
 
     // Search API (for searchable dropdowns)
     Route::prefix('search')->name('search.')->group(function () {
-        Route::get('locations', [\App\Http\Controllers\SearchController::class, 'locations'])->name('locations');
         Route::get('estates', [\App\Http\Controllers\SearchController::class, 'estates'])->name('estates');
         Route::get('units', [\App\Http\Controllers\SearchController::class, 'units'])->name('units');
         Route::get('tenants', [\App\Http\Controllers\SearchController::class, 'tenants'])->name('tenants');
         Route::get('customers', [\App\Http\Controllers\SearchController::class, 'customers'])->name('customers');
         Route::get('leases', [\App\Http\Controllers\SearchController::class, 'leases'])->name('leases');
-        Route::get('utilities', [\App\Http\Controllers\SearchController::class, 'utilities'])->name('utilities');
         Route::get('expense-items', [\App\Http\Controllers\SearchController::class, 'expenseItems'])->name('expense-items');
         Route::get('vendors', [\App\Http\Controllers\SearchController::class, 'vendors'])->name('vendors');
+        Route::get('issues', [\App\Http\Controllers\SearchController::class, 'issues'])->name('issues');
         Route::get('expenses', [\App\Http\Controllers\SearchController::class, 'expenses'])->name('expenses');
         Route::get('payments', [\App\Http\Controllers\SearchController::class, 'payments'])->name('payments');
         Route::get('invoices', [\App\Http\Controllers\SearchController::class, 'invoices'])->name('invoices');

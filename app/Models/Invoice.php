@@ -20,7 +20,6 @@ class Invoice extends Model
         'invoiceable_type',
         'invoiceable_id',
         'type',
-        'utility_id',
         'title',
         'invoice_date',
         'amount',
@@ -54,11 +53,6 @@ class Invoice extends Model
         }
 
         return $this->lease?->tenant?->name ?? 'Unknown Tenant';
-    }
-
-    public function utility(): BelongsTo
-    {
-        return $this->belongsTo(Utility::class);
     }
 
     public function allocations(): HasMany

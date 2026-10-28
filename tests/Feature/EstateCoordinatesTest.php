@@ -2,33 +2,31 @@
 
 use App\Models\Estate;
 use App\Models\Landlord;
-use App\Models\Location;
 use App\Models\StaffUser;
 use App\Models\User;
 use App\Services\CurrentLandlord;
 
 afterEach(fn () => CurrentLandlord::clear());
 
-/** A landlord user with one location and one estate (no coordinates yet). */
+/** A landlord user with one estate (no coordinates yet). */
 function coordinatesFixture(): array
 {
     $user = User::factory()->create();
     CurrentLandlord::set($user->landlord_id);
 
-    $location = Location::create(['name' => 'Kololo', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 4']);
-    $estate = Estate::create(['name' => 'Hilltop', 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => 'Hilltop', 'district' => 'Kampala']);
 
     CurrentLandlord::clear();
 
-    return [$user, $location, $estate];
+    return [$user, null, $estate];
 }
 
 test('an estate can be created with map coordinates', function () {
-    [$user, $location] = coordinatesFixture();
+    [$user] = coordinatesFixture();
 
     $this->actingAs($user)->post(route('estates.store'), [
         'name' => 'Kololo Heights',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
         'latitude' => '0.3350123',
         'longitude' => '32.5946789',
     ])->assertSessionHas('success');
@@ -40,11 +38,11 @@ test('an estate can be created with map coordinates', function () {
 });
 
 test('coordinates are optional', function () {
-    [$user, $location] = coordinatesFixture();
+    [$user] = coordinatesFixture();
 
     $this->actingAs($user)->post(route('estates.store'), [
         'name' => 'No Pin Estate',
-        'location_id' => $location->id,
+        'district' => 'Kampala',
         'latitude' => '',
         'longitude' => '',
     ])->assertSessionHas('success');

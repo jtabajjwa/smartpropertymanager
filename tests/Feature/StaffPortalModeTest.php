@@ -4,7 +4,6 @@ use App\Models\Audit;
 use App\Models\Estate;
 use App\Models\Invoice;
 use App\Models\Landlord;
-use App\Models\Location;
 use App\Models\StaffUser;
 use App\Models\Tenant;
 use App\Models\Unit;
@@ -21,8 +20,7 @@ function portalLandlord(string $name = 'Acme Properties'): array
     $admin = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
 
     CurrentLandlord::set($landlord->id);
-    $location = Location::create(['name' => 'Ntinda', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 1']);
-    $estate = Estate::create(['name' => "{$name} Courts", 'location_id' => $location->id]);
+    $estate = Estate::create(['name' => "{$name} Courts", 'district' => 'Kampala']);
     $unit = Unit::create(['name' => 'A1', 'estate_id' => $estate->id, 'status' => 'vacant']);
     $tenant = Tenant::create([
         'type' => 'individual',
@@ -163,15 +161,12 @@ test('staff can record a manual invoice for a customer', function () {
     staffInPortal($this, $landlord);
 
     $this->post(route('customers.store'), ['name' => 'Walk-in Ltd', 'phone' => '0771234567'])->assertSessionHas('success');
-    $this->post(route('utilities.store'), ['name' => 'Water'])->assertSessionHas('success');
 
     $customerId = DB::table('customers')->where('landlord_id', $landlord->id)->value('id');
-    $utilityId = DB::table('utilities')->where('landlord_id', $landlord->id)->value('id');
 
     $this->post(route('invoices.store'), [
         'customer_id' => $customerId,
         'type' => 'utility',
-        'utility_id' => $utilityId,
         'title' => 'Water — October',
         'invoice_date' => today()->toDateString(),
         'due_date' => today()->addDays(14)->toDateString(),
@@ -203,7 +198,7 @@ test('the landlord audit log names the staff member', function () {
     ['landlord' => $landlord] = portalLandlord();
     staffInPortal($this, $landlord, ['name' => 'Grace Support']);
 
-    $this->post(route('utilities.store'), ['name' => 'Electricity']);
+    $this->post(route('customers.store'), ['name' => 'Audit Test Ltd', 'phone' => '0772345678']);
 
     $this->get(route('audits.index'))->assertSee('Grace Support (Primora staff)');
 });

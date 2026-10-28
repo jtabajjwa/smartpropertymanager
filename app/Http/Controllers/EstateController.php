@@ -12,7 +12,7 @@ class EstateController extends Controller
 {
     public function index()
     {
-        $estates = Estate::with(['location', 'units'])
+        $estates = Estate::with(['units'])
             ->withCount('units')
             ->latest()
             ->paginate(15);

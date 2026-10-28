@@ -6,13 +6,12 @@ use App\Models\Estate;
 use App\Models\Expense;
 use App\Models\ExpenseItems;
 use App\Models\Invoice;
+use App\Models\Issue;
 use App\Models\Lease;
-use App\Models\Location;
 use App\Models\Payment;
 use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
-use App\Models\Utility;
 use App\Models\Vendor;
 use App\Services\CurrentLandlord;
 use Illuminate\Http\JsonResponse;
@@ -20,11 +19,6 @@ use Illuminate\Http\Request;
 
 class SearchController extends Controller
 {
-    public function locations(Request $request): JsonResponse
-    {
-        return $this->search(Location::query(), 'name', $request);
-    }
-
     public function estates(Request $request): JsonResponse
     {
         return $this->search(Estate::query(), 'name', $request);
@@ -111,11 +105,6 @@ class SearchController extends Controller
         return response()->json($results);
     }
 
-    public function utilities(Request $request): JsonResponse
-    {
-        return $this->search(Utility::query(), 'name', $request);
-    }
-
     public function expenseItems(Request $request): JsonResponse
     {
         return $this->search(ExpenseItems::query(), 'name', $request);
@@ -124,6 +113,19 @@ class SearchController extends Controller
     public function vendors(Request $request): JsonResponse
     {
         return $this->search(Vendor::query(), 'name', $request);
+    }
+
+    /** Open issues, for booking a job card against one. */
+    public function issues(Request $request): JsonResponse
+    {
+        $query = Issue::with('unit:id,name')->whereIn('status', ['open', 'in_progress']);
+
+        if ($q = $request->input('q')) {
+            $query->where(fn ($b) => $b->where('number', 'like', "%{$q}%")->orWhere('title', 'like', "%{$q}%"));
+        }
+
+        return response()->json($query->latest()->limit($request->input('limit', 20))->get()
+            ->map(fn (Issue $i) => ['id' => $i->id, 'text' => "{$i->number} — {$i->title}".($i->unit ? " (Unit {$i->unit->name})" : '')]));
     }
 
     public function expenses(Request $request): JsonResponse

@@ -49,6 +49,20 @@ class Issue extends Model
         return $this->belongsTo(Unit::class);
     }
 
+    /** Job cards booked to fix this issue. */
+    public function jobs(): HasMany
+    {
+        return $this->hasMany(VendorJob::class);
+    }
+
+    /** Every job booked for it is done (cancelled ones aside), and at least one was completed. */
+    public function jobsAllDone(): bool
+    {
+        $jobs = $this->jobs->where('status', '!=', 'cancelled');
+
+        return $jobs->isNotEmpty() && $jobs->every(fn (VendorJob $j) => $j->status === 'completed');
+    }
+
     public function updates(): HasMany
     {
         return $this->hasMany(IssueUpdate::class);

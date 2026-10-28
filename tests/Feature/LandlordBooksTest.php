@@ -9,7 +9,6 @@ use App\Models\Landlord;
 use App\Models\LandlordTax;
 use App\Models\Lease;
 use App\Models\Liquidation;
-use App\Models\Location;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentTransaction;
@@ -41,8 +40,7 @@ function booksLandlord(array $attributes = []): array
     $admin = User::factory()->admin()->create(['landlord_id' => $landlord->id]);
 
     $estate = CurrentLandlord::runAs($landlord->id, function () {
-        $location = Location::create(['name' => 'Ntinda', 'country' => 'Uganda', 'district' => 'Kampala', 'address' => 'Plot 1']);
-        $estate = Estate::create(['name' => 'Ntinda Flats', 'location_id' => $location->id]);
+        $estate = Estate::create(['name' => 'Ntinda Flats', 'district' => 'Kampala']);
         $unit = Unit::create(['name' => 'A1', 'estate_id' => $estate->id, 'status' => 'occupied']);
         $tenant = Tenant::create([
             'type' => 'individual', 'name' => 'Sam Tenant', 'email' => fake()->unique()->safeEmail(), 'primary_phone' => fake()->unique()->e164PhoneNumber(),

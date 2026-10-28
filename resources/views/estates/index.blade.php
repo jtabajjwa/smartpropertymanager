@@ -9,8 +9,7 @@
         editing: {
             id: null,
             name: '',
-            description: '',
-            location_id: ''
+            description: ''
         },
         view(item) {
             this.viewing = { ...item };
@@ -19,9 +18,6 @@
         edit(item) {
             this.editing = { ...item };
             this.editModal = true;
-            this.$nextTick(() => {
-                this.$dispatch('set-search-select', { name: 'location_id', id: item.location_id, text: item.location?.name || '' });
-            });
         },
         formatLabel(val) {
             if (!val) return '--';
@@ -49,7 +45,7 @@
                         <thead>
                             <tr class="border-b border-gray-200">
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Units</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Occupancy</th>
                                 <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -69,7 +65,7 @@
                                             <span>{{ $estate->name }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->fullAddress() ?: '--' }} <x-map-link :estate="$estate" class="ml-1" /></td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $estate->units_count }}</td>
                                     <td class="px-6 py-4">
                                         @if($occupancyRate >= 80)
@@ -124,7 +120,7 @@
                                         <x-photo-thumb :url="$estate->photo_url" icon="building" size="w-12 h-12" />
                                         <p class="text-sm font-medium text-gray-900 break-words">{{ $estate->name }}</p>
                                     </div>
-                                    <p class="mt-0.5 text-sm text-gray-600">{{ $estate->location?->name ?? '--' }} <x-map-link :estate="$estate" class="ml-1" /></p>
+                                    <p class="mt-0.5 text-sm text-gray-600">{{ $estate->fullAddress() ?: '--' }} <x-map-link :estate="$estate" class="ml-1" /></p>
                                 </div>
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="content">
@@ -189,8 +185,8 @@
                             <p class="mt-1 text-sm font-medium text-gray-900" x-text="viewing.name || '--'"></p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wide">Location</p>
-                            <p class="mt-1 text-sm text-gray-900" x-text="viewing.location?.name || '--'"></p>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Address</p>
+                            <p class="mt-1 text-sm text-gray-900" x-text="[viewing.address, viewing.district, viewing.country !== 'Uganda' ? viewing.country : null].filter(Boolean).join(', ') || '--'"></p>
                         </div>
                         <div class="col-span-2">
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Description</p>
@@ -221,10 +217,7 @@
                         </div>
                         <x-photo-input label="Photo (helps identify it)" />
                         <x-map-picker />
-                        <div>
-                            <x-label :required="true">Location</x-label>
-                            <x-search-select name="location_id" url="{{ route('search.locations') }}" placeholder="Search locations..." required />
-                        </div>
+                        <x-estate-address />
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
                             <x-button>Save Estate</x-button>
@@ -251,10 +244,7 @@
                         </div>
                         <x-photo-input label="Photo (helps identify it)" current="editing.photo_url" />
                         <x-map-picker lat="editing.latitude" lng="editing.longitude" />
-                        <div>
-                            <x-label :required="true">Location</x-label>
-                            <x-search-select name="location_id" url="{{ route('search.locations') }}" placeholder="Search locations..." required />
-                        </div>
+                        <x-estate-address model="editing" />
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="editModal = false">Cancel</x-button>
                             <x-button>Update Estate</x-button>
