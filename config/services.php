@@ -48,4 +48,16 @@ return [
         'api_key' => env('WEBSITE_API_KEY'),
     ],
 
+    // Tenant WhatsApp bot (Meta WhatsApp Cloud API; see deploy/WHATSAPP.md).
+    // Without a token and phone number id, replies are only logged.
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+        // Shown to tenants, e.g. on the portal: "+256 7xx xxx xxx".
+        'display_number' => env('WHATSAPP_DISPLAY_NUMBER'),
+    ],
+
 ];

@@ -5,10 +5,10 @@ namespace App\Http\Controllers\TenantPortal;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentTransaction;
 use App\Models\Tenant;
-use App\Payments\Msisdn;
-use App\Payments\PaymentException;
 use App\Payments\PaymentService;
 use App\Services\CollectionFees;
+use App\Services\TenantPortal\RentPaymentException;
+use App\Services\TenantPortal\RentPayments;
 use App\Services\TenantPortal\TenantAccount;
 use Illuminate\Http\Request;
 
@@ -18,8 +18,8 @@ use Illuminate\Http\Request;
  */
 class PaymentController extends Controller
 {
-    public const MIN_AMOUNT = 500;
-    public const MAX_AMOUNT = 5_000_000;
+    public const MIN_AMOUNT = RentPayments::MIN_AMOUNT;
+    public const MAX_AMOUNT = RentPayments::MAX_AMOUNT;
 
     public function create(Request $request, CollectionFees $fees, PaymentService $payments)
     {
@@ -42,12 +42,11 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function store(Request $request, CollectionFees $fees, PaymentService $payments)
+    public function store(Request $request, RentPayments $rent)
     {
         $tenant = $request->attributes->get('tenant');
-        $landlord = $tenant->landlord;
 
-        if (!$landlord->collect_payments) {
+        if (!$tenant->landlord->collect_payments) {
             return redirect()->route('tenant.pay')->with('error', "Your landlord doesn't accept mobile money payments through Primora yet.");
         }
 
@@ -60,59 +59,14 @@ class PaymentController extends Controller
             'amount.max' => 'The most you can pay at once is UGX '.number_format(self::MAX_AMOUNT).'.',
         ]);
 
-        $msisdn = Msisdn::normalize($data['phone']);
-        if (!$msisdn) {
-            return back()->withInput()->withErrors(['phone' => 'Enter a Ugandan mobile money number, e.g. 0772 123 456.']);
-        }
-
-        $principal = round((float) $data['amount']);
-        $invoice = null;
-
-        if (!empty($data['invoice_id'])) {
-            $invoice = (new TenantAccount($tenant))->findOpenInvoice((int) $data['invoice_id']);
-
-            if (!$invoice) {
-                return back()->withInput()->with('error', 'That invoice is already paid or no longer available.');
-            }
-            if ($principal > $invoice->balance) {
-                return back()->withInput()->withErrors(['amount' => 'That is more than the UGX '.number_format($invoice->balance).' still due on this invoice. To pay extra, make an advance payment.']);
-            }
-        }
-
-        $waiting = PaymentTransaction::where('purpose', 'rent')->where('payable_type', Tenant::class)->where('payable_id', $tenant->id)
-            ->open()->where('created_at', '>', now()->subMinutes(3))->exists();
-        if ($waiting) {
-            return back()->withInput()->with('error', 'A payment request is already waiting for approval on a phone. Approve or decline it first, or try again in a few minutes.');
-        }
-
-        $quote = $fees->quote($landlord, $principal);
-
-        if ($quote['charge'] > self::MAX_AMOUNT) {
-            return back()->withInput()->withErrors(['amount' => 'With the collection fee that is more than UGX '.number_format(self::MAX_AMOUNT).'. Please pay a smaller amount.']);
-        }
-
         try {
-            $transaction = $payments->initiate(
-                purpose: 'rent',
-                landlord: $landlord,
-                amount: $quote['charge'],
-                msisdn: $msisdn,
-                context: [
-                    'tenant_id' => $tenant->id,
-                    'tenant_name' => $tenant->name,
-                    'invoice_id' => $invoice?->id,
-                    'invoice_number' => $invoice?->number,
-                    'principal' => $quote['principal'],
-                    'fee' => $quote['fee'],
-                    'fee_bearer' => $quote['bearer'],
-                ],
-                payable: $tenant,
-            );
-        } catch (PaymentException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+            $invoiceId = !empty($data['invoice_id']) ? (int) $data['invoice_id'] : null;
+            $transaction = $rent->start($tenant, $invoiceId, (float) $data['amount'], $data['phone']);
+        } catch (RentPaymentException $e) {
+            return $e->field
+                ? back()->withInput()->withErrors([$e->field => $e->getMessage()])
+                : back()->withInput()->with('error', $e->getMessage());
         }
-
-        $transaction->update(['fee_amount' => $quote['fee'], 'fee_bearer' => $quote['bearer'], 'landlord_amount' => $quote['landlord_amount']]);
 
         return redirect()->route('tenant.dashboard')->with('success', $transaction->status === PaymentTransaction::SUCCEEDED
             ? 'Payment received. Thank you!'

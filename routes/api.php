@@ -12,3 +12,8 @@ Route::get('/user', function (Request $request) {
 Route::get('website/plans', \App\Http\Controllers\Api\WebsitePlansController::class)
     ->middleware(['throttle:60,1', \App\Http\Middleware\VerifyWebsiteKey::class])
     ->name('api.website.plans');
+
+// Tenant WhatsApp bot (Meta WhatsApp Cloud API). GET verifies the webhook once;
+// POST carries messages, signed with the app secret.
+Route::get('whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'verify'])->middleware('throttle:30,1')->name('api.whatsapp.verify');
+Route::post('whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1')->name('api.whatsapp.receive');

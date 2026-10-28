@@ -54,11 +54,29 @@ class RentPurpose implements PaymentPurpose
                 report($e);
             }
         });
+        $this->tellWhatsApp($transaction, true);
     }
 
     public function onFailed(PaymentTransaction $transaction): void
     {
         // Nothing was recorded for the landlord, so nothing to undo.
+        $this->tellWhatsApp($transaction, false);
+    }
+
+    /** A payment started from the WhatsApp bot is confirmed in that chat. */
+    protected function tellWhatsApp(PaymentTransaction $transaction, bool $succeeded): void
+    {
+        if (empty($transaction->context['whatsapp_to'])) {
+            return;
+        }
+
+        DB::afterCommit(function () use ($transaction, $succeeded) {
+            try {
+                \App\WhatsApp\TenantBot::paymentResult($transaction->fresh(), $succeeded);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
     }
 
     protected function record(PaymentTransaction $transaction): Payment

@@ -3,14 +3,10 @@
 namespace App\Http\Controllers\TenantPortal;
 
 use App\Http\Controllers\Controller;
-use App\Mail\IssueReportedMail;
 use App\Models\Issue;
-use App\Models\User;
-use App\Services\NumberGenerator;
 use App\Services\PhotoUploader;
+use App\Services\TenantPortal\IssueReporter;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 /** Tenants raising repairs, requests and complaints, and following their status. */
@@ -35,7 +31,7 @@ class IssueController extends Controller
         ]);
     }
 
-    public function store(Request $request, PhotoUploader $photos)
+    public function store(Request $request, PhotoUploader $photos, IssueReporter $reporter)
     {
         $tenant = $request->attributes->get('tenant');
         $leases = $tenant->leases()->where('status', 'active')->get();
@@ -53,24 +49,10 @@ class IssueController extends Controller
 
         $lease = $leases->firstWhere('id', (int) ($data['lease_id'] ?? 0)) ?? $leases->first();
 
-        $issue = DB::transaction(function () use ($data, $tenant, $lease, $request, $photos) {
-            $issue = Issue::create([
-                'tenant_id' => $tenant->id,
-                'lease_id' => $lease?->id,
-                'unit_id' => $lease?->unit_id,
-                'category' => $data['category'],
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'photo' => $request->hasFile('photo') ? $photos->store($request->file('photo'), 'issues') : null,
-                'status' => 'open',
-            ]);
-            $issue->update(['number' => app(NumberGenerator::class)->next($tenant->landlord_id, 'issue', 'ISS')]);
-            $issue->updates()->create(['author' => 'tenant', 'status' => 'open', 'note' => 'Reported']);
-
-            return $issue;
-        });
-
-        $this->notifyLandlord($issue->load(['tenant', 'unit.estate', 'landlord']));
+        $issue = $reporter->report(
+            $tenant, $lease, $data['category'], $data['title'], $data['description'],
+            $request->hasFile('photo') ? $photos->store($request->file('photo'), 'issues') : null,
+        );
 
         return redirect()->route('tenant.issues.show', $issue)->with('success', 'Thank you. Your landlord has been notified.');
     }
@@ -104,24 +86,5 @@ class IssueController extends Controller
         }
 
         return back()->with('success', $reopen ? 'Your note was added and the issue re-opened.' : 'Your note was added.');
-    }
-
-    /** Email the landlord (their contact email, or their admins if none is set). */
-    protected function notifyLandlord(Issue $issue): void
-    {
-        $landlord = $issue->landlord;
-        $to = $landlord->contact_email
-            ? [$landlord->contact_email]
-            : User::where('landlord_id', $landlord->id)->where('role', 'admin')->where('is_active', true)->pluck('email')->all();
-
-        if (!$to) {
-            return;
-        }
-
-        try {
-            Mail::to($to)->send(new IssueReportedMail($issue));
-        } catch (\Throwable $e) {
-            report($e);
-        }
     }
 }

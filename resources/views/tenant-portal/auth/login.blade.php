@@ -16,5 +16,12 @@
                 <span x-show="busy" x-cloak>Sending…</span>
             </x-button>
         </form>
+
+        @if($waNumber = config('services.whatsapp.display_number'))
+            <p class="mt-5 pt-4 border-t border-gray-100 text-sm text-gray-500">
+                Prefer WhatsApp? Check your balance, get invoices and pay rent by messaging
+                <a href="https://wa.me/{{ preg_replace('/\D/', '', $waNumber) }}?text=Hi" target="_blank" rel="noopener" class="font-medium text-green-700 hover:text-green-800 whitespace-nowrap">{{ $waNumber }}</a>.
+            </p>
+        @endif
     </div>
 </x-tenant-layout>
