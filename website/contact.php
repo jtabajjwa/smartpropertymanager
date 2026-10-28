@@ -70,7 +70,7 @@ $headers = [
     'X-Mailer: PHP/' . PHP_VERSION,
 ];
 
-$subject = mb_encode_mimeheader('New website enquiry from ' . $headerSafe($name), 'UTF-8');
+$subject = mb_encode_mimeheader((!empty($config['staging']) ? '[Staging] ' : '') . 'New website enquiry from ' . $headerSafe($name), 'UTF-8');
 
 $body = "New enquiry from the Primora website\n"
     . str_repeat('-', 40) . "\n"

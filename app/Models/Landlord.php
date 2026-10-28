@@ -50,12 +50,15 @@ class Landlord extends Model
         ];
     }
 
-    /** Each landlord gets a permanent number (100, 101, …), the start of their unit IDs. */
+    /** Each landlord gets a permanent number (100, 101, …), the start of their unit IDs, and the starter expense items. */
     protected static function booted(): void
     {
         static::creating(function (Landlord $landlord) {
             $landlord->number ??= \App\Support\UnitCode::nextLandlordNumber();
         });
+
+        // Every new account starts with the usual expense items.
+        static::created(fn (Landlord $landlord) => ExpenseItems::seedDefaultsFor($landlord->id));
     }
 
     /** Whether this account has a plan feature: their plan includes it, staff granted it, or they have no plan yet. */

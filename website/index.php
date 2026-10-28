@@ -2,6 +2,11 @@
 $config = require __DIR__ . '/config.php';
 require __DIR__ . '/lib/plans.php';
 
+// A staging copy (config.local.php sets 'staging' => true) stays out of search engines.
+if (!empty($config['staging'])) {
+    header('X-Robots-Tag: noindex, nofollow');
+}
+
 // Flash message from the contact form (only touch the session if one already exists).
 $flash = null;
 if (isset($_COOKIE[session_name()])) {
@@ -119,6 +124,9 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <title>Primora — Property management software for landlords</title>
     <meta name="description" content="Primora automates rent invoicing, payment tracking, security deposits and SMS reminders for landlords and property managers in Uganda. Start your free trial.">
     <meta name="theme-color" content="#1c2230">
+<?php if (!empty($config['staging'])): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php endif; ?>
     <link rel="canonical" href="<?= e(rtrim($config['site_url'], '/')) ?>/">
 
     <meta property="og:type" content="website">
@@ -137,6 +145,9 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
+<?php if (!empty($config['staging'])): ?>
+<div style="background:#c1704a; color:#fff; text-align:center; font-size:13px; padding:6px 16px;">Staging site: plans and sign-in links point to the staging app.</div>
+<?php endif; ?>
 
 <!-- ============ Header ============ -->
 <header class="site-header is-dark" id="top">

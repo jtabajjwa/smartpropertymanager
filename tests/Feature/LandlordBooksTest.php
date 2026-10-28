@@ -378,7 +378,7 @@ test('the account ledger shows the opening balance, entries and running balance'
 
 test('landlord admins see the chart of accounts, trial balance and balance sheet, and export them', function () {
     [$landlord, $admin] = booksLandlord();
-    $item = CurrentLandlord::runAs($landlord->id, fn () => ExpenseItems::first());
+    $item = CurrentLandlord::runAs($landlord->id, fn () => ExpenseItems::where('name', 'Repairs')->first());
 
     $this->actingAs($admin)->get(route('books.accounts', ['as_at' => '2026-06-30']))->assertOk()
         ->assertSee('Cash, bank &amp; mobile money', false)->assertSee('Repairs')->assertSee('850,000');
