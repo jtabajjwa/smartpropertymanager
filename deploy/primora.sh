@@ -84,7 +84,13 @@ lock_env() {
     flock -n 9 || die "Another primora command is already running for $ENV."
 }
 
-artisan_in() { local dir="$1"; shift; (cd "$dir" && runuser -u "$APP_USER" -- "$PHP" artisan "$@"); }
+# The site user's home (the env folder) isn't writable, so tools that keep
+# config/history there (tinker) get a folder inside shared storage instead.
+artisan_in() {
+    local dir="$1"; shift
+    local xdg="$SHARED/storage/framework/xdg"
+    (cd "$dir" && runuser -u "$APP_USER" -- env XDG_CONFIG_HOME="$xdg/config" XDG_DATA_HOME="$xdg/data" "$PHP" artisan "$@")
+}
 artisan()    { [[ -L "$CURRENT" ]] || die "$ENV has no release yet: run 'primora deploy $ENV' first."; artisan_in "$(readlink -f "$CURRENT")" "$@"; }
 
 db_has_tables() {

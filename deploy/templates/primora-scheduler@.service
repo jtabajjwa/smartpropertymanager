@@ -7,6 +7,8 @@ After=network.target mariadb.service
 Type=oneshot
 User=primora-%i
 Group=primora-%i
-WorkingDirectory=/var/www/primora/%i/current
+# No WorkingDirectory: systemd changes into it before starting PHP, and SELinux
+# doesn't let systemd (init_t) read the web-labelled "current" link. Artisan
+# finds the app from its own path, so it doesn't need one.
 ExecStart=/usr/bin/php /var/www/primora/%i/current/artisan schedule:run --no-interaction
 UMask=0027
