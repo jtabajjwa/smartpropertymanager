@@ -36,6 +36,7 @@ test('user can create a job card for a vendor', function () {
             'job_date' => '2026-09-01',
             'status' => 'completed',
             'cost' => 150000,
+            'record' => 'none',
         ])->assertRedirect()->assertSessionHas('success');
 
     $this->assertDatabaseHas('vendor_jobs', [

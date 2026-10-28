@@ -15,7 +15,7 @@ class ExpenseController extends Controller
 {
     public function index()
     {
-        $query = Expense::with(['expenseItem', 'estate', 'unit']);
+        $query = Expense::with(['expenseItem', 'estate', 'unit', 'vendorJob:id,expense_id,number']);
 
         if (request('estate_id')) {
             $query->where('estate_id', request('estate_id'));

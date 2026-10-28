@@ -29,7 +29,9 @@ class VendorJob extends Model
     {
         return [
             'job_date' => 'date',
+            'completed_on' => 'date',
             'cost' => 'decimal:2',
+            'no_charge' => 'boolean',
         ];
     }
 
@@ -58,6 +60,12 @@ class VendorJob extends Model
     public function expense(): BelongsTo
     {
         return $this->belongsTo(Expense::class);
+    }
+
+    /** Completed, with a cost that isn't in the books yet (no expense, not free of charge). */
+    public function needsExpense(): bool
+    {
+        return $this->status === 'completed' && !$this->expense_id && !$this->no_charge;
     }
 
     public function getStatusLabelAttribute(): string

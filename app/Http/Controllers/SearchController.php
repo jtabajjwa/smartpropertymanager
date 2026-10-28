@@ -130,6 +130,11 @@ class SearchController extends Controller
     {
         $query = Expense::with('expenseItem');
 
+        // Picking an expense for a job card: only ones no other job is linked to.
+        if ($request->boolean('unlinked')) {
+            $query->whereDoesntHave('vendorJob');
+        }
+
         if ($q = $request->input('q')) {
             $query->where(function ($builder) use ($q) {
                 $builder->where('number', 'like', "%{$q}%")

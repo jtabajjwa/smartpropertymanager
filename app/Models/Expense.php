@@ -28,6 +28,16 @@ class Expense extends Model
         'amount' => 'decimal:2',
     ];
 
+    /** A job card's expense and its cost stay in step: changing the amount here updates the job. */
+    protected static function booted(): void
+    {
+        static::updated(function (Expense $expense) {
+            if ($expense->wasChanged('amount') && ($job = $expense->vendorJob) && (float) $job->cost !== (float) $expense->amount) {
+                $job->update(['cost' => $expense->amount]);
+            }
+        });
+    }
+
     public function expenseItem(): BelongsTo
     {
         return $this->belongsTo(ExpenseItems::class, 'expense_item_id');

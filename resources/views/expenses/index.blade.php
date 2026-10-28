@@ -105,7 +105,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($expenses as $expense)
                                 <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $expense->number }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $expense->number }}@if($expense->vendorJob)<span class="block text-xs font-normal text-gray-500">Job {{ $expense->vendorJob->number }}</span>@endif</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->date->format('M d, Y') }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->expenseItem?->name ?? '--' }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->estate?->name ?? '--' }}</td>
@@ -144,7 +144,7 @@
                         <div class="p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $expense->number }}</p>
+                                    <p class="text-sm font-medium text-gray-900 break-words">{{ $expense->number }}@if($expense->vendorJob) <span class="text-xs font-normal text-gray-500">· Job {{ $expense->vendorJob->number }}</span>@endif</p>
                                     <p class="mt-0.5 text-sm text-gray-600">{{ $expense->date->format('M d, Y') }}</p>
                                     <p class="text-sm text-gray-600">{{ $expense->expenseItem?->name ?? '--' }}</p>
                                 </div>
