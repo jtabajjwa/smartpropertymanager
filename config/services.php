@@ -55,7 +55,7 @@ return [
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'app_secret' => env('WHATSAPP_APP_SECRET'),
         'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
-        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v24.0'),
         // Shown to tenants, e.g. on the portal: "+256 7xx xxx xxx".
         'display_number' => env('WHATSAPP_DISPLAY_NUMBER'),
     ],

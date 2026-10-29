@@ -146,6 +146,6 @@ class CloudApi
 
     protected function graph(string $path): string
     {
-        return 'https://graph.facebook.com/'.config('services.whatsapp.graph_version', 'v21.0').'/'.$path;
+        return 'https://graph.facebook.com/'.config('services.whatsapp.graph_version', 'v24.0').'/'.$path;
     }
 }

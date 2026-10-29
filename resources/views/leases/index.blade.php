@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Leases</x-slot>
 
+    <x-tip id="leases" title="A lease starts the rent invoicing">
+        Choose the tenant, the unit, the rent and how often it’s due. When you save it, Primora raises the first rent invoice (and the security deposit, if any) straight away, then each next one on schedule.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
         viewing: {},

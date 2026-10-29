@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Estates</x-slot>
 
+    <x-tip id="estates" title="Start with your properties">
+        An estate is a property or building: a block of flats, a row of shops or a single house. Add the estate first, then its rooms or shops on the <a href="{{ route('units.index') }}" class="font-medium text-orange-600 hover:underline">Units</a> page.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
         viewing: {},

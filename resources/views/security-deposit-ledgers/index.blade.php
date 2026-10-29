@@ -1,6 +1,10 @@
 <x-app-layout>
     <x-slot name="header">Security Deposits</x-slot>
 
+    <x-tip id="security-deposit-ledgers" title="Deposits have their own ledger">
+        Deposits a tenant pays show here, separate from rent. When they move out, record any deductions, then refund or forfeit what’s left, so the balance is clear to both of you.
+    </x-tip>
+
     <div class="py-8" x-data="{
         createModal: false,
         editModal: false,

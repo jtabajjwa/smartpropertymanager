@@ -22,6 +22,7 @@ class EnforceSubscriptionAccess
         'subscription.*',
         'sms-credits.*',
         'payouts.*',
+        'guide.*',
     ];
 
     public function handle(Request $request, Closure $next): Response

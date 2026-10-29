@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Invoices</x-slot>
 
+    <x-tip id="invoices" title="Rent invoices raise themselves">
+        Invoices for leases are created automatically on each due date, so you rarely need to add one by hand. Use Add Invoice for one-off charges such as repairs or a casual customer’s parking.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
         viewing: {},

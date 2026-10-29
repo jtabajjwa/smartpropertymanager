@@ -162,6 +162,10 @@
                         </form>
                     @else
                         <a href="{{ route('change-password') }}" class="block px-4 py-2 hover:bg-gray-50">Change password</a>
+                        <form method="POST" action="{{ route('guide.restore') }}">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-50">Show tips &amp; getting started</button>
+                        </form>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600">Sign out</button>

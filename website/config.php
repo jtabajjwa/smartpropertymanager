@@ -19,10 +19,14 @@ $config = [
     'site_url' => 'https://www.primoraproptech.com',
 
     // Contact details shown on the page. Leave a value empty ('') to hide it.
-    'contact_email' => '',
-    'contact_phone' => '',        // e.g. '+256 700 000 000'
+    'contact_email' => 'info@primoraproptech.com',
+    'contact_phone' => '+256 757 389014',
     'whatsapp'      => '',        // digits only, e.g. '256700000000'
-    'address'       => 'Kampala, Uganda',
+    'address'       => 'NWSC Station Building, Fourth Street, Lugogo, Kololo IV, Kampala Central Division, Kampala, Uganda',
+
+    // Used on the privacy policy page (privacy.php).
+    'company_name'  => 'Primora Proptech Limited',
+    'privacy_email' => 'info@primoraproptech.com',
 
     // Contact form delivery.
     // mail_to:   inbox that receives enquiries from the contact form.

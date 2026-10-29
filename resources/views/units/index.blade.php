@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Units</x-slot>
 
+    <x-tip id="units" title="Every unit has its own ID">
+        Primora gives each unit an ID that’s printed on invoices. Tenants use it to pay rent and sign in to the tenant portal. A unit shows as Occupied by itself while it has an active lease.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
         viewing: {},

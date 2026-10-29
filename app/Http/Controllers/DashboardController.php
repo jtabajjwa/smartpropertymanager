@@ -181,7 +181,10 @@ class DashboardController extends Controller
         $recentPayments = $recentPaymentsQuery->latest()->take(5)->get();
         $recentInvoices = $recentInvoicesQuery->latest()->take(5)->get();
 
+        $gettingStarted = app(\App\Services\GettingStarted::class)->forDashboard(auth()->user());
+
         return view('dashboard', compact(
+            'gettingStarted',
             'totalTenants', 'totalCustomers', 'activeLeases', 'vacantUnits', 'totalUnits',
             'occupancyRate', 'pendingInvoices', 'pendingInvoiceAmount',
             'overdueInvoices', 'overdueAmount', 'securityDepositsHeld',

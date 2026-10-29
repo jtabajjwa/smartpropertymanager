@@ -24,6 +24,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'role',
         'is_active',
         'must_change_password',
+        'dismissed_tips',
     ];
 
     protected $hidden = [
@@ -38,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'password' => 'hashed',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
+            'dismissed_tips' => 'array',
         ];
     }
 
@@ -49,6 +51,25 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    /** Whether this user has closed an in-app tip (or the getting-started guide). */
+    public function hasDismissedTip(string $key): bool
+    {
+        return in_array($key, $this->dismissed_tips ?? [], true);
+    }
+
+    /** Saved quietly: closing a tip isn't worth an audit log entry. */
+    public function dismissTip(string $key): void
+    {
+        if (!$this->hasDismissedTip($key)) {
+            $this->forceFill(['dismissed_tips' => [...($this->dismissed_tips ?? []), $key]])->saveQuietly();
+        }
+    }
+
+    public function restoreTips(): void
+    {
+        $this->forceFill(['dismissed_tips' => null])->saveQuietly();
     }
 
     /** May manage this landlord's admin areas (users, audit log, company profile). */

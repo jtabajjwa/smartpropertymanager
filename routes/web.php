@@ -50,6 +50,10 @@ Route::get('/', function () {
 Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verified', 'must-change-password', 'subscription.access'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
+    // In-app tips and the getting-started guide
+    Route::post('guide/tips/{key}/dismiss', [\App\Http\Controllers\GuideController::class, 'dismiss'])->where('key', '[a-z0-9-]{1,40}')->name('guide.dismiss');
+    Route::post('guide/restore', [\App\Http\Controllers\GuideController::class, 'restore'])->name('guide.restore');
+
     // Property
     Route::resource('estates', \App\Http\Controllers\EstateController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('units', \App\Http\Controllers\UnitController::class)->only(['index', 'store', 'update', 'destroy']);

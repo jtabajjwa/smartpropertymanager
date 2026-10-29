@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Expenses</x-slot>
 
+    <x-tip id="expenses" title="Track what each property costs">
+        Log expenses against an estate or unit to see what each one really earns. Repairs completed on a job card can record their expense here for you.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
         viewing: {},

@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Payments</x-slot>
 
+    <x-tip id="payments" title="Record it, then allocate it">
+        Record each payment once, with how it was paid. Then allocate it to the invoices it covers, so balances and overdue amounts stay exact. If Primora collects rent for you, tenants’ mobile money payments are recorded for you.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         viewModal: false,
         allocateModal: false,
         ownerType: 'tenant',

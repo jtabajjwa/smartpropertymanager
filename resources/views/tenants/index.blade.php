@@ -1,8 +1,12 @@
 <x-app-layout>
     <x-slot name="header">Tenants</x-slot>
 
+    <x-tip id="tenants" title="Use a phone number the tenant actually uses">
+        Invoice alerts, rent reminders, receipts and tenant-portal sign-in codes all go to it by SMS. Add an email address too if you’d like them to get PDF invoices.
+    </x-tip>
+
     <div class="py-8" x-data="{
-        createModal: false,
+        createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
         viewing: {},

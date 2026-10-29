@@ -1,6 +1,10 @@
 <x-app-layout>
     <x-slot name="header">Dashboard</x-slot>
 
+    @if ($gettingStarted)
+        <x-getting-started :guide="$gettingStarted" />
+    @endif
+
     <!-- Date Range Filter -->
     <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
         <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap items-end gap-4">
