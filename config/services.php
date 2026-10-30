@@ -60,4 +60,16 @@ return [
         'display_number' => env('WHATSAPP_DISPLAY_NUMBER'),
     ],
 
+    // Yo! Custom USSD call-outs (Yo! hosts the menu; see deploy/YO_USSD.md).
+    // Requests are signed with Yo!'s key for this mode ("sandbox" or "production").
+    'yo_ussd' => [
+        'mode' => env('YO_USSD_MODE', env('YO_MODE', 'sandbox')),
+        'public_keys' => [
+            'sandbox' => resource_path('certs/yo/ussd-sandbox.pem'),
+            'production' => resource_path('certs/yo/ussd-production.pem'),
+        ],
+        // A reference handed out but never paid against is dropped after this.
+        'reference_valid_hours' => 3,
+    ],
+
 ];

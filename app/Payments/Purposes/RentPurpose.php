@@ -22,7 +22,9 @@ use Illuminate\Support\Facades\DB;
  *
  * Context saved on the transaction: tenant_id, tenant_name, invoice_id,
  * invoice_number, principal (what counts towards rent), fee, fee_bearer;
- * payment_id once recorded.
+ * payment_id once recorded. Paid by USSD (channel "ussd"): lease_id, and the
+ * fee is worked out from what was actually paid; the payment goes against
+ * that lease's oldest unpaid invoices.
  */
 class RentPurpose implements PaymentPurpose
 {
@@ -42,6 +44,10 @@ class RentPurpose implements PaymentPurpose
 
     public function onSucceeded(PaymentTransaction $transaction): void
     {
+        if (!isset($transaction->context['principal'])) {
+            $this->splitFee($transaction);
+        }
+
         $payment = CurrentLandlord::runAs($transaction->landlord_id, fn () => $this->record($transaction));
 
         $transaction->update(['context' => ($transaction->context ?? []) + ['payment_id' => $payment->id, 'payment_number' => $payment->number]]);
@@ -79,6 +85,19 @@ class RentPurpose implements PaymentPurpose
         });
     }
 
+    /** For a payment whose amount was chosen outside Primora (USSD): rent part and fee, from what was paid. */
+    protected function splitFee(PaymentTransaction $transaction): void
+    {
+        $split = app(\App\Services\CollectionFees::class)->fromPaid($transaction->landlord, (float) $transaction->amount);
+
+        $transaction->update([
+            'fee_amount' => $split['fee'],
+            'fee_bearer' => $split['bearer'],
+            'landlord_amount' => $split['landlord_amount'],
+            'context' => ($transaction->context ?? []) + ['principal' => $split['principal'], 'fee' => $split['fee'], 'fee_bearer' => $split['bearer']],
+        ]);
+    }
+
     protected function record(PaymentTransaction $transaction): Payment
     {
         $c = $transaction->context ?? [];
@@ -93,7 +112,7 @@ class RentPurpose implements PaymentPurpose
             'payment_date' => ($transaction->completed_at ?? now())->toDateString(),
             'payment_method' => Msisdn::network($transaction->msisdn) === 'Airtel' ? 'airtel_mobile_money' : 'mtn_mobile_money',
             'reference' => $transaction->network_reference ?: ($transaction->receipt_number ?: $transaction->reference),
-            'notes' => "Paid by the tenant through Primora ({$transaction->reference}) from {$transaction->displayMsisdn()}.",
+            'notes' => 'Paid by the tenant through Primora'.(($c['channel'] ?? null) === 'ussd' ? ' (USSD)' : '')." ({$transaction->reference}) from {$transaction->displayMsisdn()}.",
             'status' => 'unallocated',
         ]);
         $payment->update(['number' => app(NumberGenerator::class)->next($transaction->landlord_id, 'payment', 'PAY')]);
@@ -108,6 +127,27 @@ class RentPurpose implements PaymentPurpose
                 if ($allocate > 0) {
                     PaymentAllocation::create(['payment_id' => $payment->id, 'invoice_id' => $invoice->id, 'amount' => $allocate]);
                     $invoice->syncStatus();
+                }
+            }
+        }
+
+        // Paid against a tenancy rather than one invoice: oldest unpaid first.
+        if (empty($c['invoice_id']) && !empty($c['lease_id'])) {
+            $left = $principal;
+            $invoices = Invoice::where('lease_id', $c['lease_id'])->whereIn('status', ['unpaid', 'partial'])
+                ->orderBy('due_date')->orderBy('id')->lockForUpdate()->get();
+
+            foreach ($invoices as $invoice) {
+                if ($left <= 0) {
+                    break;
+                }
+                $outstanding = (float) bcsub((string) $invoice->amount, (string) $invoice->allocations()->sum('amount'), 2);
+                $allocate = min($left, $outstanding);
+
+                if ($allocate > 0) {
+                    PaymentAllocation::create(['payment_id' => $payment->id, 'invoice_id' => $invoice->id, 'amount' => $allocate]);
+                    $invoice->syncStatus();
+                    $left = (float) bcsub((string) $left, (string) $allocate, 2);
                 }
             }
         }

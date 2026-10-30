@@ -69,9 +69,27 @@ class ReconcilePayments extends Command
         // Landlord payouts sent through the gateway and not yet confirmed.
         if (!$this->option('reference')) {
             $this->reconcilePayouts();
+            $this->reconcileUssd();
         }
 
         return self::SUCCESS;
+    }
+
+    /** USSD payment references whose notification may have gone missing (see UssdPayments::reconcile). */
+    protected function reconcileUssd(): void
+    {
+        if (!app(PaymentService::class)->gatewayAvailable('yo')) {
+            return;
+        }
+
+        try {
+            if ($found = app(\App\Ussd\UssdPayments::class)->reconcile()) {
+                $this->info("Found {$found} USSD payment(s) without a notification.");
+            }
+        } catch (\Throwable $e) {
+            $this->error("USSD references: {$e->getMessage()}");
+            report($e);
+        }
     }
 
     protected function reconcilePayouts(): void

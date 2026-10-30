@@ -17,3 +17,10 @@ Route::get('website/plans', \App\Http\Controllers\Api\WebsitePlansController::cl
 // POST carries messages, signed with the app secret.
 Route::get('whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'verify'])->middleware('throttle:30,1')->name('api.whatsapp.verify');
 Route::post('whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1')->name('api.whatsapp.receive');
+
+// Yo! Custom USSD app call-outs (tenants paying rent by USSD; see deploy/YO_USSD.md).
+// Signed by Yo!; each step of the menu has its own URL.
+Route::post('ussd/yo/{step}', \App\Http\Controllers\Api\YoUssdController::class)
+    ->whereIn('step', ['unit', 'units', 'confirm'])
+    ->middleware('throttle:600,1')
+    ->name('api.ussd.yo');

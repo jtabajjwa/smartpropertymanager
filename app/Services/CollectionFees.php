@@ -51,6 +51,22 @@ class CollectionFees
     }
 
     /**
+     * Split an amount already paid (e.g. typed in by the tenant on USSD) into
+     * the part that counts towards rent and the collection fee. When the
+     * landlord passes the fee on, it comes out of what was paid.
+     *
+     * @return array{principal: float, fee: float, charge: float, landlord_amount: float, bearer: string}
+     */
+    public function fromPaid(Landlord $landlord, float $paid): array
+    {
+        $fee = min($this->feeFor($paid), $paid);
+
+        return $landlord->pass_collection_fee
+            ? ['principal' => $paid - $fee, 'fee' => $fee, 'charge' => $paid, 'landlord_amount' => $paid - $fee, 'bearer' => 'tenant']
+            : ['principal' => $paid, 'fee' => $fee, 'charge' => $paid, 'landlord_amount' => max(0, $paid - $fee), 'bearer' => 'landlord'];
+    }
+
+    /**
      * The smallest fee F such that the charge on (principal + F) is covered
      * by F. The charge is on the total collected, which includes the fee
      * itself, so adding it can move the total into another band, and Yo!'s

@@ -68,7 +68,7 @@ class PaymentService
         }
 
         $transaction = PaymentTransaction::create([
-            'reference' => $this->newReference($handler->code()),
+            'reference' => $this->makeReference($handler->code()),
             'purpose' => $purpose,
             'landlord_id' => $landlord->id,
             'payable_type' => $payable?->getMorphClass(),
@@ -98,6 +98,49 @@ class PaymentService
         $this->apply($transaction, $result);
 
         return $transaction->fresh();
+    }
+
+    /**
+     * A payment someone else asked the gateway for (Yo!'s USSD app sends the
+     * prompt itself, with our reference): recorded without sending anything,
+     * then moved on by the gateway's notification or a status check.
+     */
+    public function expected(
+        string $purpose,
+        Landlord $landlord,
+        float $amount,
+        string $msisdn,
+        string $reference,
+        string $gateway,
+        array $context = [],
+        ?Model $payable = null,
+    ): PaymentTransaction {
+        $handler = $this->manager->purpose($purpose);
+
+        $transaction = PaymentTransaction::create([
+            'reference' => $reference,
+            'purpose' => $purpose,
+            'landlord_id' => $landlord->id,
+            'payable_type' => $payable?->getMorphClass(),
+            'payable_id' => $payable?->getKey(),
+            'gateway' => $gateway,
+            'amount' => $amount,
+            'currency' => 'UGX',
+            'msisdn' => $msisdn,
+            'narrative' => '',
+            'status' => PaymentTransaction::PENDING,
+            'context' => $context,
+        ]);
+
+        $transaction->update(['narrative' => $this->narrative($transaction, $handler)]);
+
+        return $transaction;
+    }
+
+    /** A new reference for a payment of this purpose ("RNT-261030-K3QX7M"). */
+    public function newReference(string $purpose): string
+    {
+        return $this->makeReference($this->manager->purpose($purpose)->code());
     }
 
     /** How offline payments can be received (recorded by staff, no gateway involved). */
@@ -133,7 +176,7 @@ class PaymentService
         }
 
         $transaction = PaymentTransaction::create([
-            'reference' => $this->newReference($handler->code()),
+            'reference' => $this->makeReference($handler->code()),
             'purpose' => $purpose,
             'landlord_id' => $landlord->id,
             'payable_type' => $payable?->getMorphClass(),
@@ -213,6 +256,12 @@ class PaymentService
                 }
             })
             ->first();
+
+        // A rent payment Yo!'s USSD app started with a reference we handed out.
+        if (!$transaction && $gateway->name() === 'yo' && $notification->reference) {
+            $reported = $notification->payload['amount'] ?? null;
+            $transaction = app(\App\Ussd\UssdPayments::class)->claim($notification->reference, is_numeric($reported) ? (float) $reported : null);
+        }
 
         Log::info('Payment notification received', [
             'gateway' => $gatewayName,
@@ -305,6 +354,11 @@ class PaymentService
                 Log::warning('Payment previously marked failed was reported succeeded; crediting it.', ['reference' => $locked->reference]);
             }
 
+            // Paid by USSD with the amount typed after our call-out: take what was actually paid.
+            if ($to === PaymentTransaction::SUCCEEDED && (float) $locked->amount <= 0 && $result->amount) {
+                $updates['amount'] = $result->amount;
+            }
+
             $updates['status'] = $to;
             $updates['status_message'] = $result->message ? Str::limit($result->message, 490) : $locked->status_message;
 
@@ -312,7 +366,7 @@ class PaymentService
                 $updates['completed_at'] = now();
             }
 
-            if ($to === PaymentTransaction::SUCCEEDED && $result->amount !== null && abs($result->amount - (float) $locked->amount) > 0.009) {
+            if ($to === PaymentTransaction::SUCCEEDED && $result->amount !== null && (float) $locked->amount > 0 && abs($result->amount - (float) $locked->amount) > 0.009) {
                 Log::warning('Payment amount differs from what was requested', [
                     'reference' => $locked->reference, 'requested' => $locked->amount, 'reported' => $result->amount,
                 ]);
@@ -338,13 +392,13 @@ class PaymentService
      * "SUB-261027-K3QX7M": purpose code, date, and a random part. Sent to the
      * gateway as ExternalReference, so it is how each payment is found again.
      */
-    protected function newReference(string $code): string
+    protected function makeReference(string $code): string
     {
         do {
             // Random part only: letters/digits that can't be misread (no 0/O, 1/I/L).
             $random = strtr(Str::upper(Str::random(6)), ['O' => 'X', '0' => '7', 'I' => 'K', '1' => '9', 'L' => 'M']);
             $reference = strtoupper($code).'-'.now()->format('ymd').'-'.$random;
-        } while (PaymentTransaction::where('reference', $reference)->exists());
+        } while (PaymentTransaction::where('reference', $reference)->exists() || \App\Models\UssdPaymentIntent::where('reference', $reference)->exists());
 
         return $reference;
     }
