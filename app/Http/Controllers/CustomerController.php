@@ -34,7 +34,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', new \App\Rules\PhoneNumber],
         ]);
 
         Customer::create($validated);
@@ -50,7 +50,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', new \App\Rules\PhoneNumber],
         ]);
 
         $customer->update($validated);

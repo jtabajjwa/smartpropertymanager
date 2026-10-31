@@ -197,7 +197,7 @@
 
                         <div>
                             <x-label>Phone</x-label>
-                            <x-input name="phone" placeholder="0771234567" />
+                            <x-phone-input name="phone" />
                         </div>
 
                         <div x-data="{ show: false }">
@@ -251,7 +251,7 @@
 
                         <div>
                             <x-label>Phone</x-label>
-                            <x-input name="phone" x-model="editing.phone" placeholder="0771234567" />
+                            <x-phone-input name="phone" model="editing.phone" />
                         </div>
 
                         <div>

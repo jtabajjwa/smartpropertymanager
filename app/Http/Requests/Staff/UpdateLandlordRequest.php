@@ -25,7 +25,7 @@ class UpdateLandlordRequest extends FormRequest
             'trading_name' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'email' => 'required|email|unique:landlords,contact_email,' . $this->route('landlord')->id,
-            'phone' => 'required|string|max:20|unique:landlords,contact_phone,' . $this->route('landlord')->id,
+            'phone' => ['required', 'string', 'unique:landlords,contact_phone,'.$this->route('landlord')->id, new \App\Rules\PhoneNumber],
         ];
     }
 }

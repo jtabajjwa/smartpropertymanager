@@ -23,7 +23,7 @@ class StoreStaffUserRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:staff_users,email',
-            'phone' => 'nullable|string|max:20|unique:staff_users,phone',
+            'phone' => ['nullable', 'string', 'unique:staff_users,phone', new \App\Rules\PhoneNumber],
             'password' => ['required', 'string', \Illuminate\Validation\Rules\Password::defaults()],
             'role' => 'required|in:admin,user',
             'permissions' => ['nullable', 'array'],

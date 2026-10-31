@@ -342,11 +342,11 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Primary Phone</x-label>
-                                        <x-input name="primary_phone" placeholder="+256..." required />
+                                        <x-phone-input name="primary_phone" required />
                                     </div>
                                     <div>
                                         <x-label>Secondary Phone</x-label>
-                                        <x-input name="secondary_phone" placeholder="+256..." />
+                                        <x-phone-input name="secondary_phone" />
                                     </div>
                                 </div>
                             </div>
@@ -413,7 +413,7 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Contact Phone</x-label>
-                                        <x-input name="emergency_contact_phone" placeholder="+256..." required />
+                                        <x-phone-input name="emergency_contact_phone" required />
                                     </div>
                                     <div>
                                         <x-label>Contact Email</x-label>
@@ -479,11 +479,11 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Primary Phone</x-label>
-                                        <x-input name="primary_phone" x-model="editing.primary_phone" required />
+                                        <x-phone-input name="primary_phone" model="editing.primary_phone" required />
                                     </div>
                                     <div>
                                         <x-label>Secondary Phone</x-label>
-                                        <x-input name="secondary_phone" x-model="editing.secondary_phone" />
+                                        <x-phone-input name="secondary_phone" model="editing.secondary_phone" />
                                     </div>
                                 </div>
                             </div>
@@ -559,7 +559,7 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <x-label :required="true">Contact Phone</x-label>
-                                        <x-input name="emergency_contact_phone" x-model="editing.emergency_contact_phone" required />
+                                        <x-phone-input name="emergency_contact_phone" model="editing.emergency_contact_phone" required />
                                     </div>
                                     <div>
                                         <x-label>Contact Email</x-label>

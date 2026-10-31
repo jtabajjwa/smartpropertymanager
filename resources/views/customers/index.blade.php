@@ -138,7 +138,7 @@
                         </div>
                         <div>
                             <x-label :required="true">Phone</x-label>
-                            <x-input name="phone" placeholder="+256..." required />
+                            <x-phone-input name="phone" required />
                         </div>
                         <div>
                             <x-label>Email</x-label>
@@ -166,7 +166,7 @@
                         </div>
                         <div>
                             <x-label :required="true">Phone</x-label>
-                            <x-input name="phone" x-model="editing.phone" required />
+                            <x-phone-input name="phone" model="editing.phone" required />
                         </div>
                         <div>
                             <x-label>Email</x-label>

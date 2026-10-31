@@ -50,7 +50,7 @@ test('the email must be a real address', function () {
     $this->post(route('signup'), signupData(['email' => 'jtabajjwa']))->assertSessionHasErrors('email');
 });
 
-test('the phone is a Ugandan number, however it was typed', function (string $phone, ?string $stored) {
+test('the phone is a valid number for its country code, however it was typed', function (string $phone, ?string $stored) {
     $response = $this->post(route('signup'), signupData(['phone' => $phone]));
 
     if ($stored === null) {
@@ -63,8 +63,18 @@ test('the phone is a Ugandan number, however it was typed', function (string $ph
     'local' => ['0701583888', '+256701583888'],
     'with code' => ['+256 701 583888', '+256701583888'],
     'too short' => ['+25670158', null],
-    'foreign' => ['+447700900123', null],
+    'Kenya' => ['+254712345678', '+254712345678'],
+    'UK' => ['+447700900123', '+447700900123'],
+    'wrong length for Kenya' => ['+25471234567', null],
+    'unlisted country code' => ['+999123456789', null],
 ]);
+
+test('the sign-up page defaults to Uganda and keeps the chosen country after an error', function () {
+    $this->get(route('signup'))->assertOk()->assertSee("phoneCountry: 'UG'", false);
+
+    $this->post(route('signup'), signupData(['phone' => '+254712345678', 'phone_country' => 'KE', 'email' => 'bad']));
+    $this->get(route('signup'))->assertSee("phoneCountry: 'KE'", false);
+});
 
 test('passwords need a letter, a number and a symbol', function (string $password, bool $ok) {
     $response = $this->post(route('signup'), signupData(['password' => $password, 'password_confirmation' => $password]));

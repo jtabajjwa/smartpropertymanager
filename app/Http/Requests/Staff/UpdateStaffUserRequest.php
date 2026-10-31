@@ -23,7 +23,7 @@ class UpdateStaffUserRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:staff_users,email,' . $this->route('staff_user')->id,
-            'phone' => 'nullable|string|max:20|unique:staff_users,phone,' . $this->route('staff_user')->id,
+            'phone' => ['nullable', 'string', 'unique:staff_users,phone,'.$this->route('staff_user')->id, new \App\Rules\PhoneNumber],
             'role' => 'required|in:admin,user',
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', \Illuminate\Validation\Rule::in(\App\Support\StaffPermissions::all())],

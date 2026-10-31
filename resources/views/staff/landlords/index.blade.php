@@ -240,7 +240,7 @@
 
                                 <div>
                                     <x-label :required="true">Phone</x-label>
-                                    <x-input name="phone" placeholder="0771234567" required />
+                                    <x-phone-input name="phone" required />
                                 </div>
 
                                 <div x-data="{ show: false }">
@@ -300,7 +300,7 @@
 
                         <div>
                             <x-label :required="true">Contact Phone</x-label>
-                            <x-input name="phone" x-model="editing.phone" required />
+                            <x-phone-input name="phone" model="editing.phone" required />
                         </div>
 
                         <div class="flex justify-end gap-3 pt-2">

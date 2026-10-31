@@ -26,7 +26,7 @@ class StoreLandlordRequest extends FormRequest
             'address' => 'nullable|string|max:255',
             'admin_name' => ['required', 'string', 'max:255', new \App\Rules\PersonName],
             'email' => 'required|email:rfc,filter|unique:users,email|unique:landlords,contact_email',
-            'phone' => 'required|string|max:20|unique:users,phone|unique:landlords,contact_phone',
+            'phone' => ['required', 'string', 'unique:users,phone', 'unique:landlords,contact_phone', new \App\Rules\PhoneNumber],
             'password' => ['required', 'string', \Illuminate\Validation\Rules\Password::defaults()],
         ];
     }

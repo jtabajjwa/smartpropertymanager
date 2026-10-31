@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use App\Rules\OrganisationName;
 use App\Rules\PersonName;
-use App\Rules\UgandanPhone;
+use App\Rules\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -34,7 +34,7 @@ class StoreSignupRequest extends FormRequest
             'company_name' => ['required', 'string', 'max:255', new OrganisationName],
             'name' => ['required', 'string', 'max:255', new PersonName],
             'email' => 'required|email:rfc,filter|max:255|unique:users,email|unique:landlords,contact_email',
-            'phone' => ['required', 'string', new UgandanPhone, 'unique:users,phone', 'unique:landlords,contact_phone'],
+            'phone' => ['required', 'string', new PhoneNumber, 'unique:users,phone', 'unique:landlords,contact_phone'],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
         ];
     }

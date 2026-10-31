@@ -18,6 +18,7 @@
         } elseif ($errors->has('company_name')) {
             $initialStep = 1;
         }
+        $phoneParts = \App\Support\PhoneCountries::split(old('phone'));
     @endphp
 
     <div class="w-full max-w-sm"
@@ -26,8 +27,11 @@
             company_name: @js(old('company_name', '')),
             name: @js(old('name', '')),
             email: @js(old('email', '')),
-            {{-- Phone is typed without the +256, which the field shows. --}}
-            phone: @js(preg_replace('/^\+?256/', '', (string) old('phone', ''))),
+            {{-- Phone is typed without the country code, which is picked beside it. --}}
+            countries: @js(\App\Support\PhoneCountries::forJs()),
+            phoneCountry: @js(array_key_exists((string) old('phone_country'), \App\Support\PhoneCountries::ALL) ? old('phone_country') : $phoneParts[0]),
+            phone: @js($phoneParts[1]),
+            get country() { return this.countries.find(c => c.iso === this.phoneCountry) || this.countries[0]; },
             password: '',
             password_confirmation: '',
             touched: {},
@@ -36,9 +40,11 @@
             {{-- Shown once a field has been left, or Continue was pressed. --}}
             fieldError(field) { return this.touched[field] ? this.errors[field] : ''; },
             get phoneDigits() {
+                {{-- Forgive a typed country code or the national leading 0. --}}
                 let d = this.phone.replace(/\D/g, '');
-                if (d.startsWith('256') && d.length === 12) d = d.slice(3);
-                if (d.startsWith('0')) d = d.slice(1);
+                const dial = this.country.dial, local = new RegExp('^(?:' + this.country.pattern + ')$');
+                if (d.startsWith(dial) && !local.test(d) && local.test(d.slice(dial.length))) d = d.slice(dial.length);
+                if (d.startsWith('0') && local.test(d.slice(1))) d = d.slice(1);
                 return d;
             },
             get errors() {
@@ -51,7 +57,8 @@
                     email: !email ? 'Enter your email address.'
                         : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? 'Enter a valid email address, e.g. you@example.com.' : '',
                     phone: !this.phone.trim() ? 'Enter your phone number.'
-                        : !/^[347]\d{8}$/.test(this.phoneDigits) ? 'Enter the 9 digits after +256, e.g. 772 123456.' : '',
+                        : !new RegExp('^(?:' + this.country.pattern + ')$').test(this.phoneDigits)
+                            ? 'That isn’t a valid ' + this.country.name + ' number. Enter the digits after +' + this.country.dial + ', e.g. ' + this.country.example + '.' : '',
                 };
             },
             {{-- The same rules as Password::defaults() on the server. --}}
@@ -172,16 +179,26 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1.5">Phone</label>
-                        {{-- Uganda only for now: +256 is fixed, the person types the rest. --}}
+                        {{-- Country code (Uganda by default), then the rest of the number. The native
+                             select sits invisibly over the "+256" label, so phones get their own picker. --}}
                         <div class="flex rounded-xl border bg-gray-50 focus-within:bg-gray-100 focus-within:ring-1 transition"
                             :class="fieldError('phone') ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:border-orange-500 focus-within:ring-orange-500'">
-                            <span class="flex items-center pl-4 pr-3 text-sm font-medium text-gray-700 border-r border-gray-200 select-none">+256</span>
-                            <input type="tel" x-model="phone" inputmode="numeric" autocomplete="tel-national" maxlength="13"
+                            <div class="relative flex items-center gap-1 pl-4 pr-2.5 border-r border-gray-200 text-sm font-medium text-gray-700">
+                                <span x-text="phoneCountry + ' +' + country.dial">UG +256</span>
+                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                <select name="phone_country" x-model="phoneCountry" @change="touched.phone = phone.trim() !== ''" aria-label="Country code"
+                                    class="absolute inset-0 w-full opacity-0 cursor-pointer">
+                                    <template x-for="c in countries" :key="c.iso">
+                                        <option :value="c.iso" :selected="c.iso === phoneCountry" x-text="c.name + ' (+' + c.dial + ')'"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <input type="tel" x-model="phone" inputmode="numeric" autocomplete="tel-national" maxlength="16"
                                 @keydown.enter.prevent="next()" @blur="touched.phone = phone.trim() !== ''"
                                 class="flex-1 min-w-0 border-0 bg-transparent px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:ring-0 focus:outline-none"
-                                placeholder="772 123456" />
+                                :placeholder="country.example" placeholder="772 123456" />
                         </div>
-                        <input type="hidden" name="phone" :value="phone.trim() ? '+256' + phoneDigits : ''" />
+                        <input type="hidden" name="phone" :value="phone.trim() ? '+' + country.dial + phoneDigits : ''" />
                         <p class="mt-1.5 text-xs text-red-600" x-show="fieldError('phone')" x-text="fieldError('phone')" x-cloak></p>
                     </div>
 
