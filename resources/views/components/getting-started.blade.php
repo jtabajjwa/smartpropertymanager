@@ -3,7 +3,7 @@
 
 @php($pct = $guide['total'] ? round($guide['done'] / $guide['total'] * 100) : 100)
 
-<div x-data="{ open: true }" x-show="open" x-transition.opacity.duration.200ms class="mb-6 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+<div {{ $attributes->only('data-tour') }} x-data="{ open: true }" x-show="open" x-transition.opacity.duration.200ms class="mb-6 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="flex flex-wrap items-start gap-4 px-5 pt-5 pb-4">
         <div class="min-w-0 flex-1">
             @if ($guide['complete'])

@@ -62,7 +62,7 @@
 
         <!-- Company -->
         @if ($sidebarCompany)
-            <div class="mx-3 mt-4 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3 shrink-0">
+            <div data-tour="company" class="mx-3 mt-4 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3 shrink-0">
                 @if ($sidebarCompany->logoUrl())
                     <img src="{{ $sidebarCompany->logoUrl() }}" alt="" class="h-9 w-9 shrink-0 rounded-lg object-contain bg-white p-0.5">
                 @else
@@ -83,14 +83,14 @@
             </div>
 
             <!-- Property -->
-            <div>
+            <div data-tour="nav-property">
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Property</p>
                 <x-sidebar-link :dark="true" route="estates.index" label="Estates" icon="building" />
                 <x-sidebar-link :dark="true" route="units.index" label="Units" icon="cube" />
             </div>
 
             <!-- Tenancy -->
-            <div>
+            <div data-tour="nav-tenancy">
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Tenancy</p>
                 <x-sidebar-link :dark="true" route="tenants.index" label="Tenants" icon="users" />
                 <x-sidebar-link :dark="true" route="customers.index" label="Customers" icon="user" />
@@ -98,7 +98,7 @@
             </div>
 
             <!-- Finance -->
-            <div>
+            <div data-tour="nav-finance">
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Finance</p>
                 <x-sidebar-link :dark="true" route="invoices.index" label="Invoices" icon="receipt" />
                 <x-sidebar-link :dark="true" route="payments.index" label="Payments" icon="banknotes" />
@@ -112,7 +112,7 @@
             </div>
 
             <!-- Operations -->
-            <div>
+            <div data-tour="nav-operations">
                 <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Operations</p>
                 <x-sidebar-link :dark="true" route="expenses.index" label="Expenses" icon="calculator" />
                 <x-sidebar-link :dark="true" route="expense-items.index" label="Expense Items" icon="tag" />
@@ -144,7 +144,7 @@
         </nav>
 
         <!-- Signed-in user -->
-        <div class="border-t border-white/10 p-3 shrink-0" x-data="{ open: false }">
+        <div data-tour="user-menu" class="border-t border-white/10 p-3 shrink-0" x-data="{ open: false }">
             <div class="relative">
                 <button type="button" @click="open = !open" class="w-full flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5 text-left">
                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold">{{ $sidebarInitials ?: '?' }}</span>
@@ -162,6 +162,8 @@
                         </form>
                     @else
                         <a href="{{ route('change-password') }}" class="block px-4 py-2 hover:bg-gray-50">Change password</a>
+                        {{-- Replays this page's tour if it has one, otherwise the dashboard's. --}}
+                        <a href="{{ route('dashboard', ['tour' => 1]) }}" @click="if (window.primoraTour) { $event.preventDefault(); open = false; window.primoraTour.start(); }" class="block px-4 py-2 hover:bg-gray-50">Take a tour</a>
                         <form method="POST" action="{{ route('guide.restore') }}">
                             @csrf
                             <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-50">Show tips &amp; getting started</button>

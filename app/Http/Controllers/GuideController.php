@@ -26,6 +26,6 @@ class GuideController extends Controller
             $request->user()->restoreTips();
         }
 
-        return redirect()->route('dashboard')->with('success', 'Tips and the getting-started guide are showing again.');
+        return redirect()->route('dashboard')->with('success', 'Tips, tours and the getting-started guide are showing again.');
     }
 }

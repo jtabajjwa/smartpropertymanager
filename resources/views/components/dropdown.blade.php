@@ -21,7 +21,7 @@ $widthClasses = match ($width) {
     wrapper), which forces the ancestor itself to grow scrollable just to reveal the
     menu. `fixed` positioning escapes that entirely, regardless of table size.
 --}}
-<div class="relative" x-data="{
+<div class="relative" {{ $attributes->only('data-tour') }} x-data="{
     open: false,
     reposition() {
         const trigger = this.$refs.trigger;

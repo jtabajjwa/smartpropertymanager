@@ -5,6 +5,8 @@
         Payments will automatically be settled in case a tenant uses the website to pay or pays via Primora Account. Record payment if other methods are used, e.g. cash.
     </x-tip>
 
+    <x-tour id="payments" />
+
     <div class="py-8" x-data="{
         createModal: {{ request()->has('new') ? 'true' : 'false' }},
         viewModal: false,
@@ -49,11 +51,11 @@
                     <p class="mt-1 text-sm text-gray-500">Record and manage tenant payments.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a hx-boost="false" href="{{ route('payments.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
+                    <a data-tour="export" hx-boost="false" href="{{ route('payments.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Export
                     </a>
-                    <x-button @click="createModal = true" type="button">
+                    <x-button data-tour="add" @click="createModal = true" type="button">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Add Payment
                     </x-button>
@@ -61,7 +63,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
+            <div data-tour="filters" class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('payments.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -165,7 +167,7 @@
                                     </td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
-                                            <x-dropdown align="right" width="48">
+                                            <x-dropdown align="right" width="48" data-tour="row-actions">
                                                 <x-slot name="content">
                                                     <button @click="allocate({{ Js::from($payment->makeVisible('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-50 transition">Allocations</button>
                                                     <button @click="view({{ Js::from($payment->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
@@ -203,7 +205,7 @@
                                     <p class="text-sm font-medium text-gray-900 break-words">{{ $payment->number }}</p>
                                     <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $payment->display_payer_name }}</p>
                                 </div>
-                                <x-dropdown align="right" width="48">
+                                <x-dropdown align="right" width="48" data-tour="row-actions">
                                     <x-slot name="content">
                                         <button @click="allocate({{ Js::from($payment->makeVisible('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-50 transition">Allocations</button>
                                         <button @click="view({{ Js::from($payment->makeHidden('allocations')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>

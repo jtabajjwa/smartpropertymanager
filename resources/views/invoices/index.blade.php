@@ -5,6 +5,8 @@
         Invoices for leases are created automatically on each due date, so you rarely need to add one by hand. Use Add Invoice for a casual customer.
     </x-tip>
 
+    <x-tour id="invoices" />
+
     <div class="py-8" x-data="{
         createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
@@ -50,11 +52,11 @@
                     <p class="mt-1 text-sm text-gray-500">Create and manage tenant invoices.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a hx-boost="false" href="{{ route('invoices.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
+                    <a data-tour="export" hx-boost="false" href="{{ route('invoices.export', request()->query()) }}" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Export
                     </a>
-                    <x-button @click="createModal = true; createType = 'rent'" type="button">
+                    <x-button data-tour="add" @click="createModal = true; createType = 'rent'" type="button">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Add Invoice
                     </x-button>
@@ -62,7 +64,7 @@
             </div>
 
             {{-- Filters --}}
-            <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
+            <div data-tour="filters" class="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
                 <form method="GET" action="{{ route('invoices.index') }}" class="flex flex-wrap items-end gap-4">
                     <div class="flex-1 min-w-[200px]">
                         <x-label>Search</x-label>
@@ -184,7 +186,7 @@
                                     </td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
-                                            <x-dropdown align="right" width="48">
+                                            <x-dropdown align="right" width="48" data-tour="row-actions">
                                                 <x-slot name="content">
                                                     <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                                     <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">View / Download PDF</a>
@@ -236,7 +238,7 @@
                                     @endif
                                     <p class="text-sm text-gray-600 break-words">{{ $invoice->title }}</p>
                                 </div>
-                                <x-dropdown align="right" width="48">
+                                <x-dropdown align="right" width="48" data-tour="row-actions">
                                     <x-slot name="content">
                                         <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                         <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">View / Download PDF</a>

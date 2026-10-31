@@ -69,3 +69,21 @@
 /* Page-load progress bar for background navigation (resources/js/boost.js). */
 #app-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 60; background: #c1704a; opacity: 0; pointer-events: none; transition: width .4s ease, opacity .3s ease; }
 #app-progress.is-loading { width: 75%; opacity: 1; transition: width 8s cubic-bezier(.1, .7, .2, 1), opacity .1s; }
+
+/* Guided tours (resources/js/tour.js): Driver.js bubbles in Primora's colours.
+   Driver's own CSS loads later, so these use .driver-popover.primora-tour to win. */
+.driver-popover.primora-tour { font-family: var(--font-sans); color: #374151; border-radius: 16px; padding: 18px 18px 14px; min-width: 260px; max-width: min(340px, calc(100vw - 32px)); box-shadow: 0 20px 45px -12px rgba(28, 34, 48, .35); border-top: 4px solid #c1704a; }
+.driver-popover.primora-tour .driver-popover-title { font-size: 15px; font-weight: 600; color: #1c2230; line-height: 1.4; padding-right: 20px; }
+.driver-popover.primora-tour .driver-popover-description { font-size: 13.5px; line-height: 1.55; color: #4b5563; }
+.driver-popover.primora-tour .driver-popover-close-btn { color: #9ca3af; top: 6px; right: 4px; }
+.driver-popover.primora-tour .driver-popover-close-btn:hover { color: #1c2230; }
+.driver-popover.primora-tour .driver-popover-footer { margin-top: 16px; gap: 8px; flex-wrap: wrap; }
+.driver-popover.primora-tour .driver-popover-progress-text { font-size: 12px; color: #9ca3af; }
+.driver-popover.primora-tour .primora-tour-skip { all: unset; cursor: pointer; font-size: 12px; color: #9ca3af; text-decoration: underline; text-underline-offset: 2px; }
+.driver-popover.primora-tour .primora-tour-skip:hover { color: #4b5563; }
+.driver-popover.primora-tour .driver-popover-footer-btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 10px; border: 0; text-shadow: none; background: #f3f4f6; color: #374151; }
+.driver-popover.primora-tour .driver-popover-footer-btn:hover { background: #e5e7eb; }
+.driver-popover.primora-tour .driver-popover-next-btn { background: #c1704a; color: #fff; }
+.driver-popover.primora-tour .driver-popover-next-btn:hover { background: #a95f3c; }
+.driver-popover.primora-tour .driver-popover-navigation-btns button + button { margin-left: 6px; }
+.driver-popover.primora-tour .driver-popover-btn-disabled { display: none; }
