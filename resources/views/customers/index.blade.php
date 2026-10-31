@@ -21,7 +21,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">Casual Customers</h3>
-                    <p class="mt-1 text-sm text-gray-500">Manage non-tenant customers for parking or casual income.</p>
+                    <p class="mt-1 text-sm text-gray-500">Manage non-tenants or casual income.</p>
                 </div>
                 <x-button @click="createModal = true" type="button">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>

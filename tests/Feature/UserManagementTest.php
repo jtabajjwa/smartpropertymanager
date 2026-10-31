@@ -35,7 +35,7 @@ test('admin can create a user', function () {
             'name' => 'New User',
             'email' => 'new@example.com',
             'phone' => '+256771234567',
-            'password' => 'secret1234',
+            'password' => 'Secret-1234',
             'role' => 'user',
         ])->assertRedirect()->assertSessionHas('success');
 
@@ -53,7 +53,7 @@ test('created user must change password on first login', function () {
         ->post(route('users.store'), [
             'name' => 'Fresh User',
             'email' => 'fresh@example.com',
-            'password' => 'secret1234',
+            'password' => 'Secret-1234',
             'role' => 'user',
         ]);
 
@@ -69,7 +69,7 @@ test('email must be unique when creating user', function () {
         ->post(route('users.store'), [
             'name' => 'Another User',
             'email' => 'taken@example.com',
-            'password' => 'secret1234',
+            'password' => 'Secret-1234',
             'role' => 'user',
         ])->assertRedirect()->assertSessionHasErrors('email');
 });
@@ -83,7 +83,7 @@ test('phone must be unique when creating user', function () {
             'name' => 'New User',
             'email' => 'newphone@example.com',
             'phone' => '+256771111111',
-            'password' => 'secret1234',
+            'password' => 'Secret-1234',
             'role' => 'user',
         ])->assertRedirect()->assertSessionHasErrors('phone');
 });

@@ -189,7 +189,7 @@ test('an admin can create staff with chosen permissions; implied ones are added 
     $admin = StaffUser::factory()->admin()->create();
 
     $this->actingAs($admin, 'staff')->post(route('staff.staff-users.store'), [
-        'name' => 'Fiona Finance', 'email' => 'fiona@primora.test', 'password' => 'secret1234', 'role' => 'user',
+        'name' => 'Fiona Finance', 'email' => 'fiona@primora.test', 'password' => 'Secret-1234', 'role' => 'user',
         'permissions' => ['subscriptions.record_payment', 'payments.check'],
     ])->assertSessionHas('success');
 
@@ -197,7 +197,7 @@ test('an admin can create staff with chosen permissions; implied ones are added 
         ->toBe(['subscriptions.view', 'subscriptions.record_payment', 'payments.view', 'payments.check']);
 
     $this->actingAs($admin, 'staff')->post(route('staff.staff-users.store'), [
-        'name' => 'Bad', 'email' => 'bad@primora.test', 'password' => 'secret1234', 'role' => 'user',
+        'name' => 'Bad', 'email' => 'bad@primora.test', 'password' => 'Secret-1234', 'role' => 'user',
         'permissions' => ['staff.manage'],
     ])->assertSessionHasErrors('permissions.0');
 });

@@ -2,7 +2,7 @@
     <x-slot name="header">Invoices</x-slot>
 
     <x-tip id="invoices" title="Rent invoices raise themselves">
-        Invoices for leases are created automatically on each due date, so you rarely need to add one by hand. Use Add Invoice for one-off charges such as repairs or a casual customer’s parking.
+        Invoices for leases are created automatically on each due date, so you rarely need to add one by hand. Use Add Invoice for a casual customer.
     </x-tip>
 
     <div class="py-8" x-data="{

@@ -17,7 +17,7 @@ class StaffChangePasswordRequest extends FormRequest
     {
         return [
             'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed|different:current_password',
+            'password' => ['required', 'string', \Illuminate\Validation\Rules\Password::defaults(), 'confirmed', 'different:current_password'],
         ];
     }
 

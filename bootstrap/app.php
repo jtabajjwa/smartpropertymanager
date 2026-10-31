@@ -38,5 +38,23 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // An expired session (a form left open for hours, a phone restoring an
+        // old tab) fails the CSRF check with a bare "419 Page Expired". Send
+        // people back to the form with what they typed and a note instead.
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() !== 419 || $request->expectsJson()) {
+                return null;
+            }
+
+            // Signing out with an expired session: they're already signed out.
+            foreach (['logout' => 'login', 'staff.logout' => 'staff.login', 'tenant.logout' => 'tenant.login'] as $logout => $login) {
+                if ($request->routeIs($logout)) {
+                    return redirect()->route($login);
+                }
+            }
+
+            return redirect()->back()
+                ->withInput($request->except(['_token', 'password', 'password_confirmation', 'current_password']))
+                ->with('error', 'Your session expired, so that wasn’t saved. Please try again.');
+        });
     })->create();

@@ -229,3 +229,25 @@ test('yearly billing cycle advances by 1 year', function () {
 
     expect($lease->fresh()->next_invoice_date->format('Y-m-d'))->toBe('2027-01-01');
 });
+
+test('a lease starting on the 31st is billed on the last day of shorter months, then back on the 31st', function () {
+    $lease = createLeaseWithDeps([
+        'start_date' => '2026-01-31',
+        'next_invoice_date' => '2026-01-31',
+        'billing_cycle' => 'monthly',
+    ]);
+    $service = app(InvoicingService::class);
+
+    $service->createRecurringInvoice($lease);
+    expect($lease->fresh()->next_invoice_date->format('Y-m-d'))->toBe('2026-02-28');
+
+    $invoice = $service->createRecurringInvoice($lease->fresh());
+    expect($lease->fresh()->next_invoice_date->format('Y-m-d'))->toBe('2026-03-31')
+        ->and($invoice->title)->toBe('Rent — 28 Feb 2026 to 30 Mar 2026');
+});
+
+test('the first invoice date from a month-end start never spills into the following month', function () {
+    expect(app(InvoicingService::class)->calculateNextInvoiceDate('2026-01-31', 'monthly', 1)->format('Y-m-d'))->toBe('2026-02-28')
+        ->and(app(InvoicingService::class)->calculateNextInvoiceDate('2026-08-31', 'quarterly', 2)->format('Y-m-d'))->toBe('2027-02-28')
+        ->and(app(InvoicingService::class)->calculateNextInvoiceDate('2028-02-29', 'yearly', 1)->format('Y-m-d'))->toBe('2029-02-28');
+});

@@ -87,7 +87,7 @@ class DashboardController extends Controller
             ->get();
 
         // --- Revenue vs expenses, last 6 months ---
-        $monthsWindow = collect(range(5, 0))->map(fn ($i) => now()->subMonths($i)->startOfMonth());
+        $monthsWindow = collect(range(5, 0))->map(fn ($i) => now()->startOfMonth()->subMonths($i)); // start of month first: on the 31st, subMonths() overflows into the wrong month
 
         $monthlyIncomeRaw = DB::table('payment_allocations')
             ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')

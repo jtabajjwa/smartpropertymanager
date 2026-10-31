@@ -29,8 +29,8 @@ test('a landlord who signs up starts with the standard agreement as their defaul
         'name' => 'Owner Person',
         'email' => 'owner@freshhomes.test',
         'phone' => '+256771000111',
-        'password' => 'secret1234',
-        'password_confirmation' => 'secret1234',
+        'password' => 'Secret-1234',
+        'password_confirmation' => 'Secret-1234',
     ])->assertRedirect();
 
     $landlord = Landlord::where('name', 'Fresh Homes Ltd')->firstOrFail();
@@ -49,7 +49,7 @@ test('a landlord created by staff also gets the standard agreement', function ()
         'admin_name' => 'Admin Person',
         'email' => 'admin@staffmade.test',
         'phone' => '+256771000222',
-        'password' => 'secret1234',
+        'password' => 'Secret-1234',
     ])->assertSessionHas('success');
 
     $landlord = Landlord::where('name', 'Staff Made Co')->firstOrFail();

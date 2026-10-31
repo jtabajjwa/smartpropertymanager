@@ -24,29 +24,42 @@ class InvoicingService
         return $invoices;
     }
 
-    public function calculateNextInvoiceDate(string $startDate, string $billingCycle, int $periods): Carbon
+    /**
+     * The date $periods billing cycles after $startDate. Month-based cycles
+     * never spill into the following month (31 Jan + 1 month = 28/29 Feb, not
+     * 3 Mar) and, given the lease's original day of the month as $anchorDay,
+     * return to it where the month is long enough (28 Feb + 1 month = 31 Mar).
+     */
+    public function calculateNextInvoiceDate(string $startDate, string $billingCycle, int $periods, ?int $anchorDay = null): Carbon
     {
         $start = Carbon::parse($startDate);
 
-        return match ($billingCycle) {
+        $next = match ($billingCycle) {
             'daily' => $start->addDays($periods),
             'weekly' => $start->addWeeks($periods),
             'fortnightly' => $start->addWeeks($periods * 2),
-            'monthly' => $start->addMonths($periods),
-            'quarterly' => $start->addMonths($periods * 3),
-            'yearly' => $start->addYears($periods),
-            default => $start->addMonths($periods),
+            'quarterly' => $start->addMonthsNoOverflow($periods * 3),
+            'yearly' => $start->addYearsNoOverflow($periods),
+            default => $start->addMonthsNoOverflow($periods),
         };
+
+        if ($anchorDay && in_array($billingCycle, ['monthly', 'quarterly', 'yearly'], true)) {
+            $next->day(min($anchorDay, $next->daysInMonth));
+        }
+
+        return $next;
     }
 
     public function createRecurringInvoice(Lease $lease): Invoice
     {
         $amount = (string) $lease->rent_amount;
         $periodStart = Carbon::parse($lease->next_invoice_date);
+        $anchorDay = $lease->start_date?->day;
         $periodEnd = $this->calculateNextInvoiceDate(
             $lease->next_invoice_date,
             $lease->billing_cycle,
-            1
+            1,
+            $anchorDay
         )->subDay();
 
         $invoice = Invoice::create([
@@ -68,7 +81,8 @@ class InvoicingService
         $nextDate = $this->calculateNextInvoiceDate(
             $lease->next_invoice_date,
             $lease->billing_cycle,
-            1
+            1,
+            $anchorDay
         );
         $lease->update(['next_invoice_date' => $nextDate]);
 

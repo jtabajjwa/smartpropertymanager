@@ -55,7 +55,7 @@ test('staff user can create a landlord with an initial admin user', function () 
             'admin_name' => 'Landlord Admin',
             'email' => 'landlordadmin@example.com',
             'phone' => '+256771234567',
-            'password' => 'secret1234',
+            'password' => 'Secret-1234',
         ])->assertRedirect()->assertSessionHas('success');
 
     $this->assertDatabaseHas('landlords', [
@@ -84,7 +84,7 @@ test('landlord contact email must be unique when creating landlord', function ()
             'admin_name' => 'Someone',
             'email' => 'taken@example.com',
             'phone' => '+256771111111',
-            'password' => 'secret1234',
+            'password' => 'Secret-1234',
         ])->assertRedirect()->assertSessionHasErrors('email');
 });
 

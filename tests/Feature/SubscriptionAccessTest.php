@@ -29,7 +29,7 @@ test('new trials end after the configured number of days', function () {
     \Illuminate\Support\Facades\Notification::fake();
     $signup = fn (string $company, string $email) => $this->post(route('signup'), [
         'company_name' => $company, 'name' => 'Owner Person', 'email' => $email, 'phone' => '+2567720'.random_int(10000, 99999),
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234',
+        'password' => 'Secret-1234', 'password_confirmation' => 'Secret-1234',
     ])->assertRedirect();
 
     $signup('Bugolobi Homes', 'owner@bugolobi.test');

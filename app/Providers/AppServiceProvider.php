@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Every password a person sets (sign-up, reset, change, new users): 8+
+        // characters with a letter, a number and a symbol.
+        \Illuminate\Validation\Rules\Password::defaults(fn () => \Illuminate\Validation\Rules\Password::min(8)->letters()->numbers()->symbols());
+
         // @staffcan('permission') … @endstaffcan — show staff-portal UI only to staff allowed to use it.
         // (Routes are guarded separately by the staff.can middleware.)
         \Illuminate\Support\Facades\Blade::if('staffcan', fn (string $permission) => (bool) \Illuminate\Support\Facades\Auth::guard('staff')->user()?->hasPermission($permission));

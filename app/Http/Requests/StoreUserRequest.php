@@ -24,7 +24,7 @@ class StoreUserRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20|unique:users,phone',
-            'password' => 'required|string|min:8',
+            'password' => ['required', 'string', \Illuminate\Validation\Rules\Password::defaults()],
             'role' => 'required|in:admin,user',
         ];
     }

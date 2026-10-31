@@ -21,13 +21,13 @@ class StoreLandlordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'company_name' => 'required|string|max:255',
+            'company_name' => ['required', 'string', 'max:255', new \App\Rules\OrganisationName],
             'trading_name' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
-            'admin_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email|unique:landlords,contact_email',
+            'admin_name' => ['required', 'string', 'max:255', new \App\Rules\PersonName],
+            'email' => 'required|email:rfc,filter|unique:users,email|unique:landlords,contact_email',
             'phone' => 'required|string|max:20|unique:users,phone|unique:landlords,contact_phone',
-            'password' => 'required|string|min:8',
+            'password' => ['required', 'string', \Illuminate\Validation\Rules\Password::defaults()],
         ];
     }
 }

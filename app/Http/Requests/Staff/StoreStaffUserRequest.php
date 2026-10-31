@@ -24,7 +24,7 @@ class StoreStaffUserRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:staff_users,email',
             'phone' => 'nullable|string|max:20|unique:staff_users,phone',
-            'password' => 'required|string|min:8',
+            'password' => ['required', 'string', \Illuminate\Validation\Rules\Password::defaults()],
             'role' => 'required|in:admin,user',
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', \Illuminate\Validation\Rule::in(\App\Support\StaffPermissions::all())],

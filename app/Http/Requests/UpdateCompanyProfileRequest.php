@@ -14,7 +14,7 @@ class UpdateCompanyProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', new \App\Rules\OrganisationName],
             'trading_name' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
