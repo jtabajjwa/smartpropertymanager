@@ -16,7 +16,7 @@ class InvoiceController extends Controller
 {
     public function index()
     {
-        $query = Invoice::with(['invoiceable', 'lease.tenant', 'allocations']);
+        $query = Invoice::with(['invoiceable', 'lease.tenant', 'allocations.payment']);
 
         if (request('status')) {
             if (request('status') === 'unpaid') {

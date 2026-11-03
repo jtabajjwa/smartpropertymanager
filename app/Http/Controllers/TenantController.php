@@ -31,8 +31,9 @@ class TenantController extends Controller
         }
 
         $tenants = $query->latest()->paginate(15)->withQueryString();
+        $balances = app(\App\Services\AccountBalances::class)->forTenants($tenants->pluck('id')->all());
 
-        return view('tenants.index', compact('tenants'));
+        return view('tenants.index', compact('tenants', 'balances'));
     }
 
     public function store(StoreTenantRequest $request)

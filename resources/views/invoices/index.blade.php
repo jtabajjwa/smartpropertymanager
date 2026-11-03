@@ -164,7 +164,10 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">UGX {{ number_format($invoice->amount, 0) }}</td>
                                     @php $balance = $invoice->unpaidBalance(); @endphp
-                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}">UGX {{ number_format($balance, 0) }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}">
+                                        UGX {{ number_format($balance, 0) }}
+                                        @include('invoices.partials.paid-by', ['invoice' => $invoice])
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-600">{{ $invoice->due_date->format('M d, Y') }}</div>
                                         @if(!in_array($invoice->status, ['paid', 'cancelled']) && $invoice->due_date->isPast())
@@ -188,7 +191,7 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48" data-tour="row-actions">
                                                 <x-slot name="content">
-                                                    <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, payments: {{ Js::from($invoice->paymentTrail()) }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                                     <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">View / Download PDF</a>
                                                     <form action="{{ route('invoices.send-email', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Send this invoice by email to the payer?', $el)">
                                                         @csrf
@@ -240,7 +243,7 @@
                                 </div>
                                 <x-dropdown align="right" width="48" data-tour="row-actions">
                                     <x-slot name="content">
-                                        <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        <button @click="view({ ...{{ Js::from($invoice->makeHidden('allocations')) }}, balance: {{ $balance }}, payments: {{ Js::from($invoice->paymentTrail()) }}, editable: {{ $invoice->status !== 'cancelled' && !$invoice->allocations->count() ? 'true' : 'false' }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                         <a href="{{ route('invoices.pdf', $invoice) }}" target="_blank" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition">View / Download PDF</a>
                                         <form action="{{ route('invoices.send-email', $invoice) }}" method="POST" @submit.prevent="$store.confirm.open('Send this invoice by email to the payer?', $el)">
                                             @csrf
@@ -287,6 +290,7 @@
                                 </p>
                                 <p class="text-sm text-gray-600"><span class="text-gray-500">Amount:</span> UGX {{ number_format($invoice->amount, 0) }}</p>
                                 <p class="text-sm font-medium {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}"><span class="text-gray-500 font-normal">Balance:</span> UGX {{ number_format($balance, 0) }}</p>
+                                @include('invoices.partials.paid-by', ['invoice' => $invoice])
                                 <p class="text-sm text-gray-600">
                                     <span class="text-gray-500">Due:</span> {{ $invoice->due_date->format('M d, Y') }}
                                     @if(!in_array($invoice->status, ['paid', 'cancelled']) && $invoice->due_date->isPast())
@@ -355,6 +359,37 @@
                             <p class="text-xs text-gray-500">Notes</p>
                             <p class="text-sm text-gray-700 whitespace-pre-line" x-text="viewing.notes || 'No notes.'"></p>
                         </div>
+                    </div>
+
+                    {{-- How it was paid --}}
+                    <div class="mt-5">
+                        <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 pb-2 border-b border-gray-200">How It Was Paid</h4>
+                        <template x-if="!viewing.payments || !viewing.payments.length">
+                            <p class="text-sm text-gray-500">No payments have been put against this invoice yet.</p>
+                        </template>
+                        <template x-if="viewing.payments && viewing.payments.length">
+                            <div>
+                                <ul class="divide-y divide-gray-100">
+                                    <template x-for="p in viewing.payments" :key="p.number + p.applied_at">
+                                        <li class="py-2 flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <a :href="'{{ route('payments.index') }}?search=' + encodeURIComponent(p.number)" class="text-sm font-medium text-blue-600 hover:underline" x-text="p.number"></a>
+                                                <p class="text-xs text-gray-500">
+                                                    <span x-text="[p.date, p.method].filter(Boolean).join(' · ')"></span>
+                                                    <template x-if="p.reference"><span> · Ref <span class="break-all" x-text="p.reference"></span></span></template>
+                                                </p>
+                                                <p class="text-xs text-gray-500" x-show="p.payment_amount > p.applied" x-text="'Part of a UGX ' + Number(p.payment_amount).toLocaleString() + ' payment'"></p>
+                                            </div>
+                                            <p class="text-sm font-medium text-gray-900 tabular-nums whitespace-nowrap" x-text="'UGX ' + Number(p.applied).toLocaleString()"></p>
+                                        </li>
+                                    </template>
+                                </ul>
+                                <div class="flex justify-between border-t border-gray-200 pt-2 text-sm">
+                                    <span class="text-gray-500">Total paid</span>
+                                    <span class="font-medium text-gray-900 tabular-nums" x-text="'UGX ' + viewing.payments.reduce((s, p) => s + Number(p.applied), 0).toLocaleString()"></span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                     <div class="flex justify-end gap-3 pt-4">
                         <x-button variant="secondary" type="button" @click="viewModal = false">Close</x-button>

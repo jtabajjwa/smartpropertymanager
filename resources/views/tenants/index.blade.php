@@ -92,6 +92,7 @@
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Balance</th>
                                 <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -105,11 +106,16 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $tenant->email ?? '--' }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $tenant->primary_phone ?? '--' }}</td>
+                                    <td class="px-6 py-4">
+                                        <a href="{{ route('invoices.index', ['tenant_id' => $tenant->id, 'status' => 'unpaid']) }}" class="block text-right hover:underline" title="Open invoices">
+                                            <x-account-balance :balance="$balances[$tenant->id] ?? null" />
+                                        </a>
+                                    </td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
-                                                    <button @click="view({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                                    <button @click="view({ ...{{ Js::from($tenant) }}, account: {{ Js::from($balances[$tenant->id] ?? \App\Services\AccountBalances::EMPTY) }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                                     <button @click="edit({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                                     @if($tenant->leases_count === 0 && $tenant->payments_count === 0)
                                                         <form action="{{ route('tenants.destroy', $tenant) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this tenant?', $el)">
@@ -125,7 +131,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-12 text-center">
+                                    <td colspan="7" class="px-6 py-12 text-center">
                                         <p class="text-sm text-gray-600">No tenants found.</p>
                                     </td>
                                 </tr>
@@ -147,7 +153,7 @@
                                 </div>
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="content">
-                                        <button @click="view({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
+                                        <button @click="view({ ...{{ Js::from($tenant) }}, account: {{ Js::from($balances[$tenant->id] ?? \App\Services\AccountBalances::EMPTY) }} })" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                         <button @click="edit({{ Js::from($tenant) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
                                         @if($tenant->leases_count === 0 && $tenant->payments_count === 0)
                                             <form action="{{ route('tenants.destroy', $tenant) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this tenant?', $el)">
@@ -162,6 +168,10 @@
                             <div class="mt-3 flex flex-wrap gap-2">
                                 <x-badge :color="$tenant->type === 'individual' ? 'blue' : 'orange'">{{ ucfirst($tenant->type) }}</x-badge>
                             </div>
+                            <a href="{{ route('invoices.index', ['tenant_id' => $tenant->id, 'status' => 'unpaid']) }}" class="mt-2 flex items-start gap-1.5">
+                                <span class="text-sm text-gray-500">Balance:</span>
+                                <x-account-balance :balance="$balances[$tenant->id] ?? null" />
+                            </a>
                         </div>
                     @empty
                         <div class="p-8 text-center">
@@ -183,6 +193,30 @@
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) viewModal = false })">
                 <x-modal title="Tenant Details" maxWidth="2xl">
                     <div class="space-y-6">
+
+                        {{-- Account --}}
+                        <div x-show="viewing.account">
+                            <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">Account</h4>
+                            <div class="grid grid-cols-3 gap-x-6 gap-y-3">
+                                <div>
+                                    <p class="text-xs text-gray-500">Owes</p>
+                                    <p class="text-sm font-medium tabular-nums" :class="viewing.account?.owed > 0 ? 'text-orange-600' : 'text-green-600'" x-text="viewing.account?.owed > 0 ? 'UGX ' + Number(viewing.account.owed).toLocaleString() : 'Paid up'"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500">Overdue</p>
+                                    <p class="text-sm font-medium tabular-nums" :class="viewing.account?.overdue > 0 ? 'text-red-600' : 'text-gray-900'" x-text="'UGX ' + Number(viewing.account?.overdue || 0).toLocaleString()"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500" title="Paid but not yet put against an invoice">Credit</p>
+                                    <p class="text-sm font-medium tabular-nums" :class="viewing.account?.credit > 0 ? 'text-green-700' : 'text-gray-900'" x-text="'UGX ' + Number(viewing.account?.credit || 0).toLocaleString()"></p>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                <a :href="'{{ route('invoices.index') }}?status=unpaid&tenant_id=' + viewing.id" class="text-blue-600 hover:underline">Open invoices</a>
+                                <a :href="'{{ route('invoices.index') }}?tenant_id=' + viewing.id" class="text-blue-600 hover:underline">All invoices</a>
+                                <a :href="'{{ route('payments.index') }}?tenant_id=' + viewing.id" class="text-blue-600 hover:underline">Payments</a>
+                            </div>
+                        </div>
 
                         {{-- Personal Information --}}
                         <div>

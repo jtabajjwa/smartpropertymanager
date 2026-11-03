@@ -35,6 +35,21 @@ class UnitController extends Controller
 
         $units = $query->latest()->paginate(15)->withQueryString();
 
+        // Who's in each occupied unit and what they owe on that lease.
+        $leases = \App\Models\Lease::with('tenant:id,name')->where('status', 'active')->whereIn('unit_id', $units->pluck('id'))
+            ->orderByDesc('start_date')->get()->unique('unit_id')->keyBy('unit_id');
+        $balances = app(\App\Services\AccountBalances::class)->forLeases($leases->pluck('id')->all());
+        foreach ($units as $unit) {
+            $lease = $leases->get($unit->id);
+            $unit->occupant = $lease ? [
+                'tenant_id' => $lease->tenant_id,
+                'tenant' => $lease->tenant?->name,
+                'lease_id' => $lease->id,
+                'lease' => $lease->number,
+                'balance' => $balances[$lease->id] ?? \App\Services\AccountBalances::EMPTY,
+            ] : null;
+        }
+
         // Subscription unit limit (null = none), shown above the list.
         $landlord = \App\Models\Landlord::find(\App\Services\CurrentLandlord::id());
         $unitLimit = $landlord?->max_units === null ? null : [

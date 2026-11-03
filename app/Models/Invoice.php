@@ -60,6 +60,22 @@ class Invoice extends Model
         return $this->hasMany(PaymentAllocation::class);
     }
 
+    /** How the invoice was paid: each payment put against it, oldest first (load allocations.payment first). */
+    public function paymentTrail(): array
+    {
+        return $this->allocations
+            ->sortBy(fn (PaymentAllocation $a) => [$a->payment?->payment_date?->timestamp, $a->id])
+            ->map(fn (PaymentAllocation $a) => [
+                'number' => $a->payment?->number,
+                'date' => $a->payment?->payment_date?->format('M d, Y'),
+                'method' => $a->payment ? ucwords(str_replace('_', ' ', (string) $a->payment->payment_method)) : null,
+                'reference' => $a->payment?->reference,
+                'payment_amount' => (float) $a->payment?->amount,
+                'applied' => (float) $a->amount,
+                'applied_at' => $a->created_at?->format('M d, Y H:i'),
+            ])->values()->all();
+    }
+
     public function isOverdue(): bool
     {
         return in_array($this->status, ['unpaid', 'partial']) && $this->due_date->isPast();

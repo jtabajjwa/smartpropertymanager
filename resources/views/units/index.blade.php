@@ -91,6 +91,7 @@
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estate</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenant / Balance</th>
                                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
                                 <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -107,6 +108,16 @@
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $unit->estate?->name ?? '--' }}</td>
                                     <td class="px-6 py-4">
                                         <x-badge :color="match($unit->status) { 'vacant' => 'green', 'occupied' => 'orange', 'maintenance' => 'gray', default => 'gray' }">{{ ucfirst($unit->status) }}</x-badge>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if($unit->occupant)
+                                            <a href="{{ route('invoices.index', ['lease_id' => $unit->occupant['lease_id'], 'status' => 'unpaid']) }}" class="block hover:underline" title="Open invoices for this lease">
+                                                <span class="block text-sm text-gray-900">{{ $unit->occupant['tenant'] ?? '--' }}</span>
+                                                <x-account-balance :balance="$unit->occupant['balance']" />
+                                            </a>
+                                        @else
+                                            <span class="text-sm text-gray-400">--</span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ Str::limit($unit->description, 50) ?? '--' }}</td>
                                     <td class="px-6 py-4 text-right">
@@ -129,7 +140,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center">
+                                    <td colspan="6" class="px-6 py-12 text-center">
                                         <p class="text-sm text-gray-600">No units found.</p>
                                     </td>
                                 </tr>
@@ -167,6 +178,12 @@
                             <div class="mt-3 flex flex-wrap gap-2">
                                 <x-badge :color="match($unit->status) { 'vacant' => 'green', 'occupied' => 'orange', 'maintenance' => 'gray', default => 'gray' }">{{ ucfirst($unit->status) }}</x-badge>
                             </div>
+                            @if($unit->occupant)
+                                <a href="{{ route('invoices.index', ['lease_id' => $unit->occupant['lease_id'], 'status' => 'unpaid']) }}" class="mt-2 flex items-start gap-1.5">
+                                    <span class="text-sm text-gray-600">{{ $unit->occupant['tenant'] ?? '--' }}:</span>
+                                    <x-account-balance :balance="$unit->occupant['balance']" />
+                                </a>
+                            @endif
                             <p class="mt-2 text-sm text-gray-600"><span class="text-gray-500">Description:</span> {{ Str::limit($unit->description, 50) ?? '--' }}</p>
                         </div>
                     @empty
@@ -215,6 +232,21 @@
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Status</p>
                             <p class="mt-1 text-sm text-gray-900" x-text="formatLabel(viewing.status)"></p>
                         </div>
+                        <template x-if="viewing.occupant">
+                            <div class="col-span-2 rounded-lg border border-gray-200 p-3">
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">Tenant</p>
+                                <p class="mt-1 text-sm font-medium text-gray-900"><span x-text="viewing.occupant.tenant || '--'"></span> <span class="font-normal text-gray-500" x-text="'· Lease ' + (viewing.occupant.lease || '')"></span></p>
+                                <div class="mt-2 grid grid-cols-3 gap-x-4 text-sm tabular-nums">
+                                    <div><p class="text-xs text-gray-500">Owes</p><p class="font-medium" :class="viewing.occupant.balance.owed > 0 ? 'text-orange-600' : 'text-green-600'" x-text="viewing.occupant.balance.owed > 0 ? 'UGX ' + Number(viewing.occupant.balance.owed).toLocaleString() : 'Paid up'"></p></div>
+                                    <div><p class="text-xs text-gray-500">Overdue</p><p class="font-medium" :class="viewing.occupant.balance.overdue > 0 ? 'text-red-600' : 'text-gray-900'" x-text="'UGX ' + Number(viewing.occupant.balance.overdue).toLocaleString()"></p></div>
+                                    <div><p class="text-xs text-gray-500" title="Paid but not yet put against an invoice">Credit</p><p class="font-medium" :class="viewing.occupant.balance.credit > 0 ? 'text-green-700' : 'text-gray-900'" x-text="'UGX ' + Number(viewing.occupant.balance.credit).toLocaleString()"></p></div>
+                                </div>
+                                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                    <a :href="'{{ route('invoices.index') }}?status=unpaid&lease_id=' + viewing.occupant.lease_id" class="text-blue-600 hover:underline">Open invoices</a>
+                                    <a :href="'{{ route('payments.index') }}?tenant_id=' + viewing.occupant.tenant_id" class="text-blue-600 hover:underline">Payments</a>
+                                </div>
+                            </div>
+                        </template>
                         <div class="col-span-2">
                             <p class="text-xs text-gray-500 uppercase tracking-wide">Description</p>
                             <p class="mt-1 text-sm text-gray-700 whitespace-pre-line" x-text="viewing.description || 'No description.'"></p>
