@@ -28,7 +28,8 @@ class YoUssdController extends Controller
             ->all();
 
         if (!$callout->verify($payload)) {
-            Log::warning('Yo! USSD call-out with a bad signature', ['step' => $step, 'reason' => $callout->failure, 'mode' => config('services.yo_ussd.mode'), 'ip' => $request->ip(), 'msisdn' => $payload['anumbermsisdn'] ?? null, 'keys' => array_keys($payload)]);
+            Log::warning('Yo! USSD call-out with a bad signature', ['step' => $step, 'mode' => config('services.yo_ussd.mode'), 'content_type' => $request->header('Content-Type'), 'ip' => $request->ip(),
+                'msisdn' => $payload['anumbermsisdn'] ?? null, 'fields' => array_keys($payload)] + $callout->failure);
 
             return response()->json($callout->fail('We could not verify this request. Please try again.'));
         }

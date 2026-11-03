@@ -110,15 +110,35 @@ test('call-outs without a valid Yo! signature are refused', function () {
     expect(UssdPaymentIntent::count())->toBe(0);
 });
 
-test('staging also accepts call-outs signed by Yo!\'s live USSD system (a real phone dialling the code)', function () {
+test('staging uses only the sandbox key, and the log says when a call-out was signed with the production key', function () {
     $t = ussdTenancy();
     // The test key stands in for Yo!'s production key; the sandbox key is one we can't sign with.
     config([
         'services.yo_ussd.public_keys.sandbox' => resource_path('certs/yo/ussd-sandbox.pem'),
         'services.yo_ussd.public_keys.production' => base_path('tests/Fixtures/payments/yo-test-public.pem'),
     ]);
+    \Illuminate\Support\Facades\Log::spy();
 
-    ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code])->assertJson(['validated' => true]);
+    ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code])->assertJson(['validated' => false]);
+
+    \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->withArgs(fn ($message, $context) => $context['reason'] === 'signature mismatch'
+        && $context['signed_with_production_key'] === true && $context['mode'] === 'sandbox');
+});
+
+test('a signature whose "+" arrived as a space still verifies', function () {
+    $t = ussdTenancy();
+    $datetime = '20261030101500';
+    // Find a caller whose signature contains a "+", so the test means something.
+    foreach (range(0, 50) as $i) {
+        $caller = '2567721234'.str_pad((string) $i, 2, '0', STR_PAD_LEFT);
+        openssl_sign(sha1($datetime.$caller), $sig, $this->ussdKey, OPENSSL_ALGO_SHA1);
+        if (str_contains(base64_encode($sig), '+')) {
+            break;
+        }
+    }
+
+    ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code], $caller, str_replace('+', ' ', base64_encode($sig)))
+        ->assertJson(['validated' => true]);
 });
 
 test('production accepts only the production key', function () {

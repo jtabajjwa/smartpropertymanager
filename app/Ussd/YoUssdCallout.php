@@ -32,48 +32,54 @@ class YoUssdCallout
     {
     }
 
-    /** Why the last verify() failed, for the log ('missing fields', 'no key file', 'signature mismatch'). */
-    public ?string $failure = null;
+    /** Why the last verify() failed, for the log. */
+    public array $failure = [];
 
-    /**
-     * Signature check (Yo! spec, "Request Signature Verification").
-     *
-     * Outside production the production key is accepted too: a real phone
-     * dialling the short code goes through Yo!'s live USSD system, which signs
-     * with the production key even when the menu calls the staging URL.
-     */
+    /** Signature check (Yo! spec, "Request Signature Verification"), with the key for the mode: sandbox on staging, production live. */
     public function verify(array $payload): bool
     {
-        $this->failure = null;
-        $signature = base64_decode((string) ($payload['signature'] ?? ''), true);
+        // A "+" in the signature arrives as a space if it was form-posted without URL-encoding.
+        $raw = str_replace(' ', '+', preg_replace('/[\r\n\t]/', '', (string) ($payload['signature'] ?? '')));
+        $signature = base64_decode($raw, true);
+        $mode = config('services.yo_ussd.mode', 'sandbox');
+        $this->failure = [];
 
         if (!$signature || !isset($payload['datetime'], $payload['anumbermsisdn'])) {
-            $this->failure = 'missing fields';
-
-            return false;
-        }
-
-        $mode = config('services.yo_ussd.mode', 'sandbox');
-        $modes = $mode === 'production' ? ['production'] : [$mode, 'production'];
-        $paths = array_filter(array_map(fn ($m) => config("services.yo_ussd.public_keys.{$m}"), array_unique($modes)), fn ($p) => $p && is_file($p));
-
-        if (!$paths) {
-            $this->failure = 'no key file';
+            $this->failure = ['reason' => 'missing or unreadable fields', 'signature_chars' => strlen($raw), 'signature_decoded' => $signature !== false,
+                'has_datetime' => isset($payload['datetime']), 'has_anumbermsisdn' => isset($payload['anumbermsisdn'])];
 
             return false;
         }
 
         $data = sha1($payload['datetime'].$payload['anumbermsisdn']);
-        foreach ($paths as $path) {
-            $key = openssl_pkey_get_public((string) file_get_contents($path));
-            if ($key !== false && openssl_verify($data, $signature, $key, OPENSSL_ALGO_SHA1) === 1) {
-                return true;
-            }
+        if ($this->verifiesWith($mode, $data, $signature)) {
+            return true;
         }
 
-        $this->failure = 'signature mismatch';
+        // Diagnosis only (never accepted): was it signed with the other environment's key?
+        $other = $mode === 'production' ? 'sandbox' : 'production';
+        $this->failure = [
+            'reason' => $this->keyFor($mode) ? 'signature mismatch' : 'no key file',
+            'signature_bytes' => strlen($signature),
+            'signed_with_'.$other.'_key' => $this->verifiesWith($other, $data, $signature),
+            'datetime' => (string) $payload['datetime'],
+        ];
 
         return false;
+    }
+
+    protected function keyFor(string $mode): ?\OpenSSLAsymmetricKey
+    {
+        $path = config("services.yo_ussd.public_keys.{$mode}");
+
+        return $path && is_file($path) ? (openssl_pkey_get_public((string) file_get_contents($path)) ?: null) : null;
+    }
+
+    protected function verifiesWith(string $mode, string $data, string $signature): bool
+    {
+        $key = $this->keyFor($mode);
+
+        return $key !== null && openssl_verify($data, $signature, $key, OPENSSL_ALGO_SHA1) === 1;
     }
 
     /** Step 2.1.2: a unit ID was typed. */

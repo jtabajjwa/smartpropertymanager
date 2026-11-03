@@ -118,13 +118,16 @@ that fail the check get `validated: false`.
 The keys are in `resources/certs/yo/ussd-sandbox.pem` and
 `ussd-production.pem`. Which one is used follows `YO_USSD_MODE`, which
 defaults to `YO_MODE`:
-- staging: `sandbox`, and the production key is accepted too. A real phone
-  dialling the short code goes through Yo!'s live USSD system, which signs
-  with the production key even when the menu calls the staging URL.
-- production: `production` only.
+- staging: `sandbox`
+- production: `production`
 
-A rejected call-out is logged as "Yo! USSD call-out with a bad signature",
-with a `reason`: `missing fields`, `no key file` or `signature mismatch`.
+A rejected call-out is logged as "Yo! USSD call-out with a bad signature"
+(`sudo primora logs staging`), with:
+- `reason`: `missing or unreadable fields`, `no key file` or `signature mismatch`;
+- the fields Yo! sent and the request's content type;
+- for a mismatch, `signature_bytes` (256 for Yo!'s 2048-bit keys) and whether
+  the signature matches the *other* environment's key. That is logged only;
+  such a request is still refused.
 
 ## To confirm with Yo!
 
