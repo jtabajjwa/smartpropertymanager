@@ -7,28 +7,29 @@ if (!empty($config['staging'])) {
 }
 
 $company = $config['company_name'] ?: 'Primora';
-$email   = $config['privacy_email'] ?: $config['mail_to'];
+$email   = $config['support_email'] ?: $config['mail_to'];
+$phone   = $config['support_phone'] ?? '';
 $address = $config['address'];
 $updated = '28 October 2026';
 $year    = date('Y');
 $login   = rtrim($config['app_url'], '/') . '/login';
 
 $sections = [
-    'who'       => 'Who we are',
-    'roles'     => 'Landlords’ data and tenants’ data',
-    'collect'   => 'What we collect',
-    'use'       => 'How we use it',
-    'share'     => 'Who we share it with',
-    'whatsapp'  => 'Messages: SMS, email and WhatsApp',
-    'keep'      => 'How long we keep it',
-    'security'  => 'How we protect it',
-    'transfers' => 'Where it is stored',
-    'rights'    => 'Your rights',
-    'delete'    => 'Deleting your data',
+    'who'       => 'Who We Are',
+    'roles'     => 'Landlords’ Data and Tenants’ Data',
+    'collect'   => 'What We Collect',
+    'use'       => 'How We Use It',
+    'share'     => 'Who We Share It With',
+    'whatsapp'  => 'Messages: SMS, Email and WhatsApp',
+    'keep'      => 'How Long We Keep It',
+    'security'  => 'How We Protect It',
+    'transfers' => 'Where It Is Stored',
+    'rights'    => 'Your Rights',
+    'delete'    => 'Deleting Your Data',
     'cookies'   => 'Cookies',
     'children'  => 'Children',
-    'changes'   => 'Changes to this policy',
-    'contact'   => 'Contact us',
+    'changes'   => 'Changes to This Policy',
+    'contact'   => 'Contact Us',
 ];
 ?>
 <!DOCTYPE html>
@@ -36,7 +37,7 @@ $sections = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Privacy policy — Primora</title>
+    <title>Privacy Policy — Primora</title>
     <meta name="description" content="How Primora collects, uses and protects the personal data of landlords, their staff and their tenants.">
     <meta name="theme-color" content="#1c2230">
 <?php if (!empty($config['staging'])): ?>
@@ -66,7 +67,7 @@ $sections = [
 <main id="main" class="legal">
     <div class="container">
         <article class="legal-body">
-            <h1>Privacy policy</h1>
+            <h1>Privacy Policy</h1>
             <p class="legal-meta">Last updated <?= e($updated) ?></p>
 
             <p class="legal-lead">Primora is property management software for landlords and property managers. This policy explains what personal data we handle when you use our website, the Primora app, the tenant portal and our WhatsApp service, why we handle it, and the choices and rights you have. We follow Uganda’s Data Protection and Privacy Act, 2019.</p>
@@ -80,10 +81,10 @@ $sections = [
                 </ol>
             </nav>
 
-            <h2 id="who">1. Who we are</h2>
-            <p>Primora is operated by <?= e($company) ?>, <?= e($address) ?> (“Primora”, “we”, “us”). You can reach us about anything in this policy at <a href="mailto:<?= e($email) ?>"><?= e($email) ?></a>.</p>
+            <h2 id="who">1. Who We Are</h2>
+            <p>Primora is operated by <?= e($company) ?>, <?= e($address) ?> (“Primora”, “we”, “us”). Using Primora is also covered by our <a href="terms.php">Terms of Service</a>. You can reach us about anything in this policy at <a href="mailto:<?= e($email) ?>"><?= e($email) ?></a>.</p>
 
-            <h2 id="roles">2. Landlords’ data and tenants’ data</h2>
+            <h2 id="roles">2. Landlords’ Data and Tenants’ Data</h2>
             <p>Primora is used by landlords and property managers (“landlords”) to run their properties. That gives us two different roles:</p>
             <ul class="bullets">
                 <li><strong>Landlords’ own accounts.</strong> For a landlord’s account, billing and use of Primora, and for visitors to our website, we decide how the data is used, so we are responsible for it.</li>
@@ -91,15 +92,15 @@ $sections = [
             </ul>
             <p>If you are a tenant and have a question about the information your landlord keeps, you can ask your landlord directly or contact us, and we will help.</p>
 
-            <h2 id="collect">3. What we collect</h2>
-            <h3>From landlords and their staff</h3>
+            <h2 id="collect">3. What We Collect</h2>
+            <h3>From Landlords and Their Staff</h3>
             <ul class="bullets">
                 <li>Account details: name, email address, phone number, organisation name and the details of team members you invite.</li>
                 <li>Billing details: your subscription plan, payments to Primora and the mobile money number you pay from.</li>
                 <li>Payout details: the mobile money numbers you ask us to pay rent collections out to.</li>
                 <li>Everything you record in Primora: properties, units, tenants, leases, invoices, payments, expenses, vendors, job cards, deposits, accounting records and documents you upload.</li>
             </ul>
-            <h3>About tenants (recorded by their landlord, or by the tenant in the portal)</h3>
+            <h3>About Tenants (Recorded by Their Landlord, or by the Tenant in the Portal)</h3>
             <ul class="bullets">
                 <li>Name, phone number, email address, and for companies the company’s details.</li>
                 <li>Identity documents and emergency contacts, if the landlord records them.</li>
@@ -107,16 +108,16 @@ $sections = [
                 <li>Issues and maintenance requests the tenant reports, including any photos or messages attached.</li>
                 <li>Rent payments made through the tenant portal or WhatsApp: the mobile money number, amount and payment reference.</li>
             </ul>
-            <h3>Collected automatically</h3>
+            <h3>Collected Automatically</h3>
             <ul class="bullets">
                 <li>Sign-in records, one-time sign-in codes (kept only until they expire), IP address, browser and device type.</li>
                 <li>An audit log of changes made in a landlord’s account (who changed what, and when).</li>
                 <li>Records of the SMS, email and WhatsApp messages we send and receive (see section 6).</li>
             </ul>
-            <h3>From our website</h3>
+            <h3>From Our Website</h3>
             <p>If you use the contact form we receive your name, email address, phone number, portfolio size and message. We use them only to reply to you. The website does not use advertising or analytics trackers.</p>
 
-            <h2 id="use">4. How we use it</h2>
+            <h2 id="use">4. How We Use It</h2>
             <ul class="bullets">
                 <li>To provide Primora: keep landlords’ records, raise invoices, record and reconcile payments, and produce reports.</li>
                 <li>To send the notifications landlords set up, such as invoices, receipts and rent reminders to tenants.</li>
@@ -128,7 +129,7 @@ $sections = [
             </ul>
             <p>We rely on the contract with the landlord, the legitimate interests of running a secure service, and our legal obligations. Where the law requires consent, we ask for it. <strong>We do not sell personal data, and we do not use tenants’ data for marketing.</strong></p>
 
-            <h2 id="share">5. Who we share it with</h2>
+            <h2 id="share">5. Who We Share It With</h2>
             <p>We share personal data only as needed to run Primora, with service providers who handle it on our instructions:</p>
             <ul class="bullets">
                 <li><strong>Hosting:</strong> the providers of the servers that run the Primora app and this website.</li>
@@ -139,7 +140,7 @@ $sections = [
             <p>Within Primora, a tenant’s details are visible only to their own landlord and the landlord’s team. Each landlord’s data is kept separate, and no landlord can see another landlord’s properties or tenants.</p>
             <p>We may also disclose information if the law requires it, for example to comply with a court order, or to protect people’s safety or our legal rights.</p>
 
-            <h2 id="whatsapp">6. Messages: SMS, email and WhatsApp</h2>
+            <h2 id="whatsapp">6. Messages: SMS, Email and WhatsApp</h2>
             <p>Landlords can have Primora send tenants invoices, receipts and reminders by SMS and email. Tenants can also use Primora’s WhatsApp number to check their balance, receive invoices, pay rent and report issues.</p>
             <ul class="bullets">
                 <li>When you message Primora on WhatsApp, we receive your WhatsApp number, your WhatsApp profile name and your messages. We use your number to find your tenancy, and we keep a record of the conversation so we can answer you and resolve problems.</li>
@@ -148,7 +149,7 @@ $sections = [
                 <li>You can stop using the WhatsApp service at any time by simply not messaging us, and you can ask us to delete your WhatsApp conversation history (see section 11).</li>
             </ul>
 
-            <h2 id="keep">7. How long we keep it</h2>
+            <h2 id="keep">7. How Long We Keep It</h2>
             <ul class="bullets">
                 <li>Landlord accounts and their records: for as long as the account is open. When an account is closed we delete or anonymise its data within 90 days, except for records we must keep by law.</li>
                 <li>Financial records (invoices, payments, payouts and subscription billing): for as long as tax and accounting law requires, generally at least five years.</li>
@@ -158,7 +159,7 @@ $sections = [
             </ul>
             <p>Deleted data can remain in our backups for a limited period until those backups are replaced.</p>
 
-            <h2 id="security">8. How we protect it</h2>
+            <h2 id="security">8. How We Protect It</h2>
             <ul class="bullets">
                 <li>All connections to Primora are encrypted (HTTPS).</li>
                 <li>Passwords are stored in hashed form, and tenants sign in with one-time codes rather than passwords.</li>
@@ -168,10 +169,10 @@ $sections = [
             </ul>
             <p>No system is perfectly secure. If a breach affects your personal data, we will notify you and the authorities as the law requires.</p>
 
-            <h2 id="transfers">9. Where it is stored</h2>
+            <h2 id="transfers">9. Where It Is Stored</h2>
             <p>Our servers and some of our service providers may be located outside Uganda. Where data is stored or processed abroad, we make sure it is protected to a standard at least equivalent to Ugandan law.</p>
 
-            <h2 id="rights">10. Your rights</h2>
+            <h2 id="rights">10. Your Rights</h2>
             <p>Under the Data Protection and Privacy Act, 2019, you have the right to:</p>
             <ul class="bullets">
                 <li>ask whether we hold personal data about you and get a copy of it;</li>
@@ -182,7 +183,7 @@ $sections = [
             </ul>
             <p>To use any of these rights, email <a href="mailto:<?= e($email) ?>"><?= e($email) ?></a>. We may need to confirm your identity first. We aim to respond within 30 days. For tenants, if the request is about information your landlord keeps, we will work with your landlord to answer it.</p>
 
-            <h2 id="delete">11. Deleting your data</h2>
+            <h2 id="delete">11. Deleting Your Data</h2>
             <div class="callout">To ask us to delete your data, email <a href="mailto:<?= e($email) ?>?subject=Data%20deletion%20request"><?= e($email) ?></a> with the subject “Data deletion request”. Tell us whether you are a landlord or a tenant, and include the phone number or email address we know you by.</div>
             <ul class="bullets">
                 <li><strong>Landlords:</strong> send the request from the email address on your Primora account. We will close the account and delete or anonymise its data within 90 days. You can export your records to CSV before you ask.</li>
@@ -197,11 +198,11 @@ $sections = [
             <h2 id="children">13. Children</h2>
             <p>Primora is meant for adults managing or renting property. We do not knowingly collect data from children under 18 except as part of a tenant’s record kept by their landlord, such as an emergency contact.</p>
 
-            <h2 id="changes">14. Changes to this policy</h2>
+            <h2 id="changes">14. Changes to This Policy</h2>
             <p>We may update this policy as Primora changes. We will change the date at the top, and tell landlords about significant changes by email or in the app.</p>
 
-            <h2 id="contact">15. Contact us</h2>
-            <p><?= e($company) ?><br><?= e($address) ?><br>Email: <a href="mailto:<?= e($email) ?>"><?= e($email) ?></a></p>
+            <h2 id="contact">15. Contact Us</h2>
+            <p><?= e($company) ?><br><?= e($address) ?><br>Email: <a href="mailto:<?= e($email) ?>"><?= e($email) ?></a><?php if ($phone): ?><br>Phone: <a href="tel:<?= e(preg_replace('/[^0-9+]/', '', $phone)) ?>"><?= e($phone) ?></a><?php endif; ?></p>
         </article>
     </div>
 </main>
@@ -209,7 +210,7 @@ $sections = [
 <footer class="site-footer" style="padding:28px 0;">
     <div class="container">
         <div class="footer-bottom" style="margin-top:0; padding-top:0; border-top:0;">
-            <span>© <?= $year ?> Primora. All rights reserved. · <a href="./">Home</a> · <a href="<?= e($login) ?>">Sign in</a></span>
+            <span>© <?= $year ?> Primora. All rights reserved. · <a href="./">Home</a> · <a href="terms.php">Terms</a> · <a href="<?= e($login) ?>">Sign in</a></span>
             <span>Made in Uganda</span>
         </div>
     </div>

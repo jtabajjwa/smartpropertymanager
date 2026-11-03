@@ -591,7 +591,8 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                 <ul class="footer-links">
                     <li><a href="#faq">FAQ</a></li>
                     <li><a href="#contact">Contact</a></li>
-                    <li><a href="privacy.php">Privacy policy</a></li>
+                    <li><a href="terms.php">Terms of Service</a></li>
+                    <li><a href="privacy.php">Privacy Policy</a></li>
                 </ul>
             </div>
             <div>
@@ -603,7 +604,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
             </div>
         </div>
         <div class="footer-bottom">
-            <span>© <?= $year ?> Primora. All rights reserved. · <a href="privacy.php">Privacy</a></span>
+            <span>© <?= $year ?> Primora. All rights reserved. · <a href="terms.php">Terms</a> · <a href="privacy.php">Privacy</a></span>
             <span>Made in Uganda</span>
         </div>
     </div>

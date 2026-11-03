@@ -11,7 +11,7 @@
 
     @php
         $initialStep = 1;
-        if ($errors->hasAny(['password', 'password_confirmation'])) {
+        if ($errors->hasAny(['password', 'password_confirmation', 'terms'])) {
             $initialStep = 3;
         } elseif ($errors->hasAny(['name', 'email', 'phone'])) {
             $initialStep = 2;
@@ -34,6 +34,7 @@
             get country() { return this.countries.find(c => c.iso === this.phoneCountry) || this.countries[0]; },
             password: '',
             password_confirmation: '',
+            terms: @js((bool) old('terms')),
             touched: {},
             orgPattern: new RegExp(@js(\App\Rules\OrganisationName::PATTERN), 'u'),
             personPattern: new RegExp(@js(\App\Rules\PersonName::PATTERN), 'u'),
@@ -73,7 +74,7 @@
             },
             get step1Valid() { return !this.errors.company_name; },
             get step2Valid() { return !this.errors.name && !this.errors.email && !this.errors.phone; },
-            get step3Valid() { return this.passwordRules.every(r => r.ok) && this.password === this.password_confirmation; },
+            get step3Valid() { return this.passwordRules.every(r => r.ok) && this.password === this.password_confirmation && this.terms; },
             next() {
                 if (this.step === 1) {
                     this.touched.company_name = true;
@@ -245,6 +246,12 @@
                             placeholder="Re-enter your password" />
                         <p class="mt-1.5 text-xs text-red-600" x-show="password_confirmation.length > 0 && password !== password_confirmation" x-cloak>Passwords don't match.</p>
                     </div>
+
+                    <label class="flex items-start gap-3 text-sm text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="terms" value="1" x-model="terms"
+                            class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
+                        <span>I agree to Primora’s <a href="{{ config('legal.terms_url') }}" target="_blank" rel="noopener" class="font-medium text-orange-500 hover:text-orange-600 underline underline-offset-2">Terms of Service</a> and <a href="{{ config('legal.privacy_url') }}" target="_blank" rel="noopener" class="font-medium text-orange-500 hover:text-orange-600 underline underline-offset-2">Privacy Policy</a>, including how tenants’ data is handled.</span>
+                    </label>
 
                     <div class="flex gap-3">
                         <button type="button" @click="back()"

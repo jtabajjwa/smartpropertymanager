@@ -36,6 +36,12 @@ class StoreSignupRequest extends FormRequest
             'email' => 'required|email:rfc,filter|max:255|unique:users,email|unique:landlords,contact_email',
             'phone' => ['required', 'string', new PhoneNumber, 'unique:users,phone', 'unique:landlords,contact_phone'],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            'terms' => 'accepted',
         ];
+    }
+
+    public function messages(): array
+    {
+        return ['terms.accepted' => 'Please agree to the Terms of Service and Privacy Policy to create your account.'];
     }
 }

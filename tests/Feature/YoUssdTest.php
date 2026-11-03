@@ -110,6 +110,29 @@ test('call-outs without a valid Yo! signature are refused', function () {
     expect(UssdPaymentIntent::count())->toBe(0);
 });
 
+test('staging also accepts call-outs signed by Yo!\'s live USSD system (a real phone dialling the code)', function () {
+    $t = ussdTenancy();
+    // The test key stands in for Yo!'s production key; the sandbox key is one we can't sign with.
+    config([
+        'services.yo_ussd.public_keys.sandbox' => resource_path('certs/yo/ussd-sandbox.pem'),
+        'services.yo_ussd.public_keys.production' => base_path('tests/Fixtures/payments/yo-test-public.pem'),
+    ]);
+
+    ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code])->assertJson(['validated' => true]);
+});
+
+test('production accepts only the production key', function () {
+    $t = ussdTenancy();
+    // Signed with the "sandbox" (test) key, but production checks only Yo!'s real production key.
+    config([
+        'services.yo_ussd.mode' => 'production',
+        'services.yo_ussd.public_keys.production' => resource_path('certs/yo/ussd-production.pem'),
+    ]);
+
+    ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code])->assertJson(['validated' => false]);
+    expect(UssdPaymentIntent::count())->toBe(0);
+});
+
 test('a unit ID shows the tenancy and hands out a payment reference', function () {
     $t = ussdTenancy();
 

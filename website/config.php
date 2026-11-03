@@ -22,11 +22,12 @@ $config = [
     'contact_email' => 'info@primoraproptech.com',
     'contact_phone' => '+256 757 389014',
     'whatsapp'      => '',        // digits only, e.g. '256700000000'
-    'address'       => 'NWSC Station Building, Fourth Street, Lugogo, Kololo IV, Kampala Central Division, Kampala, Uganda',
+    'address'       => 'NWSC Station, Fourth Street, Lugogo, Kololo IV, Kampala Central Division, Kampala, Uganda',
 
-    // Used on the privacy policy page (privacy.php).
+    // Used on the Terms of Service and Privacy Policy pages (terms.php, privacy.php).
     'company_name'  => 'Primora Proptech Limited',
-    'privacy_email' => 'info@primoraproptech.com',
+    'support_email' => 'support@primoraproptech.com',
+    'support_phone' => '+256 757 389014',
 
     // Contact form delivery.
     // mail_to:   inbox that receives enquiries from the contact form.

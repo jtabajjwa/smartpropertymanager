@@ -108,7 +108,7 @@ test('signing up grants starter SMS', function () {
     Settings::set('sms.starter_credits', '50');
     $this->post(route('signup'), [
         'company_name' => 'Bugolobi Homes', 'name' => 'Owner Person', 'email' => 'owner@bugolobi.test', 'phone' => '+256772000111',
-        'password' => 'Secret-1234', 'password_confirmation' => 'Secret-1234',
+        'password' => 'Secret-1234', 'password_confirmation' => 'Secret-1234', 'terms' => '1',
     ])->assertRedirect();
 
     expect(Landlord::where('name', 'Bugolobi Homes')->firstOrFail()->sms_balance)->toBe(50);

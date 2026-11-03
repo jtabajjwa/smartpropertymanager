@@ -30,7 +30,7 @@ class SignupController extends Controller
             app(StandardLeaseTemplate::class)->installFor($landlord->id);
             app(\App\Services\SmsCredits::class)->grantStarter($landlord);
 
-            return User::create([
+            $user = User::create([
                 'landlord_id' => $landlord->id,
                 'name' => $request->name,
                 'email' => $request->email,
@@ -40,6 +40,10 @@ class SignupController extends Controller
                 'is_active' => true,
                 'must_change_password' => false,
             ]);
+
+            $landlord->acceptTerms($user, $request->ip());
+
+            return $user;
         });
 
         Auth::login($user);

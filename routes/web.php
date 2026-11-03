@@ -31,6 +31,10 @@ Route::middleware('auth')->group(function () {
     Route::post('email/verification-notification', [\App\Http\Controllers\EmailVerificationController::class, 'send'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
+
+    // Accepting the current Terms of Service (see EnsureTermsAccepted)
+    Route::get('terms/accept', [\App\Http\Controllers\TermsController::class, 'show'])->name('terms.show');
+    Route::post('terms/accept', [\App\Http\Controllers\TermsController::class, 'accept'])->name('terms.accept');
 });
 
 // Payment gateway callbacks (Yo! IPN / failure notifications). No session or CSRF:
@@ -47,7 +51,7 @@ Route::get('/', function () {
 // Fully protected routes (auth + landlord scoping + check-active + email verified + must-change-password;
 // read-only once a trial or plan has ended, see EnforceSubscriptionAccess).
 // Staff may also enter, but only in "staff mode" for one landlord (see StaffActingSession / ResolveLandlord).
-Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verified', 'must-change-password', 'subscription.access'])->group(function () {
+Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verified', 'must-change-password', 'terms', 'subscription.access'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
     // In-app tips and the getting-started guide

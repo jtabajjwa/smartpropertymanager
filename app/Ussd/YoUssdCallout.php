@@ -32,20 +32,48 @@ class YoUssdCallout
     {
     }
 
-    /** Signature check (Yo! spec, "Request Signature Verification"). */
+    /** Why the last verify() failed, for the log ('missing fields', 'no key file', 'signature mismatch'). */
+    public ?string $failure = null;
+
+    /**
+     * Signature check (Yo! spec, "Request Signature Verification").
+     *
+     * Outside production the production key is accepted too: a real phone
+     * dialling the short code goes through Yo!'s live USSD system, which signs
+     * with the production key even when the menu calls the staging URL.
+     */
     public function verify(array $payload): bool
     {
+        $this->failure = null;
         $signature = base64_decode((string) ($payload['signature'] ?? ''), true);
-        $mode = config('services.yo_ussd.mode', 'sandbox');
-        $path = config("services.yo_ussd.public_keys.{$mode}");
 
-        if (!$signature || !$path || !is_file($path) || !isset($payload['datetime'], $payload['anumbermsisdn'])) {
+        if (!$signature || !isset($payload['datetime'], $payload['anumbermsisdn'])) {
+            $this->failure = 'missing fields';
+
             return false;
         }
 
-        $key = openssl_pkey_get_public((string) file_get_contents($path));
+        $mode = config('services.yo_ussd.mode', 'sandbox');
+        $modes = $mode === 'production' ? ['production'] : [$mode, 'production'];
+        $paths = array_filter(array_map(fn ($m) => config("services.yo_ussd.public_keys.{$m}"), array_unique($modes)), fn ($p) => $p && is_file($p));
 
-        return $key !== false && openssl_verify(sha1($payload['datetime'].$payload['anumbermsisdn']), $signature, $key, OPENSSL_ALGO_SHA1) === 1;
+        if (!$paths) {
+            $this->failure = 'no key file';
+
+            return false;
+        }
+
+        $data = sha1($payload['datetime'].$payload['anumbermsisdn']);
+        foreach ($paths as $path) {
+            $key = openssl_pkey_get_public((string) file_get_contents($path));
+            if ($key !== false && openssl_verify($data, $signature, $key, OPENSSL_ALGO_SHA1) === 1) {
+                return true;
+            }
+        }
+
+        $this->failure = 'signature mismatch';
+
+        return false;
     }
 
     /** Step 2.1.2: a unit ID was typed. */

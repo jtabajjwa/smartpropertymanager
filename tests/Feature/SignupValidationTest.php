@@ -14,7 +14,7 @@ function signupData(array $overrides = []): array
         'email' => 'grace@kampalaproperties.test',
         'phone' => '+256772123456',
         'password' => 'Secret-1234',
-        'password_confirmation' => 'Secret-1234',
+        'password_confirmation' => 'Secret-1234', 'terms' => '1',
     ], $overrides);
 }
 

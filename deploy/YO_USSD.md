@@ -118,8 +118,13 @@ that fail the check get `validated: false`.
 The keys are in `resources/certs/yo/ussd-sandbox.pem` and
 `ussd-production.pem`. Which one is used follows `YO_USSD_MODE`, which
 defaults to `YO_MODE`:
-- staging: `sandbox`
-- production: `production`
+- staging: `sandbox`, and the production key is accepted too. A real phone
+  dialling the short code goes through Yo!'s live USSD system, which signs
+  with the production key even when the menu calls the staging URL.
+- production: `production` only.
+
+A rejected call-out is logged as "Yo! USSD call-out with a bad signature",
+with a `reason`: `missing fields`, `no key file` or `signature mismatch`.
 
 ## To confirm with Yo!
 

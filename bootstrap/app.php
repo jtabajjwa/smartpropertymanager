@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff.can' => \App\Http\Middleware\StaffCan::class,
             'auth.tenant' => \App\Http\Middleware\AuthenticateTenant::class,
             'subscription.access' => \App\Http\Middleware\EnforceSubscriptionAccess::class,
+            'terms' => \App\Http\Middleware\EnsureTermsAccepted::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

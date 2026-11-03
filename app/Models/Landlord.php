@@ -47,7 +47,25 @@ class Landlord extends Model
             'pass_collection_fee' => 'boolean',
             'fiscal_year_start_month' => 'integer',
             'extra_features' => 'array',
+            'terms_accepted_at' => 'datetime',
         ];
+    }
+
+    /** Has this landlord accepted the current Terms of Service (config/legal.php)? */
+    public function hasAcceptedCurrentTerms(): bool
+    {
+        return $this->terms_version === config('legal.terms_version');
+    }
+
+    /** Record acceptance of the current terms by $user. */
+    public function acceptTerms(User $user, ?string $ip): void
+    {
+        $this->forceFill([
+            'terms_version' => config('legal.terms_version'),
+            'terms_accepted_at' => now(),
+            'terms_accepted_by' => $user->id,
+            'terms_accepted_ip' => $ip,
+        ])->save();
     }
 
     /** Each landlord gets a permanent number (100, 101, …), the start of their unit IDs, and the starter expense items. */

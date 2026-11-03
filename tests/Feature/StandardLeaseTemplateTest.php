@@ -30,7 +30,7 @@ test('a landlord who signs up starts with the standard agreement as their defaul
         'email' => 'owner@freshhomes.test',
         'phone' => '+256771000111',
         'password' => 'Secret-1234',
-        'password_confirmation' => 'Secret-1234',
+        'password_confirmation' => 'Secret-1234', 'terms' => '1',
     ])->assertRedirect();
 
     $landlord = Landlord::where('name', 'Fresh Homes Ltd')->firstOrFail();

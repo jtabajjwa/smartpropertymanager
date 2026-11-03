@@ -24,6 +24,17 @@ export function startBoost({ onNavigate } = {}) {
     document.addEventListener('htmx:beforeRequest', () => progress()?.classList.add('is-loading'));
     document.addEventListener('htmx:afterRequest', () => progress()?.classList.remove('is-loading'));
 
+    // htmx sends a boosted form even when another handler has called
+    // preventDefault(), so a form with @submit.prevent (e.g. one that opens the
+    // confirm dialog first) would be posted at once, and again on confirming.
+    // Leave those forms to their own handler.
+    document.addEventListener('htmx:confirm', (e) => {
+        const { elt, triggeringEvent } = e.detail;
+        if (triggeringEvent?.type === 'submit' && elt.getAttributeNames?.().some((n) => /^(@|x-on:)submit(\..+)?\.prevent(\.|$)/.test(n))) {
+            e.preventDefault();
+        }
+    });
+
     document.addEventListener('htmx:beforeSwap', (e) => {
         const { xhr, requestConfig } = e.detail;
         const isGet = requestConfig?.verb === 'get';
