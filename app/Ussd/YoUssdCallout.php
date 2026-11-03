@@ -56,16 +56,60 @@ class YoUssdCallout
             return true;
         }
 
-        // Diagnosis only (never accepted): was it signed with the other environment's key?
+        // Diagnosis only (never accepted): was it signed with the other environment's key, and what was signed?
         $other = $mode === 'production' ? 'sandbox' : 'production';
         $this->failure = [
             'reason' => $this->keyFor($mode) ? 'signature mismatch' : 'no key file',
             'signature_bytes' => strlen($signature),
             'signed_with_'.$other.'_key' => $this->verifiesWith($other, $data, $signature),
             'datetime' => (string) $payload['datetime'],
-        ];
+        ] + $this->whatWasSigned($mode, $signature, $payload);
 
         return false;
+    }
+
+    /**
+     * Recovers the digest inside the signature (RSA "decrypt" with the public
+     * key) and tries the likely ways of building the signed data, so the log
+     * says what Yo! actually signs.
+     */
+    protected function whatWasSigned(string $mode, string $signature, array $payload): array
+    {
+        $key = $this->keyFor($mode);
+        if (!$key || !openssl_public_decrypt($signature, $block, $key, OPENSSL_PKCS1_PADDING)) {
+            return ['signed_digest' => 'not recoverable with this key'];
+        }
+
+        $prefixes = ['sha1' => '3021300906052b0e03021a05000414', 'sha256' => '3031300d060960864801650304020105000420', 'md5' => '3020300c06082a864886f70d020505000410'];
+        $hex = bin2hex($block);
+        $algo = null;
+        foreach ($prefixes as $name => $prefix) {
+            if (str_starts_with($hex, $prefix)) {
+                [$algo, $digest] = [$name, substr($hex, strlen($prefix))];
+            }
+        }
+        if (!$algo) {
+            return ['signed_digest' => 'raw '.$hex];
+        }
+
+        $v = fn ($k) => isset($payload[$k]) && is_scalar($payload[$k]) ? (string) $payload[$k] : '';
+        $strings = [
+            'datetime+anumbermsisdn' => $v('datetime').$v('anumbermsisdn'),
+            'datetime+msisdn' => $v('datetime').$v('msisdn'),
+            'anumbermsisdn+datetime' => $v('anumbermsisdn').$v('datetime'),
+            'datetime' => $v('datetime'),
+            'anumbermsisdn' => $v('anumbermsisdn'),
+            'datetime+code+anumbermsisdn' => $v('datetime').$v('code').$v('anumbermsisdn'),
+        ];
+        foreach ($strings as $label => $s) {
+            foreach (['sha1 hex of ' => sha1($s), 'sha1 bytes of ' => sha1($s, true), '' => $s, 'sha256 hex of ' => hash('sha256', $s)] as $how => $signed) {
+                if (hash($algo, $signed) === $digest) {
+                    return ['signed_data' => $algo.' signature over '.$how.$label];
+                }
+            }
+        }
+
+        return ['signed_digest' => $algo.' '.$digest, 'expected_digest' => $algo.' '.hash($algo, sha1($strings['datetime+anumbermsisdn']))];
     }
 
     protected function keyFor(string $mode): ?\OpenSSLAsymmetricKey

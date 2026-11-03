@@ -125,6 +125,17 @@ test('staging uses only the sandbox key, and the log says when a call-out was si
         && $context['signed_with_production_key'] === true && $context['mode'] === 'sandbox');
 });
 
+test('a call-out signed differently from the spec is refused, and the log says what was signed', function () {
+    $t = ussdTenancy();
+    \Illuminate\Support\Facades\Log::spy();
+    // SHA1 straight over datetime + msisdn, without the spec's sha1() step first.
+    openssl_sign('20261030101500256772123456', $sig, $this->ussdKey, OPENSSL_ALGO_SHA1);
+
+    ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code], signature: base64_encode($sig))->assertJson(['validated' => false]);
+
+    \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->withArgs(fn ($message, $context) => ($context['signed_data'] ?? null) === 'sha1 signature over datetime+anumbermsisdn');
+});
+
 test('a signature whose "+" arrived as a space still verifies', function () {
     $t = ussdTenancy();
     $datetime = '20261030101500';

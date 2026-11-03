@@ -23,11 +23,12 @@ class YoUssdController extends Controller
     public function __invoke(Request $request, YoUssdCallout $callout, string $step)
     {
         // Keys trimmed: menu variables are sometimes configured with stray spaces.
-        $payload = collect(json_decode($request->getContent(), true) ?: $request->all())
-            ->mapWithKeys(fn ($value, $key) => [trim((string) $key) => is_scalar($value) ? trim((string) $value) : $value])
-            ->all();
+        $sent = collect(json_decode($request->getContent(), true) ?: $request->all())
+            ->mapWithKeys(fn ($value, $key) => [trim((string) $key) => $value]);
+        $payload = $sent->map(fn ($value) => is_scalar($value) ? trim((string) $value) : $value)->all();
 
-        if (!$callout->verify($payload)) {
+        // The signature covers the values exactly as sent.
+        if (!$callout->verify($sent->all())) {
             Log::warning('Yo! USSD call-out with a bad signature', ['step' => $step, 'mode' => config('services.yo_ussd.mode'), 'content_type' => $request->header('Content-Type'), 'ip' => $request->ip(),
                 'msisdn' => $payload['anumbermsisdn'] ?? null, 'fields' => array_keys($payload)] + $callout->failure);
 
