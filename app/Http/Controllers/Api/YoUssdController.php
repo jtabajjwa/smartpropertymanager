@@ -31,6 +31,12 @@ class YoUssdController extends Controller
         $sent = collect(json_decode($request->getContent(), true) ?: $request->all())
             ->mapWithKeys(fn ($value, $key) => [trim((string) $key) => $value]);
         $payload = $sent->map(fn ($value) => is_scalar($value) ? trim((string) $value) : $value)->all();
+        // Values we returned earlier come back prefixed ("dispatcher_user_phonenumber"); read them by their own names too.
+        foreach ($payload as $key => $value) {
+            if (str_starts_with($key, 'dispatcher_')) {
+                $payload[substr($key, strlen('dispatcher_'))] ??= $value;
+            }
+        }
 
         // The signature covers the values exactly as sent.
         if (!$callout->verify($sent->all())) {

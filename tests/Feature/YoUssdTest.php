@@ -244,6 +244,9 @@ test('choosing a listed unit and an amount hands out a reference for that amount
 
     expect(ussdCall($this, 'confirm', ['selected_property_number' => '2', 'user_phonenumber' => '256772123456', 'amount' => '200000'])->json('validated'))->toBeFalse()
         ->and(ussdCall($this, 'confirm', ['selected_property_number' => '1', 'user_phonenumber' => '256772123456', 'amount' => '100'])->json('message'))->toContain('smallest amount');
+
+    // As Yo! sends it: our earlier values come back prefixed with "dispatcher_".
+    expect(ussdCall($this, 'confirm', ['selected_property_number' => '1', 'dispatcher_user_phonenumber' => '256772123456', 'amount' => '50000'])->json('validated'))->toBeTrue();
 });
 
 // --- Payment -------------------------------------------------------------
