@@ -32,7 +32,9 @@
             $detail('Last notification', $payment->notified_at?->format('d M Y, H:i:s')),
             $detail('Effect applied', $payment->applied_at?->format('d M Y, H:i:s')),
             $detail('Started by', $payment->initiatedByStaffUser ? $payment->initiatedByStaffUser->name.' (Primora staff)' : $payment->initiatedByUser?->name),
+            $detail('Resolved manually', $payment->resolved_at ? ($payment->resolvedByStaffUser?->name ?? 'A former staff member').', '.$payment->resolved_at->format('d M Y, H:i').': “'.$payment->resolution_note.'”' : null),
         ], fn ($d) => filled($d['value']));
+        $canResolve = $payment->canBeResolved() && auth('staff')->user()?->hasPermission('payments.resolve') && $payment->initiated_by_staff_user_id !== auth('staff')->id();
     @endphp
 
     <div class="max-w-6xl mx-auto">
@@ -57,17 +59,89 @@
                     <p class="mt-2 text-sm {{ $payment->status === 'failed' ? 'text-red-700' : 'text-gray-600' }}">{{ $payment->status_message }}</p>
                 @endif
             </div>
-            @staffcan('payments.check')@if($payment->isOpen())
-                <form method="POST" action="{{ route('staff.payments.check', $payment) }}">
-                    @csrf
-                    <x-button type="submit">
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                        Check status now
-                    </x-button>
-                </form>
-            @endif
+            <div class="flex flex-wrap items-center gap-2">
+                @staffcan('payments.check')@if($payment->isOpen())
+                    <form method="POST" action="{{ route('staff.payments.check', $payment) }}">
+                        @csrf
+                        <x-button type="submit">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                            Check status now
+                        </x-button>
+                    </form>
+                @endif
 @endstaffcan
+                @if($canResolve)
+                    <button type="button" x-data @click="$dispatch('open-resolve')" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-300">Resolve manually…</button>
+                @endif
+            </div>
         </div>
+
+        @if($canResolve)
+            @php
+                $failedBefore = $payment->status === 'failed';
+                $needsAmount = (float) $payment->amount <= 0;
+            @endphp
+            <div x-data="{ open: {{ $errors->hasAny(['status', 'amount', 'network_reference', 'reason']) || old('reason') ? 'true' : 'false' }}, status: '{{ old('status', $failedBefore ? 'succeeded' : '') }}' }"
+                 @open-resolve.window="open = true; $nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))"
+                 x-show="open" x-cloak class="mb-6 bg-white rounded-2xl shadow-sm border border-orange-200 p-5">
+                <h3 class="text-sm font-semibold text-gray-900">Resolve this payment manually</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Only when the gateway can’t settle it, and you have checked it yourself, e.g. on the gateway or bank statement.
+                    Primora asks the gateway once more first; if it reports success, that answer is used. A payment marked succeeded has its usual effect
+                    ({{ $payment->purpose === 'rent' ? 'the rent is recorded against the tenant’s invoices' : 'the '.$payment->purpose.' is applied' }}) and can’t be undone here.
+                </p>
+
+                <form method="POST" action="{{ route('staff.payments.resolve', $payment) }}" class="mt-4 space-y-4"
+                      @submit.prevent="$store.confirm.open(status === 'succeeded' ? 'Mark this payment as SUCCEEDED? Its effect is applied straight away and can’t be undone here.' : 'Mark this payment as FAILED?', $el)">
+                    @csrf
+                    <fieldset>
+                        <legend class="text-sm font-medium text-gray-700">What happened?</legend>
+                        <div class="mt-2 flex flex-col sm:flex-row gap-2">
+                            <label class="flex-1 flex items-start gap-3 rounded-xl border p-3 cursor-pointer" :class="status === 'succeeded' ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+                                <input type="radio" name="status" value="succeeded" x-model="status" class="mt-0.5 text-green-600 focus:ring-green-500" required>
+                                <span class="text-sm"><span class="font-medium text-gray-900">The money arrived</span><span class="block text-gray-500">Mark as succeeded.</span></span>
+                            </label>
+                            @unless($failedBefore)
+                                <label class="flex-1 flex items-start gap-3 rounded-xl border p-3 cursor-pointer" :class="status === 'failed' ? 'border-red-500 bg-red-50' : 'border-gray-200'">
+                                    <input type="radio" name="status" value="failed" x-model="status" class="mt-0.5 text-red-600 focus:ring-red-500">
+                                    <span class="text-sm"><span class="font-medium text-gray-900">No money arrived</span><span class="block text-gray-500">Mark as failed.</span></span>
+                                </label>
+                            @endunless
+                        </div>
+                    </fieldset>
+
+                    <div x-show="status === 'succeeded'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <x-label for="amount" :value="'Amount received ('.$payment->currency.')'" />
+                            @if($needsAmount)
+                                <x-money-input name="amount" :value="old('amount')" />
+                                <p class="mt-1 text-xs text-gray-500">The payer chose the amount; enter what the statement shows.</p>
+                            @else
+                                <p class="mt-2 text-sm text-gray-900">{{ number_format((float) $payment->amount) }}</p>
+                            @endif
+                        </div>
+                        @if($payment->gateway !== 'manual')
+                            <div>
+                                <x-label for="network_reference" value="Network reference (optional)" />
+                                <x-input id="network_reference" name="network_reference" :value="old('network_reference', $payment->network_reference)" maxlength="64" class="font-mono" />
+                            </div>
+                        @endif
+                    </div>
+
+                    <div>
+                        <x-label for="reason" value="Reason" />
+                        <x-textarea id="reason" name="reason" required minlength="10" maxlength="300" placeholder="E.g. Seen on the Yo! statement on 3 Nov, network ref 951793694314.">{{ old('reason') }}</x-textarea>
+                        @error('reason')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        @error('amount')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <x-button type="submit" x-bind:disabled="!status">Resolve payment</x-button>
+                        <button type="button" @click="open = false" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {{-- Details --}}

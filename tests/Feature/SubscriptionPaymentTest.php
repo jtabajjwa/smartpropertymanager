@@ -557,3 +557,86 @@ test('a genuine IPN fills in the network reference when the status check has non
     $this->post(route('payments.callback', ['gateway' => 'yo', 'type' => 'ipn']), signedIpn($this, $tx, ['network_ref' => 'NET-555']));
     expect($tx->fresh()->network_reference)->toBe('NET-555');
 });
+
+// --- Resolving by hand ---
+
+function resolver(array $permissions = ['payments.resolve']): StaffUser
+{
+    return StaffUser::factory()->withPermissions($permissions)->create();
+}
+
+test('staff with permission can mark a stuck payment succeeded, which activates the subscription and is recorded', function () {
+    [$landlord, $admin, $plan] = subscriptionSetup(8);
+    $tx = startPayment($this, $admin, $plan);
+    $this->yoStatus = 'NOTFOUND';
+    $staff = resolver();
+
+    $this->actingAs($staff, 'staff')->get(route('staff.payments.show', $tx))->assertOk()->assertSee('Resolve manually');
+
+    $this->post(route('staff.payments.resolve', $tx), ['status' => 'succeeded', 'network_reference' => '951793694314', 'reason' => 'Seen on the Yo! statement on 3 Nov.'])
+        ->assertSessionHas('success', 'Marked as succeeded.');
+
+    $tx->refresh();
+    expect($tx->status)->toBe('succeeded')
+        ->and($tx->applied_at)->not->toBeNull()
+        ->and($tx->network_reference)->toBe('951793694314')
+        ->and($tx->resolved_by_staff_user_id)->toBe($staff->id)
+        ->and($tx->resolution_note)->toBe('Seen on the Yo! statement on 3 Nov.')
+        ->and($tx->status_message)->toContain('Resolved manually by '.$staff->name)
+        ->and($landlord->fresh()->subscription_status)->toBe('active');
+
+    $audit = \App\Models\Audit::where('auditable_type', PaymentTransaction::class)->where('auditable_id', $tx->id)->sole();
+    expect($audit->action)->toBe('resolved')->and($audit->staff_user_id)->toBe($staff->id)
+        ->and($audit->old_values)->toBe(['status' => 'pending'])->and($audit->new_values['status'])->toBe('succeeded');
+
+    $this->get(route('staff.payments.show', $tx))->assertSee('Seen on the Yo! statement on 3 Nov.')->assertDontSee('Resolve manually');
+});
+
+test('a stuck payment can be marked failed, and a failed one later marked succeeded, but never back', function () {
+    [$landlord, $admin, $plan] = subscriptionSetup(8);
+    $tx = startPayment($this, $admin, $plan);
+    $this->yoStatus = 'NOTFOUND';
+    $this->actingAs(resolver(), 'staff');
+
+    $this->post(route('staff.payments.resolve', $tx), ['status' => 'failed', 'reason' => 'Payer says they cancelled it.'])->assertSessionHas('success');
+    expect($tx->fresh()->status)->toBe('failed')->and($landlord->fresh()->subscription_status)->toBe('trialing');
+
+    $this->post(route('staff.payments.resolve', $tx), ['status' => 'failed', 'reason' => 'Trying to fail it again.'])->assertSessionHas('error');
+
+    $this->post(route('staff.payments.resolve', $tx), ['status' => 'succeeded', 'reason' => 'It did arrive after all: on the statement.'])->assertSessionHas('success');
+    expect($tx->fresh()->status)->toBe('succeeded')->and($landlord->fresh()->subscription_status)->toBe('active');
+
+    $this->post(route('staff.payments.resolve', $tx), ['status' => 'failed', 'reason' => 'Changing my mind now.'])->assertSessionHas('error');
+    expect($tx->fresh()->status)->toBe('succeeded');
+});
+
+test('the gateway is asked first, and its success wins over marking failed', function () {
+    [, $admin, $plan] = subscriptionSetup(8);
+    $tx = startPayment($this, $admin, $plan);
+    $this->yoStatus = 'SUCCEEDED';
+
+    $this->actingAs(resolver(), 'staff')
+        ->post(route('staff.payments.resolve', $tx), ['status' => 'failed', 'reason' => 'Looks abandoned to me.'])
+        ->assertSessionHas('success', fn ($m) => str_contains($m, 'gateway reports this payment succeeded'));
+
+    expect($tx->fresh()->status)->toBe('succeeded')->and($tx->fresh()->resolved_at)->toBeNull()->and($tx->fresh()->receipt_number)->toBe('55501');
+});
+
+test('resolving needs the permission and a reason, and nobody resolves a payment they started', function () {
+    [, $admin, $plan] = subscriptionSetup(8);
+    $tx = startPayment($this, $admin, $plan);
+    $this->yoStatus = 'NOTFOUND';
+
+    $this->actingAs(resolver(['payments.view', 'payments.check']), 'staff')
+        ->post(route('staff.payments.resolve', $tx), ['status' => 'succeeded', 'reason' => 'No permission for this.'])->assertForbidden();
+    $this->get(route('staff.payments.show', $tx))->assertOk()->assertDontSee('Resolve manually');
+
+    $staff = resolver();
+    $this->actingAs($staff, 'staff')->post(route('staff.payments.resolve', $tx), ['status' => 'succeeded', 'reason' => 'short'])->assertSessionHasErrors('reason');
+
+    $tx->update(['initiated_by_staff_user_id' => $staff->id]);
+    $this->post(route('staff.payments.resolve', $tx), ['status' => 'succeeded', 'reason' => 'I started this one myself.'])
+        ->assertSessionHas('error', 'You started this payment, so someone else must resolve it.');
+
+    expect($tx->fresh()->status)->toBe('pending');
+});

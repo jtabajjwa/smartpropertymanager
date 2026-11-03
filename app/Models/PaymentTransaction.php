@@ -30,6 +30,7 @@ class PaymentTransaction extends Model
         'network_reference', 'receipt_number', 'status_message', 'context', 'last_response',
         'initiated_by_user_id', 'initiated_by_staff_user_id',
         'last_checked_at', 'notified_at', 'completed_at', 'applied_at',
+        'resolved_by_staff_user_id', 'resolved_at', 'resolution_note',
     ];
 
     protected function casts(): array
@@ -44,6 +45,7 @@ class PaymentTransaction extends Model
             'notified_at' => 'datetime',
             'completed_at' => 'datetime',
             'applied_at' => 'datetime',
+            'resolved_at' => 'datetime',
         ];
     }
 
@@ -71,6 +73,17 @@ class PaymentTransaction extends Model
     public function initiatedByStaffUser(): BelongsTo
     {
         return $this->belongsTo(StaffUser::class, 'initiated_by_staff_user_id');
+    }
+
+    public function resolvedByStaffUser(): BelongsTo
+    {
+        return $this->belongsTo(StaffUser::class, 'resolved_by_staff_user_id');
+    }
+
+    /** Staff can settle it by hand: an open payment either way, or a failed one that did arrive. */
+    public function canBeResolved(): bool
+    {
+        return $this->isOpen() || $this->status === self::FAILED;
     }
 
     public function scopeForLandlord(Builder $query, int $landlordId): Builder

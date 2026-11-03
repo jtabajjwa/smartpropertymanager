@@ -37,6 +37,7 @@ final class StaffPermissions
         'Payments' => [
             'payments.view' => ['View payments', 'See mobile money payments, their details and the gateway log.'],
             'payments.check' => ['Check payment status', 'Ask the payment gateway for the latest status of a payment.'],
+            'payments.resolve' => ['Resolve payments manually', 'Mark a stuck payment succeeded or failed, with a reason (e.g. after confirming it on the gateway statement). Not for payments they started.'],
         ],
         'SMS' => [
             'sms.view' => ['View SMS', 'See SMS stock, provider purchases, bundles and landlord SMS balances.'],
@@ -93,6 +94,7 @@ final class StaffPermissions
         'subscriptions.adjust' => ['subscriptions.view'],
         'subscriptions.record_payment' => ['subscriptions.view'],
         'payments.check' => ['payments.view'],
+        'payments.resolve' => ['payments.view'],
         'sms.purchases' => ['sms.view'],
         'sms.credits' => ['sms.view', 'landlords.view'],
         'sms.manage' => ['sms.view'],

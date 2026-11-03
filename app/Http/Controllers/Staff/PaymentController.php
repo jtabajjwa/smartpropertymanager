@@ -95,6 +95,26 @@ class PaymentController extends Controller
             : "Checked with the gateway: {$before} → {$after}.");
     }
 
+    /** Settle a stuck payment by hand (see PaymentService::resolveManually). */
+    public function resolve(\Illuminate\Http\Request $request, PaymentTransaction $payment, PaymentService $payments)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:succeeded,failed'],
+            'amount' => ['nullable', 'numeric', 'min:1', 'max:100000000'],
+            'network_reference' => ['nullable', 'string', 'max:64'],
+            'reason' => ['required', 'string', 'min:10', 'max:300'],
+        ], ['reason.min' => 'Say why, e.g. what you checked on the gateway statement (at least 10 characters).']);
+
+        try {
+            $message = $payments->resolveManually($payment, $data['status'], $request->user('staff'), trim($data['reason']),
+                isset($data['amount']) ? (float) $data['amount'] : null, $data['network_reference'] ?? null);
+        } catch (\App\Payments\PaymentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', $message);
+    }
+
     /** Callbacks from the gateway that didn't match any payment here. */
     public function unmatched()
     {

@@ -237,6 +237,72 @@ class PaymentService
     }
 
     /**
+     * A staff member settles a payment by hand: an open one as succeeded or
+     * failed, or a failed one as succeeded (money that did arrive). The
+     * gateway is asked once more first, and a success it reports wins.
+     * Otherwise the decision goes through apply() like any gateway result,
+     * so a success has its usual effect (rent recorded, subscription
+     * extended...). Returns what happened, for the staff member.
+     *
+     * @throws PaymentException when the payment can't be resolved this way
+     */
+    public function resolveManually(PaymentTransaction $transaction, string $status, StaffUser $staff, string $reason, ?float $amount = null, ?string $networkReference = null): string
+    {
+        if (!in_array($status, [PaymentTransaction::SUCCEEDED, PaymentTransaction::FAILED], true)) {
+            throw new PaymentException('Choose succeeded or failed.');
+        }
+        if (!$transaction->canBeResolved() || ($transaction->status === PaymentTransaction::FAILED && $status === PaymentTransaction::FAILED)) {
+            throw new PaymentException("This payment is already {$transaction->status}; it can't be resolved that way.");
+        }
+        if ($transaction->initiated_by_staff_user_id === $staff->id) {
+            throw new PaymentException('You started this payment, so someone else must resolve it.');
+        }
+        if ($status === PaymentTransaction::SUCCEEDED && (float) $transaction->amount <= 0 && !($amount > 0)) {
+            throw new PaymentException('Enter the amount that was received.');
+        }
+
+        if ($transaction->gateway !== 'manual') {
+            try {
+                $gateway = $this->manager->gateway($transaction->gateway)->checkStatus($transaction);
+                if ($gateway->status === PaymentTransaction::SUCCEEDED) {
+                    $this->apply($transaction, $gateway);
+
+                    return 'The gateway reports this payment succeeded, so it was recorded as succeeded from the gateway’s answer.';
+                }
+            } catch (\Throwable $e) {
+                report($e); // can't reach the gateway: the staff member's decision stands
+            }
+        }
+
+        $from = $transaction->status;
+        $this->apply($transaction, new GatewayResult(
+            $status,
+            networkReference: $networkReference ?: null,
+            message: 'Resolved manually by '.$staff->name.': '.$reason,
+            amount: $status === PaymentTransaction::SUCCEEDED ? ($amount ?: (float) $transaction->amount) : null,
+            raw: ['manual_resolution' => ['by' => $staff->name, 'status' => $status, 'reason' => $reason, 'amount' => $amount, 'at' => now()->toIso8601String()]],
+        ));
+
+        $transaction->update(['resolved_by_staff_user_id' => $staff->id, 'resolved_at' => now(), 'resolution_note' => Str::limit($reason, 490)]);
+
+        \App\Models\Audit::create([
+            'staff_user_id' => $staff->id,
+            'landlord_id' => $transaction->landlord_id,
+            'auditable_type' => PaymentTransaction::class,
+            'auditable_id' => $transaction->id,
+            'action' => 'resolved',
+            'old_values' => ['status' => $from],
+            'new_values' => array_filter(['status' => $status, 'amount' => $status === PaymentTransaction::SUCCEEDED ? (float) $transaction->amount : null, 'network_reference' => $networkReference ?: null]),
+            'note' => $reason,
+            'ip_address' => request()->ip(),
+        ]);
+
+        Log::info('Payment resolved manually', ['reference' => $transaction->reference, 'from' => $from, 'to' => $status, 'staff_user_id' => $staff->id]);
+
+        return "Marked as {$status}.";
+    }
+
+    /**
      * Handle a gateway callback (IPN / failure notification). Always safe to
      * call repeatedly; the caller must answer the provider with HTTP 200.
      */

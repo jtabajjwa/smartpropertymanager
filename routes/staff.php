@@ -83,6 +83,7 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('payments/unmatched-callbacks', [$Pay, 'unmatched'])->middleware('staff.can:payments.view')->name('payments.unmatched');
         Route::get('payments/{payment:reference}', [$Pay, 'show'])->middleware('staff.can:payments.view')->name('payments.show');
         Route::post('payments/{payment:reference}/check', [$Pay, 'check'])->middleware(['staff.can:payments.check', 'throttle:20,1'])->name('payments.check');
+        Route::post('payments/{payment:reference}/resolve', [$Pay, 'resolve'])->middleware(['staff.can:payments.resolve', 'throttle:20,1'])->name('payments.resolve');
 
         // SMS reselling: provider stock, bundles, landlord balances, offline sales.
         $Sms = \App\Http\Controllers\Staff\SmsController::class;
