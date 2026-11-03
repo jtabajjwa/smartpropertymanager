@@ -4,8 +4,9 @@ namespace App\Payments;
 
 /**
  * A provider callback, reduced to what's needed to find the payment it is
- * about. The callback's own claims (amount, status) are never trusted on
- * their own: PaymentService re-checks the status with the provider.
+ * about. Only a success notification whose signature checked out is taken
+ * as proof of payment; anything else PaymentService re-checks with the
+ * provider.
  */
 final class GatewayNotification
 {
@@ -21,6 +22,8 @@ final class GatewayNotification
         public readonly array $payload = [],
         /** The mobile network's reference, if the callback carries one (Yo! IPN: network_ref). */
         public readonly ?string $networkReference = null,
+        /** The amount paid, if the callback carries one (Yo! IPN: amount). */
+        public readonly ?float $amount = null,
     ) {
     }
 }

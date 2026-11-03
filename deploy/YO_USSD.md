@@ -137,9 +137,13 @@ A rejected call-out is logged as "Yo! USSD call-out with a bad signature"
 ## To confirm with Yo!
 
 1. **Primora's Yo! account:** the USSD app must collect into **Primora's Yo!
-   Payments account**, the same API user as in `.env`. Primora confirms each
-   payment with a status check on that account; payments into any other
-   account can't be confirmed.
+   Payments account**, the same API user as in `.env`. Yo!'s signed success
+   IPN confirms the payment. Primora also runs a status check on its own
+   account, which answers -30 "not found" if the USSD app collects into a
+   different account. That was the likely cause on staging on 3 Nov 2026.
+   The IPN's signature proves Yo! sent it, not which account received the
+   money. So in production, if the account is wrong, tenants are credited
+   for money Primora can't pay out.
 2. **Unchanged reference:** the `ExternalReference` of the deposit must be
    exactly the `payment_external_reference` Primora returned.
 3. **Short code:** the short code (`*217*XXX#`) and the sandbox account

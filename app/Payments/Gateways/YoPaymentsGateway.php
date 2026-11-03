@@ -124,6 +124,7 @@ class YoPaymentsGateway implements PaymentGateway, PayoutGateway
                 verified: $this->verifySignature($signed, $p('signature')),
                 networkReference: $this->networkReference($p('network_ref')),
                 payload: $request->only(['date_time', 'amount', 'narrative', 'network_ref', 'external_ref', 'msisdn', 'payer_names']),
+                amount: is_numeric($p('amount')) ? (float) $p('amount') : null,
             );
         }
 

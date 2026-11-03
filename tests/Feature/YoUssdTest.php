@@ -255,6 +255,35 @@ test('Yo!\'s notification turns the reference into a recorded rent payment again
         ->and(UssdPaymentIntent::sole()->status)->toBe('claimed');
 });
 
+test('a signed notification is proof of payment even when Yo!\'s status check can\'t find a USSD payment', function () {
+    $t = ussdTenancy();
+    $this->yoCheck['status'] = 'NOTFOUND';   // what Yo! answers for payments its USSD app started (-30)
+    $reference = ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code])->json('ussd_processor_params.payment_external_reference');
+
+    ussdIpn($this, $reference, '150000');
+
+    $tx = PaymentTransaction::sole();
+    expect($tx->status)->toBe('succeeded')
+        ->and((float) $tx->amount)->toBe(150000.0)
+        ->and($tx->network_reference)->toBe('MTN-991')
+        ->and($tx->applied_at)->not->toBeNull()
+        ->and(CurrentLandlord::runAs($t['landlord']->id, fn () => (float) Payment::sole()->amount))->toBe(150000.0);
+});
+
+test('an unsigned notification is not proof of payment', function () {
+    $t = ussdTenancy();
+    $this->yoCheck['status'] = 'NOTFOUND';
+    $reference = ussdCall($this, 'unit', ['property_unit_number' => $t['unit']->code])->json('ussd_processor_params.payment_external_reference');
+
+    $this->post(route('payments.callback', ['gateway' => 'yo', 'type' => 'ipn']), [
+        'date_time' => '2026-10-30 10:20:00', 'amount' => '150000', 'narrative' => 'x', 'network_ref' => 'MTN-991',
+        'external_ref' => $reference, 'msisdn' => '256772123456', 'signature' => base64_encode('forged'),
+    ])->assertOk();
+
+    expect(PaymentTransaction::sole()->status)->not->toBe('succeeded')
+        ->and(CurrentLandlord::runAs($t['landlord']->id, fn () => Payment::count()))->toBe(0);
+});
+
 test('when the landlord passes the fee on, it comes out of what the tenant paid', function () {
     $t = ussdTenancy(passFee: true);
     CollectionFeeTier::create(['min_amount' => 500, 'max_amount' => null, 'fixed_fee' => 1000]);

@@ -307,10 +307,30 @@ class PaymentService
                 : null,
         ]));
 
-        // Don't act on the callback's word: confirm with the provider.
-        if ($transaction->status !== PaymentTransaction::SUCCEEDED) {
-            $this->apply($transaction, $this->manager->gateway($transaction->gateway)->checkStatus($transaction));
+        if ($transaction->status === PaymentTransaction::SUCCEEDED) {
+            return $notification;
         }
+
+        // The status check adds the provider's details (receipt number, references), and is
+        // the only proof for an unsigned or failure notification.
+        $result = $this->manager->gateway($transaction->gateway)->checkStatus($transaction);
+
+        if ($result->status !== PaymentTransaction::SUCCEEDED && $notification->verified && $notification->kind === 'success' && $notification->amount > 0) {
+            // A success notification signed by the provider is proof of payment on its own, e.g.
+            // when the status check can't find a payment Yo!'s USSD app collected.
+            Log::warning('Payment credited on its signed notification alone: the status check did not confirm it. Check it went into Primora\'s account.', [
+                'reference' => $transaction->reference, 'amount' => $notification->amount, 'status_check' => $result->status, 'not_found' => $result->notFound,
+            ]);
+            $result = new GatewayResult(
+                PaymentTransaction::SUCCEEDED,
+                networkReference: $notification->networkReference,
+                message: 'Confirmed by the provider’s signed payment notification.',
+                amount: $notification->amount,
+                raw: ['notification' => $notification->payload, 'status_check' => $result->raw],
+            );
+        }
+
+        $this->apply($transaction, $result);
 
         return $notification;
     }
