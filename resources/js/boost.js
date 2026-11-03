@@ -35,6 +35,60 @@ export function startBoost({ onNavigate } = {}) {
         }
     });
 
+    // One submit per form post: a second click (or Enter) while the first is on
+    // its way would otherwise be queued by htmx, or re-posted by the browser,
+    // and create the record twice. The form's submit buttons are disabled until
+    // the response is in. GET forms (filters, exports) are left alone.
+    const isPost = (form) => (form.getAttribute('method') || 'get').toLowerCase() === 'post'
+        && (!form.target || form.target === '_self');   // a post into another tab never comes back to unlock
+    const submitButtons = (form) => [
+        ...form.querySelectorAll('button:not([type]), button[type="submit"], input[type="submit"]'),
+        ...(form.id ? document.querySelectorAll(`[form="${CSS.escape(form.id)}"]`) : []),
+    ];
+    const lock = (form) => {
+        form.dataset.submitting = '1';
+        // After this tick, so the clicked button's name/value is still sent.
+        setTimeout(() => submitButtons(form).forEach((b) => {
+            if (!b.disabled) {
+                b.disabled = true;
+                b.dataset.submitLocked = '1';
+                b.setAttribute('aria-busy', 'true');
+            }
+        }));
+    };
+    const unlock = (form) => {
+        delete form.dataset.submitting;
+        submitButtons(form).forEach((b) => {
+            if (b.dataset.submitLocked) {
+                b.disabled = false;
+                delete b.dataset.submitLocked;
+                b.removeAttribute('aria-busy');
+            }
+        });
+    };
+
+    // Capture phase: runs before htmx's own listener on the form, so a repeat never reaches it.
+    document.addEventListener('submit', (e) => {
+        if (e.target instanceof HTMLFormElement && e.target.dataset.submitting) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }, true);
+    // A plain (non-boosted) post: bubble phase, and only if nothing cancelled it
+    // (htmx cancels boosted ones, as does the confirm dialog's @submit.prevent).
+    document.addEventListener('submit', (e) => {
+        if (e.target instanceof HTMLFormElement && !e.defaultPrevented && isPost(e.target)) lock(e.target);
+    });
+    // A boosted post: once htmx has read the form and is sending it.
+    document.addEventListener('htmx:beforeRequest', (e) => {
+        if (e.detail.elt instanceof HTMLFormElement && isPost(e.detail.elt)) lock(e.detail.elt);
+    });
+    document.addEventListener('htmx:afterRequest', (e) => {
+        if (e.detail.elt instanceof HTMLFormElement) unlock(e.detail.elt);
+    });
+    // Back to a page the browser kept in memory: its forms can be used again.
+    window.addEventListener('pageshow', () => document.querySelectorAll('form[data-submitting]').forEach(unlock));
+
     document.addEventListener('htmx:beforeSwap', (e) => {
         const { xhr, requestConfig } = e.detail;
         const isGet = requestConfig?.verb === 'get';
