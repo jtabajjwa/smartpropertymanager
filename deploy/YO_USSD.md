@@ -115,6 +115,16 @@ Primora checks every call-out's signature with Yo!'s public key, following
 the spec: SHA1 of `datetime` + `anumbermsisdn`, verified with RSA. Requests
 that fail the check get `validated: false`.
 
+The "Pay for Self" step on Yo!'s menu deviates from the spec. It sends
+`anumbermsisdn` as `"1"` (the menu choice) and the caller's number in
+`msisdn`, and the signature covers `datetime` + `msisdn`. It also calls the
+`unit` URL, with no `property_unit_number`. Primora handles both:
+- when the `anumbermsisdn` check fails, Primora checks the signature against
+  `msisdn`, with the same key;
+- the caller is whichever phone number the signature covers;
+- a `unit` call-out without `property_unit_number` is answered as `units`
+  (logged as "unit call-out without a unit ID, answered as units").
+
 The keys are in `resources/certs/yo/ussd-sandbox.pem` and
 `ussd-production.pem`. Which one is used follows `YO_USSD_MODE`, which
 defaults to `YO_MODE`:

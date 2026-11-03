@@ -22,6 +22,11 @@ class YoUssdController extends Controller
 {
     public function __invoke(Request $request, YoUssdCallout $callout, string $step)
     {
+        // Sandbox only: the exact body Yo! sent (same bytes as php://input), to see what each menu step sends.
+        if (config('services.yo_ussd.mode') !== 'production') {
+            Log::info('Yo! USSD call-out received', ['step' => $step, 'content_type' => $request->header('Content-Type'), 'raw_body' => $request->getContent()]);
+        }
+
         // Keys trimmed: menu variables are sometimes configured with stray spaces.
         $sent = collect(json_decode($request->getContent(), true) ?: $request->all())
             ->mapWithKeys(fn ($value, $key) => [trim((string) $key) => $value]);
@@ -34,6 +39,12 @@ class YoUssdController extends Controller
                 'fields' => array_keys($payload)] + $callout->failure);
 
             return response()->json($callout->fail('We could not verify this request. Please try again.'));
+        }
+
+        // "Pay for Self" configured against the unit-ID URL: no unit ID was typed, so list the caller's units.
+        if ($step === 'unit' && !array_key_exists('property_unit_number', $payload)) {
+            Log::info('Yo! USSD unit call-out without a unit ID, answered as units', ['fields' => array_keys($payload)]);
+            $step = 'units';
         }
 
         try {

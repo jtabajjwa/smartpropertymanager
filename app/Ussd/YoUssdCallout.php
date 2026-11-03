@@ -19,7 +19,9 @@ use Illuminate\Support\Str;
  *   confirm() steps 2.2.1.7 / 2.2.2.9   the unit picked from that list, and the amount
  *
  * Every request is signed by Yo! (SHA1 of datetime + anumbermsisdn, RSA,
- * base64). Answering "validated": false ends the USSD session, showing the
+ * base64). Some menu steps overwrite anumbermsisdn with the menu choice and
+ * sign datetime + msisdn instead; the caller is whichever phone the
+ * signature covers. Answering "validated": false ends the USSD session, showing the
  * message. Values under ussd_processor_params are what Yo! staff put into the
  * menu texts (tenant_name, estate_name, ...) and payment_external_reference
  * is sent with the mobile money request, so the payment comes back to us.
@@ -36,6 +38,9 @@ class YoUssdCallout
     /** Why the last verify() failed, for the log. */
     public array $failure = [];
 
+    /** The caller's phone as covered by the signature, once verify() has passed. */
+    protected ?string $signedPhone = null;
+
     /** Signature check (Yo! spec, "Request Signature Verification"), with the key for the mode: sandbox on staging, production live. */
     public function verify(array $payload): bool
     {
@@ -44,6 +49,7 @@ class YoUssdCallout
         $signature = base64_decode($raw, true);
         $mode = config('services.yo_ussd.mode', 'sandbox');
         $this->failure = [];
+        $this->signedPhone = null;
 
         if (!$signature || !isset($payload['datetime'], $payload['anumbermsisdn'])) {
             $this->failure = ['reason' => 'missing or unreadable fields', 'signature_chars' => strlen($raw), 'signature_decoded' => $signature !== false,
@@ -52,10 +58,17 @@ class YoUssdCallout
             return false;
         }
 
-        $data = sha1($payload['datetime'].$payload['anumbermsisdn']);
-        if ($this->verifiesWith($mode, $data, $signature)) {
-            return true;
+        // The spec signs anumbermsisdn; failing that, msisdn (still Yo!'s signature, with this mode's key).
+        foreach (['anumbermsisdn', 'msisdn'] as $field) {
+            if (isset($payload[$field]) && is_scalar($payload[$field])
+                && $this->verifiesWith($mode, sha1($payload['datetime'].$payload[$field]), $signature)) {
+                $this->signedPhone = trim((string) $payload[$field]);
+
+                return true;
+            }
         }
+
+        $data = sha1($payload['datetime'].$payload['anumbermsisdn']);
 
         // Diagnosis only (never accepted): was it signed with the other environment's key, and what was signed?
         $other = $mode === 'production' ? 'sandbox' : 'production';
@@ -256,7 +269,9 @@ class YoUssdCallout
 
     protected function caller(array $p): string
     {
-        return Msisdn::normalize((string) ($p['anumbermsisdn'] ?? '')) ?? preg_replace('/\D/', '', (string) ($p['anumbermsisdn'] ?? ''));
+        $phone = $this->signedPhone ?? (string) ($p['anumbermsisdn'] ?? '');
+
+        return Msisdn::normalize($phone) ?? preg_replace('/\D/', '', $phone);
     }
 
     protected function money(float|int $amount): string

@@ -212,6 +212,22 @@ test('the caller sees the units on their own phone, or on another tenant\'s', fu
         ->and(ussdCall($this, 'units', ['other_tenant_phonenumber' => '12'])->json('validated'))->toBeFalse();
 });
 
+test('"Pay for Self" as Yo! sends it (anumbermsisdn "1", caller in a signed msisdn, unit-ID URL) lists the caller\'s units', function () {
+    ussdTenancy();
+    $datetime = '20261103181150';
+    openssl_sign(sha1($datetime.'256772123456'), $sig, $this->ussdKey, OPENSSL_ALGO_SHA1);
+    $call = fn (string $msisdn) => $this->postJson(route('api.ussd.yo', 'unit'), ['datetime' => $datetime, 'anumbermsisdn' => '1',
+        'signature' => base64_encode($sig), 'code' => '217', 'msisdn' => $msisdn, 'url' => 'https://example.test'])->assertOk()->json();
+
+    $json = $call('256772123456');
+    expect($json['validated'])->toBeTrue()
+        ->and($json['ussd_processor_params']['user_phonenumber'])->toBe('256772123456')
+        ->and($json['ussd_processor_params']['property_unit_list_text'])->toContain('Acacia Court A4');
+
+    // A msisdn the signature doesn't cover is refused.
+    expect($call('256701999999')['validated'])->toBeFalse();
+});
+
 test('choosing a listed unit and an amount hands out a reference for that amount', function () {
     $t = ussdTenancy();
 
