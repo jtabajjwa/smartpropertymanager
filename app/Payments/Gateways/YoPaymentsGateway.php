@@ -364,7 +364,8 @@ class YoPaymentsGateway implements PaymentGateway, PayoutGateway
         }
 
         $data = $this->config['api_username'].implode('', array_map(fn ($v) => mb_substr((string) $v, 0, 255), $values)).mb_substr($nonce, 0, 255);
-        if (!openssl_sign($data, $signature, $key, OPENSSL_ALGO_SHA1)) {
+        $signature = \App\Payments\RsaSha1::sign($data, $key);
+        if ($signature === null) {
             return null;
         }
 
@@ -559,7 +560,7 @@ class YoPaymentsGateway implements PaymentGateway, PayoutGateway
 
         $key = openssl_pkey_get_public((string) file_get_contents($certPath));
 
-        return $key !== false && openssl_verify($data, $signature, $key, OPENSSL_ALGO_SHA1) === 1;
+        return $key !== false && \App\Payments\RsaSha1::verify($data, $signature, $key);
     }
 
     /**

@@ -121,6 +121,11 @@ defaults to `YO_MODE`:
 - staging: `sandbox`
 - production: `production`
 
+Yo! signs with SHA-1, which the EL10 server's crypto policy refuses in
+`openssl_verify()`/`openssl_sign()`. Primora therefore checks and makes Yo!
+signatures with `App\Payments\RsaSha1`, which gives the same result without
+needing the policy relaxed. Don't switch back to `openssl_verify` with SHA-1.
+
 A rejected call-out is logged as "Yo! USSD call-out with a bad signature"
 (`sudo primora logs staging`), with:
 - `reason`: `missing or unreadable fields`, `no key file` or `signature mismatch`;

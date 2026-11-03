@@ -3,6 +3,7 @@
 namespace App\Ussd;
 
 use App\Payments\Msisdn;
+use App\Payments\RsaSha1;
 use App\Services\TenantPortal\RentPayments;
 use App\Services\TenantPortal\TenantLogin;
 use Illuminate\Support\Collection;
@@ -123,7 +124,7 @@ class YoUssdCallout
     {
         $key = $this->keyFor($mode);
 
-        return $key !== null && openssl_verify($data, $signature, $key, OPENSSL_ALGO_SHA1) === 1;
+        return $key !== null && RsaSha1::verify($data, $signature, $key);
     }
 
     /** Step 2.1.2: a unit ID was typed. */
