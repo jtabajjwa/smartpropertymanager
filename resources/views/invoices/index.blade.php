@@ -11,6 +11,7 @@
         createModal: {{ request()->has('new') ? 'true' : 'false' }},
         editModal: false,
         viewModal: false,
+        paymentsModal: false,
         viewing: {},
         ownerType: 'lease',
         createType: 'rent',
@@ -25,6 +26,10 @@
             due_date: '',
             status: '',
             notes: ''
+        },
+        showPayments(item) {
+            this.viewing = { ...item };
+            this.paymentsModal = true;
         },
         view(item) {
             this.viewing = { ...item };
@@ -165,8 +170,7 @@
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">UGX {{ number_format($invoice->amount, 0) }}</td>
                                     @php $balance = $invoice->unpaidBalance(); @endphp
                                     <td class="px-6 py-4 text-sm font-medium text-right {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}">
-                                        UGX {{ number_format($balance, 0) }}
-                                        @include('invoices.partials.paid-by', ['invoice' => $invoice])
+                                        @include('invoices.partials.balance')
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-600">{{ $invoice->due_date->format('M d, Y') }}</div>
@@ -289,8 +293,7 @@
                                     <span class="text-gray-500">Type:</span> {{ str_replace('_', ' ', $invoice->type) }}
                                 </p>
                                 <p class="text-sm text-gray-600"><span class="text-gray-500">Amount:</span> UGX {{ number_format($invoice->amount, 0) }}</p>
-                                <p class="text-sm font-medium {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}"><span class="text-gray-500 font-normal">Balance:</span> UGX {{ number_format($balance, 0) }}</p>
-                                @include('invoices.partials.paid-by', ['invoice' => $invoice])
+                                <p class="text-sm font-medium {{ $balance > 0 ? 'text-orange-600' : 'text-green-600' }}"><span class="text-gray-500 font-normal">Balance:</span> @include('invoices.partials.balance')</p>
                                 <p class="text-sm text-gray-600">
                                     <span class="text-gray-500">Due:</span> {{ $invoice->due_date->format('M d, Y') }}
                                     @if(!in_array($invoice->status, ['paid', 'cancelled']) && $invoice->due_date->isPast())
@@ -364,38 +367,26 @@
                     {{-- How it was paid --}}
                     <div class="mt-5">
                         <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 pb-2 border-b border-gray-200">How It Was Paid</h4>
-                        <template x-if="!viewing.payments || !viewing.payments.length">
-                            <p class="text-sm text-gray-500">No payments have been put against this invoice yet.</p>
-                        </template>
-                        <template x-if="viewing.payments && viewing.payments.length">
-                            <div>
-                                <ul class="divide-y divide-gray-100">
-                                    <template x-for="p in viewing.payments" :key="p.number + p.applied_at">
-                                        <li class="py-2 flex items-start justify-between gap-3">
-                                            <div class="min-w-0">
-                                                <a :href="'{{ route('payments.index') }}?search=' + encodeURIComponent(p.number)" class="text-sm font-medium text-blue-600 hover:underline" x-text="p.number"></a>
-                                                <p class="text-xs text-gray-500">
-                                                    <span x-text="[p.date, p.method].filter(Boolean).join(' · ')"></span>
-                                                    <template x-if="p.reference"><span> · Ref <span class="break-all" x-text="p.reference"></span></span></template>
-                                                </p>
-                                                <p class="text-xs text-gray-500" x-show="p.payment_amount > p.applied" x-text="'Part of a UGX ' + Number(p.payment_amount).toLocaleString() + ' payment'"></p>
-                                            </div>
-                                            <p class="text-sm font-medium text-gray-900 tabular-nums whitespace-nowrap" x-text="'UGX ' + Number(p.applied).toLocaleString()"></p>
-                                        </li>
-                                    </template>
-                                </ul>
-                                <div class="flex justify-between border-t border-gray-200 pt-2 text-sm">
-                                    <span class="text-gray-500">Total paid</span>
-                                    <span class="font-medium text-gray-900 tabular-nums" x-text="'UGX ' + viewing.payments.reduce((s, p) => s + Number(p.applied), 0).toLocaleString()"></span>
-                                </div>
-                            </div>
-                        </template>
+                        @include('invoices.partials.payments-list')
                     </div>
                     <div class="flex justify-end gap-3 pt-4">
                         <x-button variant="secondary" type="button" @click="viewModal = false">Close</x-button>
                         <template x-if="viewing.editable">
                             <x-button type="button" @click="viewModal = false; edit(viewing)">Edit</x-button>
                         </template>
+                    </div>
+                </x-modal>
+            </div>
+        </template>
+
+        {{-- Payments Modal (from the Balance column) --}}
+        <template x-if="paymentsModal">
+            <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) paymentsModal = false })">
+                <x-modal title="Payments" maxWidth="md">
+                    <p class="mb-3 text-sm text-gray-600"><span class="font-medium text-gray-900" x-text="viewing.number"></span> · <span x-text="viewing.title"></span></p>
+                    @include('invoices.partials.payments-list')
+                    <div class="flex justify-end pt-4">
+                        <x-button variant="secondary" type="button" @click="paymentsModal = false">Close</x-button>
                     </div>
                 </x-modal>
             </div>

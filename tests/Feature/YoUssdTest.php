@@ -200,6 +200,7 @@ test('the caller sees the units on their own phone, or on another tenant\'s', fu
 
     $own = ussdCall($this, 'units')->json();
     expect($own['validated'])->toBeTrue()
+        ->and($own['message'])->toBe('Primora PropTech: 1 active property unit found against your phone number.')
         ->and($own['ussd_processor_params']['property_unit_list_text'])->toBe("Primora PropTech:\n1. Acacia Court A4 (Grace, Bal: UGX 500,000)")
         ->and($own['ussd_processor_params']['user_phonenumber'])->toBe('256772123456');
 
@@ -239,6 +240,7 @@ test('choosing a listed unit and an amount hands out a reference for that amount
             'tenant_name' => 'Grace Namata', 'estate_name' => 'Acacia Court', 'property_unit_number' => $t['unit']->code,
             'amount_formatted' => 'UGX 200,000', 'payment_external_reference' => $intent->reference,
         ])
+        ->and($json['message'])->toBe("Primora PropTech:\nProperty unit (A4 {$t['unit']->code}) and amount (UGX 200,000) are valid.")
         ->and((float) $intent->amount)->toBe(200000.0)
         ->and($intent->msisdn)->toBe('256701999999');   // the relative's phone gets the prompt
 

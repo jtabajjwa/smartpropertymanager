@@ -78,7 +78,7 @@ test('an invoice shows which payments paid it', function () {
     CurrentLandlord::clear();
 
     $this->actingAs($s['admin'])->get(route('invoices.index'))->assertOk()
-        ->assertSee('Paid by')->assertSee('PAY-00002')->assertSee('PAY-00003')->assertSee('How It Was Paid');
+        ->assertSee('How It Was Paid')->assertSee('See the payments for this invoice')->assertSee('PAY-00002')->assertSee('PAY-00003')->assertDontSee('Paid by');
 });
 
 test('the tenant and unit lists show what the tenant owes', function () {

@@ -185,7 +185,7 @@ class YoUssdCallout
         }
 
         return $this->ok(
-            'Primora PropTech: Property units found against '.($other ? 'that' : 'your').' phone number.',
+            'Primora PropTech: '.$tenancies->count().' active property '.Str::plural('unit', $tenancies->count()).' found against '.($other ? 'that' : 'your').' phone number.',
             [
                 'property_unit_list_text' => $this->listText($tenancies),
                 'property_unit_count' => $tenancies->count(),
@@ -217,7 +217,7 @@ class YoUssdCallout
         $intent = $this->ussd->reserve($tenancy, $this->caller($p), $amount);
 
         return $this->ok(
-            "Primora PropTech:\nProperty unit and amount are valid.",
+            "Primora PropTech:\nProperty unit (".trim($tenancy->unitName().' '.$tenancy->unitCode()).') and amount ('.$this->money($amount).') are valid.',
             $this->tenancyParams($tenancy) + [
                 'amount' => $amount,
                 'amount_formatted' => $this->money($amount),
