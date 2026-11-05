@@ -217,7 +217,7 @@ class YoUssdCallout
         $intent = $this->ussd->reserve($tenancy, $this->caller($p), $amount);
 
         return $this->ok(
-            "Primora PropTech:\nProperty unit (".trim($tenancy->unitName().' '.$tenancy->unitCode()).') and amount ('.$this->money($amount).') are valid.',
+            "Primora PropTech:\nProperty unit (".trim($this->unitLabel($tenancy)).') and amount ('.$this->money($amount).') are valid.',
             $this->tenancyParams($tenancy) + [
                 'amount' => $amount,
                 'amount_formatted' => $this->money($amount),
