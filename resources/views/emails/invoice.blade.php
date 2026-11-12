@@ -36,7 +36,14 @@
                                     <td style="padding:16px 20px;">
                                         <p style="margin:0 0 6px 0; font-size:13px; color:#6b7280;">Invoice {{ $invoice->number }}</p>
                                         <p style="margin:0 0 6px 0; font-size:22px; font-weight:700; color:{{ $brandColor }};">UGX {{ number_format($invoice->amount, 2) }}</p>
-                                        <p style="margin:0; font-size:13px; color:#6b7280;">Due {{ $invoice->due_date->format('d M Y') }}</p>
+                                        @php $advance = (float) $invoice->allocations()->sum('amount'); @endphp
+                                        @if($advance >= (float) $invoice->amount)
+                                            <p style="margin:0; font-size:13px; color:#15803d; font-weight:600;">Paid in full from your advance payment. Nothing to pay.</p>
+                                        @elseif($advance > 0)
+                                            <p style="margin:0; font-size:13px; color:#6b7280;">UGX {{ number_format($advance) }} paid from your advance payment · <strong style="color:#111827;">UGX {{ number_format((float) $invoice->amount - $advance) }}</strong> due {{ $invoice->due_date->format('d M Y') }}</p>
+                                        @else
+                                            <p style="margin:0; font-size:13px; color:#6b7280;">Due {{ $invoice->due_date->format('d M Y') }}</p>
+                                        @endif
                                         @if($invoice->lease?->unit?->code)
                                             <p style="margin:10px 0 0 0; font-size:13px; color:#6b7280;">Unit {{ $invoice->lease->unit->name }} · Unit ID <strong style="color:#111827;">{{ $invoice->lease->unit->code }}</strong>. Use it to sign in at <a href="{{ route('tenant.login') }}" style="color:{{ $brandColor }};">{{ route('tenant.login') }}</a> to view and pay.</p>
                                         @endif

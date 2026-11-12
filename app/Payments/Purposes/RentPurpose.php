@@ -154,6 +154,13 @@ class RentPurpose implements PaymentPurpose
 
         $payment->updateAllocationStatus();
 
+        // Paid more than that invoice (or tenancy) needed: the rest goes onto the tenant's
+        // other unpaid invoices, oldest first; anything left pays their next invoice when it's raised.
+        if ($payment->fresh()->status !== 'fully_allocated') {
+            app(\App\Services\TenantCredit::class)->apply($tenant->id);
+            $payment->refresh();
+        }
+
         return $payment;
     }
 }

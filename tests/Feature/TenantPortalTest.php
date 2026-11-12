@@ -337,11 +337,12 @@ test('a tenant can pay part of an invoice, or in advance, but not more than is d
     expect($tx->context['invoice_id'])->toBeNull();
 
     app(\App\Payments\PaymentService::class)->refresh($tx);
+    // Money paid without choosing an invoice goes onto what is unpaid (see TenantCredit).
     $payment = Payment::withoutGlobalScopes()->sole();
-    expect($payment->status)->toBe('unallocated')
-        ->and(Invoice::withoutGlobalScopes()->find($invoice->id)->status)->toBe('unpaid');
+    expect($payment->status)->toBe('fully_allocated')
+        ->and(Invoice::withoutGlobalScopes()->find($invoice->id)->status)->toBe('partial');
 
-    asTenant($this, $tenant)->get(route('tenant.dashboard'))->assertSee('UGX 150,000 paid in advance');
+    asTenant($this, $tenant)->get(route('tenant.dashboard'))->assertSee('UGX 350,000');
 });
 
 test('when the landlord passes the fee on, the tenant pays it on top and the landlord gets the full amount', function () {

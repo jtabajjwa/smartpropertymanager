@@ -36,7 +36,14 @@ class SmsNotificationService
         if (!$phone) return;
 
         $app = config('app.name');
-        $message = "Dear {$payer->name}, invoice {$invoice->number} for {$invoice->title} (UGX " . number_format((float) $invoice->amount) . ") has been issued. Due: {$invoice->due_date->format('d M Y')}. - {$app}";
+        $paid = (float) $invoice->allocations()->sum('amount');
+        $amount = 'UGX '.number_format((float) $invoice->amount);
+        $message = match (true) {
+            // Paid from money the tenant paid in advance.
+            $paid >= (float) $invoice->amount => "Dear {$payer->name}, invoice {$invoice->number} for {$invoice->title} ({$amount}) has been issued and paid in full from your advance payment. Nothing to pay. - {$app}",
+            $paid > 0 => "Dear {$payer->name}, invoice {$invoice->number} for {$invoice->title} ({$amount}) has been issued. UGX ".number_format($paid).' was paid from your advance payment; UGX '.number_format((float) $invoice->amount - $paid)." is due by {$invoice->due_date->format('d M Y')}. - {$app}",
+            default => "Dear {$payer->name}, invoice {$invoice->number} for {$invoice->title} ({$amount}) has been issued. Due: {$invoice->due_date->format('d M Y')}. - {$app}",
+        };
 
         $this->sendAndLog($phone, $message, $tenantId, 'invoice_created', 'Invoice', $invoice->id);
     }

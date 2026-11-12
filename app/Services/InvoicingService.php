@@ -21,6 +21,13 @@ class InvoicingService
 
         $invoices[] = $this->createRentInvoice($lease);
 
+        // Money the tenant already paid in advance (e.g. from an earlier lease) pays these.
+        if (app(TenantCredit::class)->apply($lease->tenant_id) > 0) {
+            foreach ($invoices as $invoice) {
+                $invoice->refresh();
+            }
+        }
+
         return $invoices;
     }
 
@@ -85,6 +92,11 @@ class InvoicingService
             $anchorDay
         );
         $lease->update(['next_invoice_date' => $nextDate]);
+
+        // Rent paid in advance (an earlier overpayment) pays the new invoice.
+        if (app(TenantCredit::class)->apply($lease->tenant_id) > 0) {
+            $invoice->refresh();
+        }
 
         return $invoice;
     }

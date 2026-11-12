@@ -89,6 +89,12 @@ class InvoiceController extends Controller
             $invoice = Invoice::create($data);
             $invoice->update(['number' => 'INV-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT)]);
 
+            // A tenant's money paid in advance pays the new invoice.
+            if ($invoice->invoiceable_type === \App\Models\Lease::class && ($tenantId = \App\Models\Lease::whereKey($invoice->lease_id)->value('tenant_id'))) {
+                app(\App\Services\TenantCredit::class)->apply($tenantId);
+                $invoice->refresh();
+            }
+
             return $invoice;
         });
 
