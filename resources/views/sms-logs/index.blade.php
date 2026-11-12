@@ -45,6 +45,7 @@
                         <option value="deposit_deduction" {{ request('notification_type') === 'deposit_deduction' ? 'selected' : '' }}>Deposit Deduction</option>
                         <option value="deposit_refund" {{ request('notification_type') === 'deposit_refund' ? 'selected' : '' }}>Deposit Refund</option>
                         <option value="upcoming_reminder" {{ request('notification_type') === 'upcoming_reminder' ? 'selected' : '' }}>Upcoming Reminder</option>
+                        <option value="bulk" {{ request('notification_type') === 'bulk' ? 'selected' : '' }}>Bulk SMS</option>
                     </x-select>
                 </div>
                 <div class="w-28">

@@ -108,6 +108,10 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
     Route::middleware('admin')->group(function () {
         Route::get('audits', [\App\Http\Controllers\AuditController::class, 'index'])->middleware('feature:audit_log')->name('audits.index');
         Route::get('sms-logs', [\App\Http\Controllers\SmsLogController::class, 'index'])->name('sms-logs.index');
+        Route::get('bulk-sms', [\App\Http\Controllers\SmsBroadcastController::class, 'index'])->name('sms-broadcasts.index');
+        Route::get('bulk-sms/new', [\App\Http\Controllers\SmsBroadcastController::class, 'create'])->name('sms-broadcasts.create');
+        Route::post('bulk-sms', [\App\Http\Controllers\SmsBroadcastController::class, 'store'])->middleware('throttle:10,1')->name('sms-broadcasts.store');
+        Route::get('bulk-sms/{smsBroadcast}', [\App\Http\Controllers\SmsBroadcastController::class, 'show'])->name('sms-broadcasts.show');
         Route::get('users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
         Route::post('users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
         Route::put('users/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('users.update');

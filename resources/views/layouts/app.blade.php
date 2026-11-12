@@ -119,6 +119,9 @@
                 <x-sidebar-link :dark="true" route="vendors.index" label="Vendors" icon="wrench" :locked="!\App\Support\PlanFeatures::allows('vendors')" />
                 <x-sidebar-link :dark="true" route="vendor-jobs.index" label="Job Cards" icon="clipboard" :locked="!\App\Support\PlanFeatures::allows('vendors')" />
                 <x-sidebar-link :dark="true" route="issues.index" label="Tenant Issues" icon="chat" />
+                @if(auth()->user()->isLandlordAdmin())
+                    <x-sidebar-link :dark="true" route="sms-broadcasts.index" label="Bulk SMS" icon="megaphone" />
+                @endif
             </div>
 
             <!-- Templates -->

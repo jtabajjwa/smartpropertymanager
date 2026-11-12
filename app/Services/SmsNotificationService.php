@@ -160,12 +160,18 @@ class SmsNotificationService
         $this->sendAndLog($phone, $message, $tenantId, 'upcoming_reminder', 'Invoice', $invoice->id);
     }
 
+    /** One message of a landlord's bulk SMS (see SmsBroadcasts). Returns its log row. */
+    public function broadcast(string $phone, string $message, int $tenantId, int $broadcastId): ?SmsLog
+    {
+        return $this->sendAndLog($phone, $message, $tenantId, 'bulk', 'SmsBroadcast', $broadcastId);
+    }
+
     /**
      * Send a landlord notification SMS, paid for from the landlord's SMS
      * credits (one credit per 160-character part). No credit, no SMS: it is
      * logged as "no_credit" instead. Credit is returned if the send fails.
      */
-    protected function sendAndLog(string $phone, string $message, ?int $tenantId, string $type, string $refType, int $refId): void
+    protected function sendAndLog(string $phone, string $message, ?int $tenantId, string $type, string $refType, int $refId): ?SmsLog
     {
         $message = mb_substr($message, 0, 320); // what SmsService actually sends
         $segments = SmsSegments::count($message);
@@ -175,13 +181,11 @@ class SmsNotificationService
 
         // A read-only account (trial or plan ended) sends no SMS; the log shows why.
         if ($landlordId && \App\Models\Landlord::find($landlordId)?->isReadOnly()) {
-            SmsLog::create([
+            return SmsLog::create([
                 'phone' => $phone, 'message' => $message, 'segments' => $segments, 'tenant_id' => $tenantId,
                 'notification_type' => $type, 'reference_type' => $refType, 'reference_id' => $refId,
                 'status' => 'read_only', 'error' => 'Not sent: the account is read-only until a plan is chosen.',
             ]);
-
-            return;
         }
 
         try {
@@ -202,7 +206,7 @@ class SmsNotificationService
                 $balance = $landlordId ? $this->credits->balance($landlordId) : 0;
                 $log->update(['status' => 'no_credit', 'error' => "Not enough SMS credit: needs {$segments}, balance {$balance}."]);
 
-                return;
+                return $log;
             }
 
             $success = $this->sms->send($phone, $message);
@@ -217,6 +221,8 @@ class SmsNotificationService
                 'credits_charged' => $success ? $segments : 0,
                 'error' => $success ? null : 'API returned failure',
             ]);
+
+            return $log;
         } catch (\Throwable $e) {
             Log::error("SMS notification ({$type}) failed: {$e->getMessage()}");
 
@@ -228,6 +234,8 @@ class SmsNotificationService
             } catch (\Throwable $logError) {
                 Log::error("SMS log write also failed: {$logError->getMessage()}");
             }
+
+            return $log;
         }
     }
 }
