@@ -84,6 +84,7 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
     Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::post('invoices/{invoice}/send-email', [\App\Http\Controllers\InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
     Route::resource('payments', \App\Http\Controllers\PaymentController::class)->only(['index', 'store']);
+    Route::get('payments/{payment}/receipt', [\App\Http\Controllers\PaymentController::class, 'receipt'])->name('payments.receipt');
     Route::patch('payments/{payment}/cancel', [\App\Http\Controllers\PaymentController::class, 'cancel'])->name('payments.cancel');
     Route::resource('payment-allocations', \App\Http\Controllers\PaymentAllocationController::class)->only(['index', 'store']);
     Route::resource('security-deposit-ledgers', \App\Http\Controllers\SecurityDepositLedgerController::class)->only(['index', 'store', 'update', 'destroy']);

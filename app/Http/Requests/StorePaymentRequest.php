@@ -25,6 +25,7 @@ class StorePaymentRequest extends FormRequest
             'notes' => 'nullable|string|max:1000',
             'receipt_photo' => 'nullable|image|max:2048',
             'send_sms' => 'nullable|boolean',
+            'apply_to_invoices' => 'nullable|boolean',
         ];
     }
 }

@@ -51,7 +51,10 @@
                                 </div>
                                 <p class="text-sm font-semibold text-gray-900 whitespace-nowrap">UGX {{ number_format((float) $payment->amount) }}</p>
                             </div>
-                            <p class="mt-1 text-xs {{ $forWhat($payment) === 'Advance payment' ? 'text-green-700' : 'text-gray-500' }}">{{ $forWhat($payment) === 'Advance payment' ? 'Advance payment' : 'For '.$forWhat($payment) }}</p>
+                            <div class="mt-1 flex items-center justify-between gap-3">
+                                <p class="text-xs {{ $forWhat($payment) === 'Advance payment' ? 'text-green-700' : 'text-gray-500' }}">{{ $forWhat($payment) === 'Advance payment' ? 'Advance payment' : 'For '.$forWhat($payment) }}</p>
+                                <a href="{{ route('tenant.payments.receipt', $payment->id) }}" target="_blank" hx-boost="false" class="shrink-0 text-xs font-semibold text-orange-600">Receipt</a>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -70,7 +73,7 @@
                         @foreach($payments as $payment)
                             <tr class="hover:bg-gray-50/60">
                                 <td class="px-5 py-3.5 text-sm text-gray-700 whitespace-nowrap">{{ $payment->payment_date->format('d M Y') }}</td>
-                                <td class="px-5 py-3.5 text-sm text-gray-700">{{ $payment->number }}</td>
+                                <td class="px-5 py-3.5 text-sm"><a href="{{ route('tenant.payments.receipt', $payment->id) }}" target="_blank" hx-boost="false" class="inline-flex items-center gap-1 font-medium text-orange-600 hover:text-orange-700">{{ $payment->number }} <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg></a></td>
                                 <td class="px-5 py-3.5 text-sm text-gray-700">{{ $method($payment) }}</td>
                                 <td class="px-5 py-3.5 text-xs font-mono text-gray-500">{{ $payment->reference ?: '—' }}</td>
                                 <td class="px-5 py-3.5 text-sm {{ $forWhat($payment) === 'Advance payment' ? 'text-green-700' : 'text-gray-600' }}">{{ $forWhat($payment) }}</td>

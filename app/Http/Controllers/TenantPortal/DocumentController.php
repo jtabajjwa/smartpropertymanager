@@ -25,6 +25,14 @@ class DocumentController extends Controller
         return Pdf::loadView('pdfs.invoice', ['invoice' => $invoice])->stream("invoice-{$invoice->number}.pdf");
     }
 
+    /** A receipt for one of the tenant's own payments. */
+    public function receipt(Request $request, int $payment, \App\Services\PaymentReceipt $receipt)
+    {
+        $payment = (new TenantAccount($request->attributes->get('tenant')))->payments()->findOrFail($payment);
+
+        return $receipt->pdf($payment)->stream(\App\Services\PaymentReceipt::filename($payment));
+    }
+
     /**
      * The signed agreement the landlord uploaded, if there is one; otherwise
      * the agreement generated from the landlord's default template.

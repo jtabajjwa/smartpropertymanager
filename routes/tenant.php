@@ -28,6 +28,7 @@ Route::prefix('tenant')->name('tenant.')->group(function () {
 
         $Doc = TenantPortal\DocumentController::class;
         Route::get('invoices/{invoice}/pdf', [$Doc, 'invoice'])->whereNumber('invoice')->name('invoices.pdf');
+        Route::get('payments/{payment}/receipt', [$Doc, 'receipt'])->whereNumber('payment')->name('payments.receipt');
         Route::get('leases/{lease}/agreement', [$Doc, 'agreement'])->whereNumber('lease')->name('leases.agreement');
 
         $P = TenantPortal\PaymentController::class;

@@ -66,6 +66,7 @@ class Invoice extends Model
         return $this->allocations
             ->sortBy(fn (PaymentAllocation $a) => [$a->payment?->payment_date?->timestamp, $a->id])
             ->map(fn (PaymentAllocation $a) => [
+                'id' => $a->payment_id,
                 'number' => $a->payment?->number,
                 'date' => $a->payment?->payment_date?->format('M d, Y'),
                 'method' => $a->payment ? ucwords(str_replace('_', ' ', (string) $a->payment->payment_method)) : null,

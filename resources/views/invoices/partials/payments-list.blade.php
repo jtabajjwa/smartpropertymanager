@@ -15,7 +15,10 @@
                         </p>
                         <p class="text-xs text-gray-500" x-show="p.payment_amount > p.applied" x-text="'Part of a UGX ' + Number(p.payment_amount).toLocaleString() + ' payment'"></p>
                     </div>
-                    <p class="text-sm font-medium text-gray-900 tabular-nums whitespace-nowrap" x-text="'UGX ' + Number(p.applied).toLocaleString()"></p>
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-900 tabular-nums whitespace-nowrap" x-text="'UGX ' + Number(p.applied).toLocaleString()"></p>
+                        <a :href="'{{ url('payments') }}/' + p.id + '/receipt'" target="_blank" hx-boost="false" class="text-xs font-medium text-orange-600 hover:text-orange-700">Receipt</a>
+                    </div>
                 </li>
             </template>
         </ul>

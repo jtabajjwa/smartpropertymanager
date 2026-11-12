@@ -73,8 +73,16 @@ class PaymentController extends Controller
                 unset($data['tenant_id']);
             }
 
+            $applyToInvoices = (bool) ($data['apply_to_invoices'] ?? false);
+            unset($data['apply_to_invoices']);
+
             $payment = Payment::create($data);
             $payment->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'payment', 'PAY')]);
+
+            // Put it on the tenant's unpaid invoices, oldest first (the rest is kept as advance payment).
+            if ($applyToInvoices && $payment->payable_type === \App\Models\Tenant::class) {
+                app(\App\Services\TenantCredit::class)->apply($payment->payable_id);
+            }
 
             return $payment;
         });
@@ -83,7 +91,13 @@ class PaymentController extends Controller
             app(SmsNotificationService::class)->paymentReceived($payment->load('payable'));
         }
 
-        return redirect()->back()->with('success', 'Payment created successfully.');
+        return redirect()->back()->with('success', "Payment {$payment->number} recorded.")->with('receipt_payment_id', $payment->id);
+    }
+
+    /** A printable receipt (PDF) for the payment. */
+    public function receipt(Payment $payment, \App\Services\PaymentReceipt $receipt)
+    {
+        return $receipt->pdf($payment)->stream(\App\Services\PaymentReceipt::filename($payment));
     }
 
     public function export(Request $request)
