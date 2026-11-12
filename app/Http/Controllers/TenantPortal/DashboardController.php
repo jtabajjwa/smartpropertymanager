@@ -60,4 +60,38 @@ class DashboardController extends Controller
             'credit' => $account->credit(),
         ]);
     }
+
+    /** The security deposit: what was paid, every time it was used (with receipts), refunds, and what is left. */
+    public function deposit(Request $request)
+    {
+        $tenant = $request->attributes->get('tenant');
+
+        $leases = \App\Models\Lease::where('tenant_id', $tenant->id)
+            ->with(['unit.estate', 'securityDepositLedgers' => fn ($q) => $q->orderBy('date')->orderBy('id')])
+            ->get()
+            ->filter(fn ($lease) => $lease->securityDepositLedgers->isNotEmpty() || (float) $lease->security_deposit > 0)
+            ->map(function ($lease) {
+                $running = 0.0;
+                $rows = $lease->securityDepositLedgers->map(function ($e) use (&$running) {
+                    $in = $e->type === 'deposit';
+                    $running += $in ? (float) $e->amount : -(float) $e->amount;
+
+                    return ['entry' => $e, 'in' => $in, 'balance' => $running];
+                });
+                $sum = fn (string $type) => (float) $lease->securityDepositLedgers->where('type', $type)->sum('amount');
+
+                return (object) [
+                    'lease' => $lease,
+                    'rows' => $rows,
+                    'agreed' => (float) $lease->security_deposit,
+                    'paid' => $sum('deposit'),
+                    'used' => $sum('deduction'),
+                    'refunded' => $sum('refund'),
+                    'kept' => $sum('forfeit'),
+                    'balance' => $running,
+                ];
+            })->values();
+
+        return view('tenant-portal.deposit', ['deposits' => $leases]);
+    }
 }

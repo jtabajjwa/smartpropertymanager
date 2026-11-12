@@ -202,14 +202,17 @@
                                         <td class="px-5 py-2.5 text-right font-medium {{ $entry->type === 'deposit' ? 'text-green-600' : 'text-red-600' }}">
                                             UGX {{ $entry->type === 'deposit' ? '+' : '-' }}{{ number_format($entry->amount, 0) }}
                                         </td>
-                                        <td class="px-5 py-2.5 text-gray-500 max-w-xs truncate">{{ $entry->notes ?? '--' }}</td>
+                                        <td class="px-5 py-2.5 text-gray-600 max-w-sm">
+                                            <span class="block truncate" title="{{ $entry->description() }}">{{ $entry->type === 'deduction' ? $entry->description() : ($entry->notes ?? '--') }}</span>
+                                            @include('security-deposit-ledgers.partials.links', ['entry' => $entry])
+                                        </td>
                                         <td class="px-5 py-2.5 text-right">
                                             @if($entry->type !== 'deposit')
                                                 <div class="flex items-center justify-end gap-2">
                                                     <x-dropdown align="right" width="48">
                                                         <x-slot name="content">
                                                             <button @click="edit({{ Js::from($entry->load('lease.tenant')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                                            <form action="{{ route('security-deposit-ledgers.destroy', $entry) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this entry?', $el)">
+                                                            <form action="{{ route('security-deposit-ledgers.destroy', $entry) }}" method="POST" @submit.prevent="$store.confirm.open({{ Js::from($entry->expense_id ? 'Delete this deduction? Its expense '.($entry->expense?->number ?? '').' is deleted too, and the amount goes back to the deposit.' : 'Delete this entry?') }}, $el)">
                                                                 @csrf
                                                                 @method('DELETE')
                                                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
@@ -234,13 +237,14 @@
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="min-w-0">
                                             <p class="text-sm font-medium text-gray-900">{{ $entry->date->format('M d, Y') }}</p>
-                                            <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $entry->notes ?? '--' }}</p>
+                                            <p class="mt-0.5 text-sm text-gray-600 break-words">{{ $entry->type === 'deduction' ? $entry->description() : ($entry->notes ?? '--') }}</p>
+                                            @include('security-deposit-ledgers.partials.links', ['entry' => $entry])
                                         </div>
                                         @if($entry->type !== 'deposit')
                                             <x-dropdown align="right" width="48">
                                                 <x-slot name="content">
                                                     <button @click="edit({{ Js::from($entry->load('lease.tenant')) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                                    <form action="{{ route('security-deposit-ledgers.destroy', $entry) }}" method="POST" @submit.prevent="$store.confirm.open('Delete this entry?', $el)">
+                                                    <form action="{{ route('security-deposit-ledgers.destroy', $entry) }}" method="POST" @submit.prevent="$store.confirm.open({{ Js::from($entry->expense_id ? 'Delete this deduction? Its expense '.($entry->expense?->number ?? '').' is deleted too, and the amount goes back to the deposit.' : 'Delete this entry?') }}, $el)">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
@@ -289,7 +293,9 @@
             <div x-data="{ show: false }" x-init="$nextTick(() => { show = true }); $watch('show', v => { if (!v) setTimeout(() => createModal = false, 300) })"
                @keydown.escape.window="createModal = false">
                 <x-modal title="Log Ledger Item" maxWidth="lg">
-                    <form action="{{ route('security-deposit-ledgers.store') }}" method="POST" class="space-y-5">
+                    <form action="{{ route('security-deposit-ledgers.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5"
+                          x-data="{ category: '{{ old('category', 'damage_repair') }}', recordExpense: true }"
+                          x-effect="recordExpense = {{ Js::from(\App\Models\SecurityDepositLedger::EXPENSE_CATEGORIES) }}.includes(category)">
                         @csrf
                         <div>
                             <x-label :required="true">Lease</x-label>
@@ -308,11 +314,45 @@
                         <div>
                             <x-label :required="true">Type</x-label>
                             <x-select name="type" required x-model="creating.type">
-                                <option value="deduction">Deduction</option>
-                                <option value="refund">Refund</option>
-                                <option value="forfeit">Forfeit</option>
+                                <option value="deduction">Deduction (use part or all of the deposit)</option>
+                                <option value="refund">Refund (give it back to the tenant)</option>
+                                <option value="forfeit">Forfeit (keep what is left)</option>
                             </x-select>
                         </div>
+                        <template x-if="creating.type === 'deduction'">
+                            <div class="space-y-5">
+                                <div>
+                                    <x-label :required="true">Used for</x-label>
+                                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                        @foreach(\App\Models\SecurityDepositLedger::CATEGORIES as $value => $label)
+                                            <label class="cursor-pointer">
+                                                <input type="radio" name="category" value="{{ $value }}" x-model="category" class="sr-only">
+                                                <span class="block rounded-xl border px-3 py-2 text-center text-xs font-medium transition" :class="category === '{{ $value }}' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'">{{ $label }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <div>
+                                    <x-label>Receipt or photo</x-label>
+                                    <input type="file" name="attachment" accept="image/*,application/pdf" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-orange-500/10 file:text-orange-600 hover:file:bg-orange-500/20 cursor-pointer" />
+                                    <p class="mt-1 text-xs text-gray-500">The tenant can see it in their portal. Images or PDF, up to 5 MB.</p>
+                                </div>
+                                <div class="rounded-xl border border-gray-200 p-3">
+                                    <label class="flex items-start gap-2 cursor-pointer">
+                                        <input type="checkbox" name="record_expense" value="1" x-model="recordExpense" class="mt-0.5 w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                        <span class="text-sm"><span class="font-medium text-gray-900">Also record the cost as an expense</span><span class="block text-xs text-gray-500">For a repair or cleaning you paid for. It shows in Expenses and your books, linked to this deduction.</span></span>
+                                    </label>
+                                    <div x-show="recordExpense" class="mt-3">
+                                        <x-label>Expense item</x-label>
+                                        <x-select name="expense_item_id">
+                                            @foreach($expenseItems as $item)
+                                                <option value="{{ $item->id }}" @selected($item->id === $repairItemId)>{{ $item->name }}</option>
+                                            @endforeach
+                                        </x-select>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                         <div>
                             <x-label :required="true">Amount</x-label>
                             <x-money-input name="amount" placeholder="0" required />
@@ -322,8 +362,9 @@
                             <x-input type="date" name="date" required />
                         </div>
                         <div>
-                            <x-label>Notes</x-label>
-                            <x-textarea name="notes" placeholder="Reason for deduction or refund..."></x-textarea>
+                            <x-label><span x-text="creating.type === 'deduction' ? 'What was it for?' : 'Notes'"></span><span x-show="creating.type === 'deduction'" class="text-red-500"> *</span></x-label>
+                            <x-textarea name="notes" x-bind:required="creating.type === 'deduction'" x-bind:placeholder="creating.type === 'deduction' ? 'e.g. Replaced the broken glass in the sitting room window' : 'Optional notes...'"></x-textarea>
+                            <p class="mt-1 text-xs text-gray-500" x-show="creating.type === 'deduction'">The tenant sees this, and gets an SMS with the amount and what is left.</p>
                         </div>
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>

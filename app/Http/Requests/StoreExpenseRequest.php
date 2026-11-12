@@ -22,6 +22,18 @@ class StoreExpenseRequest extends FormRequest
             'unit_id' => ['nullable', Rule::exists('units', 'id')->where('landlord_id', CurrentLandlord::id())],
             'amount' => 'required|numeric|min:0.01|max:99999999.99',
             'notes' => 'nullable|string|max:1000',
+            // Paid from a tenant's security deposit (see SecurityDeposits).
+            'paid_from_deposit' => 'nullable|boolean',
+            'deposit_lease_id' => ['required_if:paid_from_deposit,1', 'nullable', Rule::exists('leases', 'id')->where('landlord_id', CurrentLandlord::id())],
+            'deposit_category' => ['required_if:paid_from_deposit,1', 'nullable', Rule::in(array_keys(\App\Models\SecurityDepositLedger::CATEGORIES))],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'deposit_lease_id.required_if' => 'Choose whose security deposit paid for this.',
+            'deposit_category.required_if' => 'Choose why the deposit was used.',
         ];
     }
 }

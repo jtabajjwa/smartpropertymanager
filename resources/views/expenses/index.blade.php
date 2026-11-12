@@ -109,7 +109,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($expenses as $expense)
                                 <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $expense->number }}@if($expense->vendorJob)<span class="block text-xs font-normal text-gray-500">Job {{ $expense->vendorJob->number }}</span>@endif</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $expense->number }}@if($expense->vendorJob)<span class="block text-xs font-normal text-gray-500">Job {{ $expense->vendorJob->number }}</span>@endif<span class="block">@if($expense->depositDeduction)<span class="mt-0.5 inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-purple-700 ring-1 ring-inset ring-purple-200" title="Paid from this tenant's security deposit">From deposit · {{ $expense->depositDeduction->lease?->tenant?->name }}</span>@endif</span></td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->date->format('M d, Y') }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->expenseItem?->name ?? '--' }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-600">{{ $expense->estate?->name ?? '--' }}</td>
@@ -121,7 +121,7 @@
                                                 <x-slot name="content">
                                                     <button @click="view({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                                     <button @click="edit({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                                    <form action="{{ route('expenses.destroy', $expense) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this expense?', $el)">
+                                                    <form action="{{ route('expenses.destroy', $expense) }}" method="POST" @submit.prevent="$store.confirm.open({{ Js::from($expense->depositDeduction ? 'Delete this expense? It was paid from '.($expense->depositDeduction->lease?->tenant?->name ?? 'a tenant')."'s security deposit: the deduction is removed and the amount goes back to their deposit." : 'Are you sure you want to delete this expense?') }}, $el)">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
@@ -149,6 +149,7 @@
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
                                     <p class="text-sm font-medium text-gray-900 break-words">{{ $expense->number }}@if($expense->vendorJob) <span class="text-xs font-normal text-gray-500">· Job {{ $expense->vendorJob->number }}</span>@endif</p>
+                                    @if($expense->depositDeduction)<p class="mt-0.5 text-xs font-medium text-purple-700">From deposit · {{ $expense->depositDeduction->lease?->tenant?->name }}</p>@endif
                                     <p class="mt-0.5 text-sm text-gray-600">{{ $expense->date->format('M d, Y') }}</p>
                                     <p class="text-sm text-gray-600">{{ $expense->expenseItem?->name ?? '--' }}</p>
                                 </div>
@@ -156,7 +157,7 @@
                                     <x-slot name="content">
                                         <button @click="view({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 transition">View</button>
                                         <button @click="edit({{ Js::from($expense) }})" type="button" class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-gray-50 transition">Edit</button>
-                                        <form action="{{ route('expenses.destroy', $expense) }}" method="POST" @submit.prevent="$store.confirm.open('Are you sure you want to delete this expense?', $el)">
+                                        <form action="{{ route('expenses.destroy', $expense) }}" method="POST" @submit.prevent="$store.confirm.open({{ Js::from($expense->depositDeduction ? 'Delete this expense? It was paid from '.($expense->depositDeduction->lease?->tenant?->name ?? 'a tenant')."'s security deposit: the deduction is removed and the amount goes back to their deposit." : 'Are you sure you want to delete this expense?') }}, $el)">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition">Delete</button>
@@ -231,7 +232,7 @@
         <template x-if="createModal">
             <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) createModal = false })">
                 <x-modal title="Add Expense" maxWidth="lg">
-                    <form action="{{ route('expenses.store') }}" method="POST" class="space-y-5">
+                    <form action="{{ route('expenses.store') }}" method="POST" class="space-y-5" x-data="{ fromDeposit: false, depositLease: '', leases: {{ Js::from($depositLeases) }} }">
                         @csrf
                         <div>
                             <x-label :required="true">Date</x-label>
@@ -257,6 +258,35 @@
                             <x-label>Notes</x-label>
                             <x-textarea name="notes" placeholder="Optional notes..."></x-textarea>
                         </div>
+                        @if($depositLeases->isNotEmpty())
+                            <div class="rounded-xl border border-gray-200 p-3">
+                                <label class="flex items-start gap-2 cursor-pointer">
+                                    <input type="checkbox" name="paid_from_deposit" value="1" x-model="fromDeposit" class="mt-0.5 w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                    <span class="text-sm"><span class="font-medium text-gray-900">Paid from a tenant's security deposit</span><span class="block text-xs text-gray-500">E.g. a window the tenant broke. The amount comes off their deposit and they see what it was used for.</span></span>
+                                </label>
+                                <div x-show="fromDeposit" x-cloak class="mt-3 space-y-3">
+                                    <div>
+                                        <x-label :required="true">Whose deposit</x-label>
+                                        <x-select name="deposit_lease_id" x-model="depositLease" x-bind:required="fromDeposit">
+                                            <option value="">Choose a tenant…</option>
+                                            @foreach($depositLeases as $leaseId => $lease)
+                                                <option value="{{ $leaseId }}">{{ $lease['label'] }}</option>
+                                            @endforeach
+                                        </x-select>
+                                        <p class="mt-1 text-xs text-orange-700" x-show="depositLease && leases[depositLease]" x-text="leases[depositLease] ? 'Up to UGX ' + Number(leases[depositLease].balance).toLocaleString() + ' can come from this deposit.' : ''"></p>
+                                    </div>
+                                    <div>
+                                        <x-label :required="true">Used for</x-label>
+                                        <x-select name="deposit_category">
+                                            @foreach(\App\Models\SecurityDepositLedger::CATEGORIES as $value => $label)
+                                                <option value="{{ $value }}">{{ $label }}</option>
+                                            @endforeach
+                                        </x-select>
+                                    </div>
+                                    <p class="text-xs text-gray-500">Describe the work in Notes: the tenant sees it.</p>
+                                </div>
+                            </div>
+                        @endif
                         <div class="flex justify-end gap-3 pt-2">
                             <x-button variant="secondary" type="button" @click="createModal = false">Cancel</x-button>
                             <x-button>Save Expense</x-button>

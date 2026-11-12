@@ -78,10 +78,10 @@
                 <p class="text-[11px] uppercase tracking-wide text-gray-500">Open issues</p>
                 <p class="mt-1 text-xl font-bold {{ $openIssues ? 'text-orange-600' : 'text-gray-900' }}">{{ $openIssues }}</p>
             </a>
-            <div class="bg-white rounded-2xl border border-gray-200 p-3.5">
+            <a href="{{ route('tenant.deposit') }}" class="bg-white rounded-2xl border border-gray-200 p-3.5">
                 <p class="text-[11px] uppercase tracking-wide text-gray-500">Deposit held</p>
                 <p class="mt-1 text-base font-bold text-gray-900 leading-7">{{ number_format($deposit) }}</p>
-            </div>
+            </a>
         </div>
 
         {{-- KPI strip (desktop) --}}
@@ -109,7 +109,7 @@
             <div class="rounded-2xl bg-white border border-gray-200 p-5 shadow-sm">
                 <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Paid in advance</p>
                 <p class="mt-2 text-2xl font-bold {{ $credit > 0 ? 'text-green-700' : 'text-gray-900' }}">{{ $ugx($credit) }}</p>
-                <p class="mt-1 text-xs text-gray-500">Deposit held: {{ $ugx($deposit) }}</p>
+                <p class="mt-1 text-xs text-gray-500">Deposit held: <a href="{{ route('tenant.deposit') }}" class="font-medium text-orange-600 hover:text-orange-700">{{ $ugx($deposit) }}</a></p>
             </div>
             <a href="{{ route('tenant.issues.index') }}" class="rounded-2xl bg-white border border-gray-200 p-5 shadow-sm hover:border-orange-300 transition">
                 <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Open issues</p>

@@ -8,6 +8,7 @@
         'pay' => 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z',
         'invoices' => 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
         'payments' => 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+        'deposit' => 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
         'issues' => 'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085',
     ];
     // [route, label, icon, also active on]
@@ -17,6 +18,7 @@
         ['tenant.invoices', 'Invoices', 'invoices', []],
         ['tenant.payments', 'Payments', 'payments', []],
         ['tenant.issues.index', 'Issues', 'issues', ['tenant.issues.*']],
+        ['tenant.deposit', 'Deposit', 'deposit', []],
     ];
     // Phones: four tabs; Payments sits under Invoices.
     $tabs = [$nav[0], $nav[1], [$nav[2][0], $nav[2][1], $nav[2][2], ['tenant.payments']], $nav[4]];
@@ -151,6 +153,7 @@
                     </button>
                     <div x-show="open" x-cloak @click.outside="open = false" class="absolute right-0 mt-2 w-56 rounded-xl bg-white text-gray-700 shadow-lg ring-1 ring-gray-200 py-1 text-sm">
                         <a href="{{ route('tenant.payments') }}" class="block px-4 py-2 hover:bg-gray-50">My payments</a>
+                        <a href="{{ route('tenant.deposit') }}" class="block px-4 py-2 hover:bg-gray-50">My deposit</a>
                         @if(($portalAccounts ?? 0) > 1)
                             <a href="{{ route('tenant.accounts') }}" class="block px-4 py-2 hover:bg-gray-50">Switch tenancy</a>
                         @endif

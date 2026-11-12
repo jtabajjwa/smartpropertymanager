@@ -57,4 +57,10 @@ class Expense extends Model
     {
         return $this->hasOne(VendorJob::class);
     }
+
+    /** The tenant's security deposit deduction that paid for this, if any. */
+    public function depositDeduction(): HasOne
+    {
+        return $this->hasOne(SecurityDepositLedger::class, 'expense_id');
+    }
 }

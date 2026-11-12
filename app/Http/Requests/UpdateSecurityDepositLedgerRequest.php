@@ -21,6 +21,7 @@ class UpdateSecurityDepositLedgerRequest extends FormRequest
             'type' => ['sometimes', 'required', Rule::in(['refund', 'deduction', 'forfeit'])],
             'amount' => 'sometimes|required|numeric|min:0.01|max:99999999.99',
             'notes' => 'nullable|string|max:1000',
+            'category' => ['nullable', Rule::in(array_keys(\App\Models\SecurityDepositLedger::CATEGORIES))],
         ];
     }
 }

@@ -119,8 +119,8 @@ class SmsNotificationService
         if (! $tenant?->primary_phone) return;
 
         $app = config('app.name');
-        $notes = $entry->notes ? " Reason: {$entry->notes}." : '';
-        $message = "Dear {$tenant->name}, UGX " . number_format((float) $entry->amount) . " deducted from your security deposit.{$notes} Remaining: UGX " . number_format($remainingBalance) . ". - {$app}";
+        $notes = $entry->notes || $entry->category ? ' For: '.rtrim($entry->description(), '.').'.' : '';
+        $message = "Dear {$tenant->name}, UGX " . number_format((float) $entry->amount) . " deducted from your security deposit.{$notes} Remaining: UGX " . number_format($remainingBalance) . ". Details in your tenant portal. - {$app}";
 
         // Truncate if too long (notes can push it over)
         $message = mb_substr($message, 0, 320);

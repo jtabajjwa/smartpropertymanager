@@ -25,6 +25,7 @@ Route::prefix('tenant')->name('tenant.')->group(function () {
         Route::get('/', [$D, 'index'])->name('dashboard');
         Route::get('invoices', [$D, 'invoices'])->name('invoices');
         Route::get('payments', [$D, 'payments'])->name('payments');
+        Route::get('deposit', [$D, 'deposit'])->name('deposit');
 
         $Doc = TenantPortal\DocumentController::class;
         Route::get('invoices/{invoice}/pdf', [$Doc, 'invoice'])->whereNumber('invoice')->name('invoices.pdf');

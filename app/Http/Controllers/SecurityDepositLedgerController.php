@@ -7,6 +7,8 @@ use App\Http\Requests\StoreSecurityDepositLedgerRequest;
 use App\Http\Requests\UpdateSecurityDepositLedgerRequest;
 use App\Models\Lease;
 use App\Models\SecurityDepositLedger;
+use App\Services\DepositException;
+use App\Services\SecurityDeposits;
 use App\Services\SmsNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,7 @@ class SecurityDepositLedgerController extends Controller
 {
     public function index()
     {
-        $query = Lease::with(['tenant', 'unit.estate', 'securityDepositLedgers' => fn ($q) => $q->orderBy('date')])
+        $query = Lease::with(['tenant', 'unit.estate', 'securityDepositLedgers' => fn ($q) => $q->with('expense:id,number')->orderBy('date')->orderBy('id')])
             ->has('securityDepositLedgers');
 
         if (request('tenant_id')) {
@@ -93,7 +95,10 @@ class SecurityDepositLedgerController extends Controller
             'balance' => (float) bcsub(bcsub(bcsub((string) $totalsRaw->deposit, (string) $totalsRaw->deductions, 2), (string) $totalsRaw->refunds, 2), (string) $totalsRaw->forfeits, 2),
         ];
 
-        return view('security-deposit-ledgers.index', compact('leaseDeposits', 'leases', 'totals'));
+        $expenseItems = \App\Models\ExpenseItems::orderBy('name')->get(['id', 'name']);
+        $repairItemId = $expenseItems->first(fn ($i) => str_contains(mb_strtolower($i->name), 'repair'))?->id ?? $expenseItems->first()?->id;
+
+        return view('security-deposit-ledgers.index', compact('leaseDeposits', 'leases', 'totals', 'expenseItems', 'repairItemId'));
     }
 
     public function export(Request $request)
@@ -101,38 +106,41 @@ class SecurityDepositLedgerController extends Controller
         return (new SecurityDepositsExport($request))->download('security-deposits.csv');
     }
 
-    public function store(StoreSecurityDepositLedgerRequest $request)
+    public function store(StoreSecurityDepositLedgerRequest $request, SecurityDeposits $deposits)
     {
         $amount = (string) $request->amount;
 
-        try {
-            $result = DB::transaction(function () use ($request, $amount) {
-                // Lock all ledger entries for this lease to prevent concurrent over-deduction
-                $leaseEntries = SecurityDepositLedger::where('lease_id', $request->lease_id)->lockForUpdate()->get();
+        // Using the deposit to pay for something: reason, receipt, and (optionally) the expense.
+        if ($request->type === 'deduction') {
+            try {
+                $result = $deposits->deduct(
+                    Lease::with('tenant')->findOrFail($request->lease_id), $amount, $request->date, $request->category, $request->notes,
+                    $request->file('attachment'), $request->boolean('record_expense') ? (int) $request->expense_item_id : null,
+                );
+            } catch (DepositException $e) {
+                return redirect()->back()->withInput()->with('error', $e->getMessage());
+            }
 
-                $deposit = (string) $leaseEntries->where('type', 'deposit')->sum('amount');
-                $deductions = (string) $leaseEntries->where('type', 'deduction')->sum('amount');
-                $refunds = (string) $leaseEntries->where('type', 'refund')->sum('amount');
-                $forfeits = (string) $leaseEntries->where('type', 'forfeit')->sum('amount');
-                $balance = bcsub(bcsub(bcsub($deposit, $deductions, 2), $refunds, 2), $forfeits, 2);
+            app(SmsNotificationService::class)->depositDeduction($result['entry']->load('lease.tenant'), $result['remaining']);
+
+            return redirect()->back()->with('success', 'Deduction recorded'.($result['entry']->expense_id ? ' and added to your expenses' : '').'. The tenant can see it in their portal.');
+        }
+
+        try {
+            $result = DB::transaction(function () use ($request, $amount, $deposits) {
+                $balance = $deposits->balance((int) $request->lease_id, true);
 
                 if (bccomp($amount, $balance, 2) > 0) {
                     throw new \Exception('Amount (UGX '.number_format((float) $amount).') exceeds available deposit balance (UGX '.number_format((float) $balance).').');
                 }
 
-                $entry = SecurityDepositLedger::create($request->validated());
-                $remainingBalance = (float) bcsub($balance, $amount, 2);
+                $entry = SecurityDepositLedger::create($request->safe()->only(['date', 'lease_id', 'type', 'amount', 'notes']));
 
-                return ['entry' => $entry, 'remaining' => $remainingBalance];
+                return ['entry' => $entry, 'remaining' => (float) bcsub($balance, $amount, 2)];
             });
 
-            $entry = $result['entry']->load('lease.tenant');
-            $sms = app(SmsNotificationService::class);
-
-            if ($entry->type === 'deduction') {
-                $sms->depositDeduction($entry, $result['remaining']);
-            } elseif ($entry->type === 'refund') {
-                $sms->depositRefund($entry, $result['remaining']);
+            if ($result['entry']->type === 'refund') {
+                app(SmsNotificationService::class)->depositRefund($result['entry']->load('lease.tenant'), $result['remaining']);
             }
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
@@ -167,7 +175,12 @@ class SecurityDepositLedgerController extends Controller
                     throw new \Exception('Amount exceeds available deposit balance (UGX '.number_format((float) $balance).').');
                 }
 
+                if ($securityDepositLedger->expense_id && $request->input('type', 'deduction') !== 'deduction') {
+                    throw new \Exception('This deduction paid for an expense, so it must stay a deduction. Delete it instead.');
+                }
+
                 $securityDepositLedger->update($request->validated());
+                app(SecurityDeposits::class)->syncToExpense($securityDepositLedger->fresh('expense'));
             });
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
@@ -182,10 +195,9 @@ class SecurityDepositLedgerController extends Controller
             return redirect()->back()->with('error', 'Deposit entries are system-managed and cannot be deleted.');
         }
 
-        DB::transaction(function () use ($securityDepositLedger) {
-            $securityDepositLedger->delete();
-        });
+        $hadExpense = (bool) $securityDepositLedger->expense_id;
+        app(SecurityDeposits::class)->deleteTogether($securityDepositLedger, null);
 
-        return redirect()->back()->with('success', 'Ledger entry deleted successfully.');
+        return redirect()->back()->with('success', $hadExpense ? 'Deduction and its expense deleted.' : 'Ledger entry deleted successfully.');
     }
 }
