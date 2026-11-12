@@ -2,8 +2,18 @@
     <x-slot name="header">SMS Logs</x-slot>
 
     <div class="max-w-7xl mx-auto space-y-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 class="text-2xl font-bold text-gray-900">SMS Logs</h1>
+            @if($resendable->n > 0)
+                <form method="POST" action="{{ route('sms-logs.resend-failed') }}"
+                      @submit.prevent="$store.confirm.open('Resend {{ number_format($resendable->n) }} failed SMS from the last {{ \App\Models\SmsLog::RESEND_DAYS }} days? It uses about {{ number_format($resendable->credits) }} SMS {{ Str::plural('credit', $resendable->credits) }}; you have {{ number_format($balance) }}.', $el)">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-700">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                        Resend all failed ({{ number_format($resendable->n) }})
+                    </button>
+                </form>
+            @endif
         </div>
 
         <!-- Stats Cards -->
@@ -13,7 +23,7 @@
                 <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($stats->sent) }}</p>
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
-                <p class="text-xs text-gray-500 uppercase tracking-wider">Failed</p>
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Failed, not resent</p>
                 <p class="text-2xl font-bold text-red-600 mt-1">{{ number_format($stats->failed) }}</p>
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
@@ -91,6 +101,7 @@
                             <th class="px-5 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
                             <th class="px-5 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Message</th>
                             <th class="px-5 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-3"></th>
                         </tr>
                     </thead>
                     @forelse($logs as $log)
@@ -140,9 +151,10 @@
                                         <x-badge color="red">Failed</x-badge>
                                     @endif
                                 </td>
+                                <td class="px-5 py-3 text-right whitespace-nowrap" @click.stop>@include('sms-logs.partials.resend', ['log' => $log])</td>
                             </tr>
                             <tr x-show="expanded" x-cloak class="bg-gray-50">
-                                <td colspan="6" class="px-5 py-4">
+                                <td colspan="7" class="px-5 py-4">
                                     <div class="space-y-2 max-w-2xl">
                                         <div class="flex items-start gap-3 text-xs">
                                             <span class="font-medium text-gray-600 w-24 shrink-0">Message</span>
@@ -171,7 +183,7 @@
                     @empty
                         <tbody>
                             <tr>
-                                <td colspan="6" class="px-5 py-12 text-center text-gray-500">No SMS logs found.</td>
+                                <td colspan="7" class="px-5 py-12 text-center text-gray-500">No SMS logs found.</td>
                             </tr>
                         </tbody>
                     @endforelse
@@ -230,6 +242,7 @@
                             </div>
                             <p class="mt-3 text-sm text-gray-600">{{ Str::limit($log->message, 60) }}</p>
                         </div>
+                        <div class="mt-2" @click.stop>@include('sms-logs.partials.resend', ['log' => $log])</div>
                         <div x-show="expanded" x-cloak class="mt-3 pt-3 border-t border-gray-100 space-y-2">
                             <div class="flex items-start gap-3 text-xs">
                                 <span class="font-medium text-gray-600 w-20 shrink-0">Message</span>

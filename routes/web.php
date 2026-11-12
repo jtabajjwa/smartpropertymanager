@@ -108,6 +108,8 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
     Route::middleware('admin')->group(function () {
         Route::get('audits', [\App\Http\Controllers\AuditController::class, 'index'])->middleware('feature:audit_log')->name('audits.index');
         Route::get('sms-logs', [\App\Http\Controllers\SmsLogController::class, 'index'])->name('sms-logs.index');
+        Route::post('sms-logs/resend-failed', [\App\Http\Controllers\SmsLogController::class, 'resendFailed'])->middleware('throttle:5,1')->name('sms-logs.resend-failed');
+        Route::post('sms-logs/{smsLog}/resend', [\App\Http\Controllers\SmsLogController::class, 'resend'])->middleware('throttle:30,1')->name('sms-logs.resend');
         Route::get('bulk-sms', [\App\Http\Controllers\SmsBroadcastController::class, 'index'])->name('sms-broadcasts.index');
         Route::get('bulk-sms/new', [\App\Http\Controllers\SmsBroadcastController::class, 'create'])->name('sms-broadcasts.create');
         Route::post('bulk-sms', [\App\Http\Controllers\SmsBroadcastController::class, 'store'])->middleware('throttle:10,1')->name('sms-broadcasts.store');

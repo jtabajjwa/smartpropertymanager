@@ -21,7 +21,37 @@ class SmsLog extends Model
         'reference_id',
         'status',
         'error',
+        'resent_log_id',
+        'resent_at',
     ];
+
+    /** Not sent, for a reason a resend can fix. */
+    public const NOT_SENT = ['failed', 'no_credit', 'read_only'];
+
+    /** How far back "Resend all failed" reaches: older messages are usually out of date. */
+    public const RESEND_DAYS = 30;
+
+    protected function casts(): array
+    {
+        return ['resent_at' => 'datetime'];
+    }
+
+    public function resentAs(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'resent_log_id');
+    }
+
+    public function canResend(): bool
+    {
+        return in_array($this->status, self::NOT_SENT, true) && $this->resent_at === null;
+    }
+
+    /** Failed messages still waiting for a resend, from the last RESEND_DAYS days. */
+    public function scopeResendable($query)
+    {
+        return $query->whereIn('status', self::NOT_SENT)->whereNull('resent_at')
+            ->where('created_at', '>=', now()->subDays(self::RESEND_DAYS));
+    }
 
     public function tenant(): BelongsTo
     {

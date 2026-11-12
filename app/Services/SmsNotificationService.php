@@ -167,6 +167,42 @@ class SmsNotificationService
         $this->sendAndLog($phone, $message, $tenantId, 'upcoming_reminder', 'Invoice', $invoice->id);
     }
 
+    /**
+     * Send a failed SMS again (same number and message), as a new log row paid
+     * from the landlord's credit. The original then points at the new attempt,
+     * so it is only ever resent once. Returns the new log, or null if it was
+     * already resent.
+     */
+    public function resend(SmsLog $log): ?SmsLog
+    {
+        $claimed = \Illuminate\Support\Facades\DB::transaction(function () use ($log) {
+            $fresh = SmsLog::whereKey($log->id)->lockForUpdate()->first();
+            if (!$fresh || !$fresh->canResend()) {
+                return false;
+            }
+            $fresh->update(['resent_at' => now()]); // claim it
+
+            return true;
+        });
+        if (!$claimed) {
+            return null;
+        }
+
+        $new = $this->sendAndLog($log->phone, $log->message, $log->tenant_id, $log->notification_type, $log->reference_type, $log->reference_id);
+        $log->forceFill(['resent_log_id' => $new?->id, 'resent_at' => now()])->save();
+
+        // Keep a bulk SMS's totals right.
+        if ($new?->status === 'sent' && $log->reference_type === 'SmsBroadcast') {
+            \App\Models\SmsBroadcast::whereKey($log->reference_id)->where('failed_count', '>', 0)->update([
+                'sent_count' => \Illuminate\Support\Facades\DB::raw('sent_count + 1'),
+                'failed_count' => \Illuminate\Support\Facades\DB::raw('failed_count - 1'),
+                'credits_used' => \Illuminate\Support\Facades\DB::raw('credits_used + '.(int) $new->credits_charged),
+            ]);
+        }
+
+        return $new;
+    }
+
     /** One message of a landlord's bulk SMS (see SmsBroadcasts). Returns its log row. */
     public function broadcast(string $phone, string $message, int $tenantId, int $broadcastId): ?SmsLog
     {
@@ -178,7 +214,7 @@ class SmsNotificationService
      * credits (one credit per 160-character part). No credit, no SMS: it is
      * logged as "no_credit" instead. Credit is returned if the send fails.
      */
-    protected function sendAndLog(string $phone, string $message, ?int $tenantId, string $type, string $refType, int $refId): ?SmsLog
+    protected function sendAndLog(string $phone, string $message, ?int $tenantId, string $type, ?string $refType, ?int $refId): ?SmsLog
     {
         $message = mb_substr($message, 0, 320); // what SmsService actually sends
         $segments = SmsSegments::count($message);
