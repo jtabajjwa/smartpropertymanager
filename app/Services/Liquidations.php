@@ -89,24 +89,7 @@ class Liquidations
             // One request at a time per landlord, so two can't spend the same balance.
             Landlord::whereKey($landlord->id)->lockForUpdate()->first();
 
-            if ($account->landlord_id !== $landlord->id || !$account->isUsable()) {
-                throw new LiquidationException('Choose a verified payout account.');
-            }
-            if ($amount < self::MIN_AMOUNT) {
-                throw new LiquidationException('The smallest payout is UGX '.number_format(self::MIN_AMOUNT).'.');
-            }
-            $available = $this->available($landlord->id);
-            if ($amount > $available) {
-                throw new LiquidationException('That is more than your available balance of UGX '.number_format($available).'.');
-            }
-
-            $quote = $this->quote($account->type, $amount);
-            if ($quote['net'] <= 0) {
-                throw new LiquidationException('That amount does not cover the transfer charge of UGX '.number_format($quote['fee']).'.');
-            }
-            if ($account->type === 'mobile_money' && $quote['net'] > self::MOBILE_MONEY_MAX) {
-                throw new LiquidationException('Mobile money payouts are limited to UGX '.number_format(self::MOBILE_MONEY_MAX).' each. Request a smaller amount or use a bank account.');
-            }
+            $quote = $this->check($landlord, $account, $amount);
 
             return Liquidation::create([
                 'reference' => $this->newReference(),
@@ -124,8 +107,42 @@ class Liquidations
         });
 
         $this->notifyApprovers($liquidation->load('landlord'));
+        $this->notifyLandlord($liquidation, 'received');
 
         return $liquidation;
+    }
+
+    /**
+     * Would this request be accepted right now? Returns the quote (fee, net) or
+     * throws. request() runs it again under a lock; the landlord's screen runs it
+     * first so a code isn't sent for a request that can't go through.
+     *
+     * @return array{fee: float, net: float}
+     */
+    public function check(Landlord $landlord, PayoutAccount $account, float $amount): array
+    {
+        $amount = round($amount);
+
+        if ($account->landlord_id !== $landlord->id || !$account->isUsable()) {
+            throw new LiquidationException('Choose a verified payout account.');
+        }
+        if ($amount < self::MIN_AMOUNT) {
+            throw new LiquidationException('The smallest payout is UGX '.number_format(self::MIN_AMOUNT).'.');
+        }
+        $available = $this->available($landlord->id);
+        if ($amount > $available) {
+            throw new LiquidationException('That is more than your available balance of UGX '.number_format($available).'.');
+        }
+
+        $quote = $this->quote($account->type, $amount);
+        if ($quote['net'] <= 0) {
+            throw new LiquidationException('That amount does not cover the transfer charge of UGX '.number_format($quote['fee']).'.');
+        }
+        if ($account->type === 'mobile_money' && $quote['net'] > self::MOBILE_MONEY_MAX) {
+            throw new LiquidationException('Mobile money payouts are limited to UGX '.number_format(self::MOBILE_MONEY_MAX).' each. Request a smaller amount or use a bank account.');
+        }
+
+        return $quote;
     }
 
     public function cancel(Liquidation $liquidation): void
@@ -371,6 +388,28 @@ class Liquidations
         $landlord = $l->landlord;
         $emails = User::where('landlord_id', $landlord->id)->where('role', 'admin')->where('is_active', true)->pluck('email')
             ->push($landlord->contact_email)->filter()->unique()->values()->all();
+
+        $ugx = fn ($v) => 'UGX '.number_format((float) $v);
+
+        if ($what === 'received') {
+            $by = $l->requestedBy?->name;
+            $this->send($emails, new NoticeMail(
+                subject: "Payout request {$l->reference} received: {$ugx($l->amount)}",
+                heading: 'We have received your payout request',
+                lines: array_values(array_filter([
+                    ($by ? "{$by} requested" : 'You requested')." a payout of {$ugx($l->amount)} on ".$l->created_at->format('d M Y 	 H:i').'.',
+                    "Reference: {$l->reference}",
+                    'Pay to: '.$l->destinationSummary(),
+                    'Transfer charge: '.$ugx($l->fee).' · you will receive: '.$ugx($l->net_amount),
+                    'Primora administration will review and approve it, then send the money. We will email you again once it has been sent.',
+                    "If you didn't make this request, cancel it from Payouts straight away and change your password.",
+                ])),
+                actionText: 'View payouts',
+                actionUrl: route('payouts.index'),
+            ));
+
+            return;
+        }
 
         $mail = $what === 'completed'
             ? new NoticeMail(

@@ -121,6 +121,7 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('liquidations/{id}/complete-bank', [$Liq, 'completeBank'])->whereNumber('id')->middleware('staff.can:liquidations.execute')->name('liquidations.complete-bank');
         Route::post('liquidations/{id}/check', [$Liq, 'check'])->whereNumber('id')->middleware(['staff.can:liquidations.view', 'throttle:20,1'])->name('liquidations.check');
         Route::get('payout-accounts', [$Liq, 'accounts'])->middleware('staff.can:liquidations.view')->name('payout-accounts.index');
+        Route::put('payout-accounts/settings', [$Liq, 'updateAccountSettings'])->middleware('staff.can:liquidations.approve')->name('payout-accounts.settings.update');
         Route::post('payout-accounts/{id}/verify', [$Liq, 'verifyAccount'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('payout-accounts.verify');
         Route::post('payout-accounts/{id}/reject', [$Liq, 'rejectAccount'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('payout-accounts.reject');
         Route::post('payout-accounts/{id}/yo-register', [$Liq, 'registerWithYo'])->whereNumber('id')->middleware(['staff.can:liquidations.approve', 'throttle:10,1'])->name('payout-accounts.yo-register');

@@ -3,7 +3,7 @@
 
 @php $b = $balance ?? \App\Services\AccountBalances::EMPTY; @endphp
 
-<div {{ $attributes->merge(['class' => 'text-sm tabular-nums']) }}>
+<div {{ $attributes->merge(['class' => 'text-sm tabular-nums whitespace-nowrap']) }}>
     @if($b['owed'] > 0)
         <span class="font-medium text-orange-600">UGX {{ number_format($b['owed']) }}</span>
         @if($b['overdue'] > 0)

@@ -4,6 +4,25 @@
     <div class="max-w-7xl mx-auto space-y-6">
         @include('staff.liquidations._nav')
 
+        {{-- Limits on landlords' payout accounts (see PayoutAccount::mobileMoneyLimit) --}}
+        @php $canSet = auth('staff')->user()?->hasPermission('liquidations.approve'); @endphp
+        <form method="POST" action="{{ route('staff.payout-accounts.settings.update') }}" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-wrap items-end gap-4">
+            @csrf
+            @method('PUT')
+            <div class="min-w-[220px] flex-1">
+                <p class="text-sm font-semibold text-gray-900">Mobile money limit</p>
+                <p class="mt-0.5 text-xs text-gray-500">The most mobile money numbers a landlord can have awaiting verification or verified. Rejected and removed numbers don't count. Bank accounts aren't limited.</p>
+            </div>
+            <div class="w-40">
+                <x-label>Numbers per landlord</x-label>
+                <x-input type="number" name="max_mobile_money_accounts" min="1" max="20" value="{{ old('max_mobile_money_accounts', $mobileLimit) }}" :disabled="!$canSet" />
+                @error('max_mobile_money_accounts')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+            @if($canSet)
+                <x-button type="submit">Save</x-button>
+            @endif
+        </form>
+
         <div class="flex flex-wrap gap-2">
             @foreach(\App\Models\PayoutAccount::STATUSES as $key => [$label])
                 <a href="{{ route('staff.payout-accounts.index', ['status' => $key]) }}" class="rounded-xl border px-3 py-1.5 text-sm font-medium transition {{ $status === $key ? 'bg-navy-800 border-navy-800 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-orange-300' }}">

@@ -68,6 +68,12 @@
                               fmt(n) { return Number(n).toLocaleString('en-US') },
                           }" @submit="busy = true">
                         @csrf
+                        @error('request')
+                            <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span>{{ $message }}</span>
+                            </div>
+                        @enderror
                         <div>
                             <x-label :required="true">Pay to</x-label>
                             <x-select name="payout_account_id" x-model="accountId">
@@ -98,13 +104,13 @@
                         <div class="sm:w-1/2">
                             <x-label :required="true">Your password</x-label>
                             <x-input type="password" name="password" autocomplete="current-password" required />
-                            <p class="mt-1 text-xs text-gray-500">To confirm it's you.</p>
+                            <p class="mt-1 text-xs text-gray-500">To confirm it's you. Next, we'll send a code to {{ $codeDestinations ?: 'your email' }}.</p>
                             @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div class="flex justify-end">
                             <x-button type="submit" x-bind:disabled="busy || Number(amount) < {{ $min }} || Number(amount) > available || net <= 0">
-                                <span x-show="!busy">Request payout</span>
-                                <span x-show="busy" x-cloak>Sending…</span>
+                                <span x-show="!busy">Continue</span>
+                                <span x-show="busy" x-cloak>Checking…</span>
                             </x-button>
                         </div>
                     </form>
@@ -165,7 +171,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach($payouts as $p)
-                                <tr>
+                                <tr class="{{ $received && $received->id === $p->id ? 'bg-green-50/60' : '' }}">
                                     <td class="px-5 py-3 whitespace-nowrap">
                                         <span class="text-gray-900">{{ $p->created_at->format('d M Y') }}</span>
                                         <span class="block text-xs font-mono text-gray-400">{{ $p->reference }}</span>
@@ -226,6 +232,13 @@
                                     <x-label :required="true">MTN or Airtel number</x-label>
                                     <x-input name="msisdn" type="tel" value="{{ old('msisdn') }}" placeholder="0772 123 456" />
                                     @error('msisdn')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                                    <p class="mt-1 text-xs {{ $mobileInUse >= $mobileLimit ? 'text-red-600' : 'text-gray-500' }}">
+                                        @if($mobileInUse >= $mobileLimit)
+                                            You already have {{ $mobileInUse }} of {{ $mobileLimit }} mobile money {{ \Illuminate\Support\Str::plural('number', $mobileLimit) }}. Remove one to add another, or add a bank account.
+                                        @else
+                                            {{ $mobileInUse }} of {{ $mobileLimit }} mobile money {{ \Illuminate\Support\Str::plural('number', $mobileLimit) }} used.
+                                        @endif
+                                    </p>
                                 </div>
                             </template>
                             <template x-if="type === 'bank'">
@@ -259,15 +272,125 @@
                                 <x-input type="password" name="password" autocomplete="current-password" required />
                                 @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                             </div>
-                            <p class="text-xs text-gray-500">Primora verifies new accounts before any money can be sent to them. Your administrators are emailed whenever an account is added.</p>
+                            <p class="text-xs text-gray-500">Next, we'll send a confirmation code to {{ $codeDestinations ?: 'your email' }}. Primora then verifies the account before any money can be sent to it, and your administrators are emailed whenever one is added.</p>
                             <div class="flex justify-end gap-3 pt-2">
                                 <button type="button" @click="show = false" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</button>
-                                <x-button type="submit">Add account</x-button>
+                                <x-button type="submit">Continue</x-button>
                             </div>
                         </form>
                     </x-modal>
                 </div>
             </template>
+
+            {{-- Confirm a payout request with the code sent to the user (second factor) --}}
+            @if($pendingPayout)
+                <div x-data="{ show: false, busy: false }" x-init="$nextTick(() => show = true)">
+                    <x-modal title="Confirm your payout request" maxWidth="md">
+                        <div class="space-y-4">
+                            <div class="rounded-xl bg-gray-50 border border-gray-100 p-4 text-sm">
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Pay to</p>
+                                <p class="mt-0.5 font-medium text-gray-900">{{ $pendingPayout['summary'] }}</p>
+                                <div class="mt-3 flex justify-between text-gray-600"><span>Amount</span><span>{{ $ugx($pendingPayout['amount']) }}</span></div>
+                                <div class="mt-1 flex justify-between text-gray-600"><span>Transfer charge</span><span>− {{ $ugx($pendingPayout['fee']) }}</span></div>
+                                <div class="mt-2 pt-2 border-t border-gray-200 flex justify-between font-semibold text-gray-900"><span>You'll receive</span><span>{{ $ugx($pendingPayout['net']) }}</span></div>
+                            </div>
+                            <p class="text-sm text-gray-600">Enter the 6-digit code we sent to <span class="font-medium text-gray-900">{{ $codeDestinations }}</span>. It expires in {{ \App\Services\ActionCodes::CODE_MINUTES }} minutes.</p>
+                            <form method="POST" action="{{ route('payouts.confirm') }}" class="space-y-4" @submit="busy = true">
+                                @csrf
+                                <div>
+                                    <x-label :required="true">Confirmation code</x-label>
+                                    <x-input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="123456" class="text-center text-lg tracking-[0.4em]" required autofocus />
+                                    @error('code')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                                </div>
+                                <x-button type="submit" class="w-full justify-center" x-bind:disabled="busy">
+                                    <span x-show="!busy">Confirm and send request</span>
+                                    <span x-show="busy" x-cloak>Sending to Primora…</span>
+                                </x-button>
+                            </form>
+                            <div class="flex items-center justify-between text-sm">
+                                <form method="POST" action="{{ route('payouts.resend') }}">
+                                    @csrf
+                                    <button type="submit" class="font-medium text-orange-600 hover:text-orange-700">Send a new code</button>
+                                </form>
+                                <form method="POST" action="{{ route('payouts.cancel-pending') }}">
+                                    @csrf
+                                    <button type="submit" class="text-gray-500 hover:text-gray-800">Cancel</button>
+                                </form>
+                            </div>
+                            <p class="text-xs text-gray-500">Didn't ask for this? Cancel, and change your password straight away.</p>
+                        </div>
+                    </x-modal>
+                </div>
+            @endif
+
+            {{-- Request received: what was sent, and what happens next --}}
+            @if($received)
+                <div x-data="{ show: false }" x-init="$nextTick(() => show = true)">
+                    <x-modal title="Payout request received" maxWidth="md">
+                        <div class="space-y-5">
+                            <div class="flex flex-col items-center text-center">
+                                <span class="flex h-14 w-14 items-center justify-center rounded-full bg-green-50 ring-8 ring-green-50/50">
+                                    <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </span>
+                                <p class="mt-3 text-2xl font-bold text-gray-900">{{ $ugx($received->net_amount) }}</p>
+                                <p class="text-sm text-gray-500">to {{ $received->destinationSummary() }}</p>
+                                <p class="mt-2 rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-xs text-gray-600">{{ $received->reference }}</p>
+                            </div>
+                            <ol class="space-y-3 text-sm">
+                                <li class="flex gap-3">
+                                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-white"><svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></span>
+                                    <div><p class="font-medium text-gray-900">Received by Primora</p><p class="text-xs text-gray-500">{{ $received->created_at->format('d M Y, H:i') }}. The amount is held from your available balance.</p></div>
+                                </li>
+                                <li class="flex gap-3">
+                                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-orange-400 text-xs font-semibold text-orange-600">2</span>
+                                    <div><p class="font-medium text-gray-900">Reviewed and approved</p><p class="text-xs text-gray-500">Primora administration checks the request.</p></div>
+                                </li>
+                                <li class="flex gap-3">
+                                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-gray-200 text-xs font-semibold text-gray-400">3</span>
+                                    <div><p class="font-medium text-gray-900">Money sent</p><p class="text-xs text-gray-500">{{ $received->isMobileMoney() ? 'To your mobile money number.' : 'By bank transfer.' }} We'll email you when it's on its way.</p></div>
+                                </li>
+                            </ol>
+                            <p class="rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">We've emailed a confirmation to your account administrators. You can cancel the request from Payout history until it is approved.</p>
+                            <x-button type="button" class="w-full justify-center" @click="show = false">Done</x-button>
+                        </div>
+                    </x-modal>
+                </div>
+            @endif
+
+            {{-- Confirm a new account with the code sent to the user (second factor) --}}
+            @if($pendingAccount)
+                <div x-data="{ show: false }" x-init="$nextTick(() => show = true)">
+                    <x-modal title="Confirm it's you" maxWidth="md">
+                        <div class="space-y-4">
+                            <div class="rounded-xl bg-orange-50 border border-orange-100 px-4 py-3">
+                                <p class="text-xs font-medium uppercase tracking-wide text-orange-700">Adding payout account</p>
+                                <p class="mt-1 text-sm font-semibold text-gray-900">{{ $pendingAccount['summary'] }}</p>
+                            </div>
+                            <p class="text-sm text-gray-600">Enter the 6-digit code we sent to <span class="font-medium text-gray-900">{{ $codeDestinations }}</span>. It expires in {{ \App\Services\ActionCodes::CODE_MINUTES }} minutes.</p>
+                            <form method="POST" action="{{ route('payouts.accounts.confirm') }}" class="space-y-4">
+                                @csrf
+                                <div>
+                                    <x-label :required="true">Confirmation code</x-label>
+                                    <x-input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="123456" class="text-center text-lg tracking-[0.4em]" required autofocus />
+                                    @error('code')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                                </div>
+                                <x-button type="submit" class="w-full justify-center">Confirm and add account</x-button>
+                            </form>
+                            <div class="flex items-center justify-between text-sm">
+                                <form method="POST" action="{{ route('payouts.accounts.resend') }}">
+                                    @csrf
+                                    <button type="submit" class="font-medium text-orange-600 hover:text-orange-700">Send a new code</button>
+                                </form>
+                                <form method="POST" action="{{ route('payouts.accounts.cancel-pending') }}">
+                                    @csrf
+                                    <button type="submit" class="text-gray-500 hover:text-gray-800">Cancel</button>
+                                </form>
+                            </div>
+                            <p class="text-xs text-gray-500">Didn't ask for this? Cancel, and change your password straight away.</p>
+                        </div>
+                    </x-modal>
+                </div>
+            @endif
         @endif
     </div>
 </x-app-layout>

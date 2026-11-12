@@ -217,7 +217,7 @@ class YoUssdCallout
         $intent = $this->ussd->reserve($tenancy, $this->caller($p), $amount);
 
         return $this->ok(
-            "Primora PropTech:\nProperty unit (".trim($this->unitLabel($tenancy)).') and amount ('.$this->money($amount).') are valid.',
+            "Primora PropTech:\nProperty unit ".trim($this->unitLabel($tenancy)).' and amount '.$this->money($amount).' are valid.',
             $this->tenancyParams($tenancy) + [
                 'amount' => $amount,
                 'amount_formatted' => $this->money($amount),
@@ -243,11 +243,11 @@ class YoUssdCallout
             ->values();
     }
 
-    /** "1. Sunrise Apts A1 (Julian, Bal: UGX 450,000)", one per line. */
+    /** "1. Sunrise Apts A1 #1000124 (Julian, Bal: UGX 450,000)", one per line (estate cut to 14 to make room for the unit ID). */
     protected function listText(Collection $tenancies): string
     {
         return "Primora PropTech:\n".$tenancies->values()->map(fn (Tenancy $t, int $i) => ($i + 1).'. '
-            .Str::limit($t->estateName(), 18, '').' '.$t->unitName()
+            .Str::limit($t->estateName(), 14, '').' '.$t->unitName().($t->unitCode() ? ' #'.$t->unitCode() : '')
             .' ('.Str::before($t->tenantName(), ' ').', Bal: '.$this->money($t->balance).')')->join("\n");
     }
 

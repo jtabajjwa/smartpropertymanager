@@ -2,6 +2,8 @@
 
 use App\Accounting\Ledger;
 use App\Accounting\Postings;
+use App\Http\Controllers\PayoutController;
+use App\Mail\ActionCodeMail;
 use App\Mail\NoticeMail;
 use App\Models\CollectionFeeTier;
 use App\Models\JournalEntry;
@@ -29,6 +31,7 @@ use Illuminate\Support\Facades\Mail;
 beforeEach(function () {
     config(['payments.default' => 'fake', 'payments.gateways.fake.succeed_after_seconds' => 0]);
     Mail::fake();
+    \App\Support\Settings::flush();
 });
 afterEach(fn () => CurrentLandlord::clear());
 
@@ -69,6 +72,30 @@ function verifiedAccount(Landlord $landlord, string $type = 'mobile_money'): Pay
     CurrentLandlord::clear();
 
     return $account;
+}
+
+/** Add a payout account the way a landlord does: details + password, then the emailed code. */
+function addPayoutAccount($test, User $user, array $details)
+{
+    $test->travel(15)->minutes(); // past the resend wait and hourly cap
+    $response = $test->actingAs($user, 'web')->post(route('payouts.accounts.store'), $details + ['password' => 'secret-pass-1']);
+    if (!session()->has(PayoutController::PENDING_ACCOUNT)) {
+        return $response;
+    }
+
+    return $test->actingAs($user, 'web')->post(route('payouts.accounts.confirm'), ['code' => Mail::sent(ActionCodeMail::class)->last()->code]);
+}
+
+/** Request a payout the way a landlord does: details + password, then the emailed code. */
+function requestPayout($test, User $user, array $details)
+{
+    $test->travel(15)->minutes(); // past the resend wait and hourly cap
+    $response = $test->actingAs($user, 'web')->post(route('payouts.store'), $details + ['password' => 'secret-pass-1']);
+    if (!session()->has(PayoutController::PENDING_PAYOUT)) {
+        return $response;
+    }
+
+    return $test->actingAs($user, 'web')->post(route('payouts.confirm'), ['code' => Mail::sent(ActionCodeMail::class)->last()->code]);
 }
 
 function payoutBands(): void
@@ -230,8 +257,7 @@ test('landlords add payout accounts with their password; staff verify them', fun
 
     $this->actingAs($admin)->post(route('payouts.accounts.store'), ['type' => 'mobile_money', 'account_name' => 'Jane', 'msisdn' => '0772555666', 'password' => 'wrong'])
         ->assertSessionHasErrors('password');
-    $this->actingAs($admin)->post(route('payouts.accounts.store'), ['type' => 'mobile_money', 'account_name' => 'Jane', 'msisdn' => '0772555666', 'password' => 'secret-pass-1'])
-        ->assertSessionHas('success');
+    addPayoutAccount($this, $admin, ['type' => 'mobile_money', 'account_name' => 'Jane', 'msisdn' => '0772555666'])->assertSessionHas('success');
 
     $account = PayoutAccount::withoutGlobalScopes()->sole();
     expect($account->status)->toBe('pending')->and($account->msisdn)->toBe('256772555666');
@@ -239,11 +265,103 @@ test('landlords add payout accounts with their password; staff verify them', fun
     Mail::assertSent(NoticeMail::class, fn ($m) => $m->hasTo($verifier->email));
 
     // Not usable until verified.
-    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 100000, 'password' => 'secret-pass-1'])->assertSessionHas('error');
+    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 100000, 'password' => 'secret-pass-1'])->assertSessionHasErrors('request');
 
     $this->post(route('logout'));
     $this->actingAs($verifier, 'staff')->post(route('staff.payout-accounts.verify', $account->id))->assertSessionHas('success');
     expect($account->fresh()->status)->toBe('verified')->and($account->fresh()->reviewed_by_staff_user_id)->toBe($verifier->id);
+});
+
+test('mobile money payout numbers are limited per landlord; staff can change the limit', function () {
+    [$landlord, $admin] = payoutLandlord();
+    $add = fn (string $type, string $msisdn = '') => addPayoutAccount($this, $admin, $type === 'bank'
+        ? ['type' => 'bank', 'account_name' => 'Jane', 'bank_name' => 'Stanbic', 'account_number' => '9030012345678']
+        : ['type' => 'mobile_money', 'account_name' => 'Jane', 'msisdn' => $msisdn]);
+
+    // Default limit is 2.
+    $add('mobile_money', '0772555661')->assertSessionHas('success');
+    $add('mobile_money', '0772555662')->assertSessionHas('success');
+    $add('mobile_money', '0772555663')->assertSessionHasErrors('msisdn');
+    $add('bank')->assertSessionHas('success'); // banks aren't limited
+    expect(PayoutAccount::withoutGlobalScopes()->where('type', 'mobile_money')->count())->toBe(2);
+    $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('You already have 2 of 2 mobile money numbers');
+
+    // Rejected and removed numbers free a slot.
+    PayoutAccount::withoutGlobalScopes()->where('msisdn', '256772555661')->update(['status' => 'disabled']);
+    $add('mobile_money', '0772555663')->assertSessionHas('success');
+
+    // Another landlord has their own allowance.
+    $other = User::factory()->admin()->create(['landlord_id' => Landlord::factory()->create(['collect_payments' => true])->id, 'password' => 'secret-pass-1']);
+    $this->post(route('logout'));
+    addPayoutAccount($this, $other, ['type' => 'mobile_money', 'account_name' => 'Ann', 'msisdn' => '0701555661'])->assertSessionHas('success');
+
+    // Staff raise the limit.
+    $this->post(route('logout'));
+    $viewer = staffWith(['liquidations.view']);
+    $this->actingAs($viewer, 'staff')->put(route('staff.payout-accounts.settings.update'), ['max_mobile_money_accounts' => 3])->assertForbidden();
+    $approver = staffWith(['liquidations.view', 'liquidations.approve']);
+    $this->actingAs($approver, 'staff')->get(route('staff.payout-accounts.index'))->assertOk()->assertSee('Mobile money limit');
+    $this->actingAs($approver, 'staff')->put(route('staff.payout-accounts.settings.update'), ['max_mobile_money_accounts' => 0])->assertSessionHasErrors('max_mobile_money_accounts');
+    $this->actingAs($approver, 'staff')->put(route('staff.payout-accounts.settings.update'), ['max_mobile_money_accounts' => 3])->assertSessionHas('success');
+    expect(PayoutAccount::mobileMoneyLimit())->toBe(3);
+
+    auth('staff')->logout();
+    $add('mobile_money', '0772555664')->assertSessionHas('success');
+    $add('mobile_money', '0772555665')->assertSessionHasErrors('msisdn');
+});
+
+test('a new payout account is only added once the user enters the code sent to them', function () {
+    [, $admin] = payoutLandlord();
+    $admin->update(['phone' => '0772999888']);
+    $details = ['type' => 'mobile_money', 'account_name' => 'Jane', 'msisdn' => '0772555666', 'password' => 'secret-pass-1'];
+
+    $this->actingAs($admin)->post(route('payouts.accounts.store'), $details)->assertRedirect(route('payouts.index'))->assertSessionHas('success');
+    expect(PayoutAccount::withoutGlobalScopes()->count())->toBe(0);
+    Mail::assertSent(ActionCodeMail::class, fn ($m) => $m->hasTo($admin->email) && str_contains($m->action, 'MTN 0772 555 666'));
+    Mail::assertNotSent(NoticeMail::class);
+    $code = Mail::sent(ActionCodeMail::class)->last()->code;
+    $wrong = $code === '000000' ? '111111' : '000000';
+
+    $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('Confirm it')->assertSee('MTN 0772 555 666')->assertSee('07•• ••• 888');
+
+    // A wrong code adds nothing; a resend straight away is refused.
+    $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => $wrong])->assertSessionHasErrors('code');
+    $this->actingAs($admin)->post(route('payouts.accounts.resend'))->assertSessionHas('error');
+    expect(PayoutAccount::withoutGlobalScopes()->count())->toBe(0);
+
+    // The right code adds it, once.
+    $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => $code])->assertSessionHas('success');
+    expect(PayoutAccount::withoutGlobalScopes()->sole()->status)->toBe('pending');
+    Mail::assertSent(NoticeMail::class, fn ($m) => $m->hasTo($admin->email));
+    $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => $code])->assertSessionHas('error');
+    expect(PayoutAccount::withoutGlobalScopes()->count())->toBe(1);
+});
+
+test('payout account codes lock after too many wrong tries and expire', function () {
+    [, $admin] = payoutLandlord();
+    $details = ['type' => 'bank', 'account_name' => 'Jane', 'bank_name' => 'Stanbic', 'account_number' => '9030012345678', 'password' => 'secret-pass-1'];
+
+    $this->actingAs($admin)->post(route('payouts.accounts.store'), $details);
+    $code = Mail::sent(ActionCodeMail::class)->last()->code;
+    $wrong = $code === '000000' ? '111111' : '000000';
+    foreach (range(1, 5) as $_) {
+        $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => $wrong]);
+    }
+    $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => $code])->assertSessionHasErrors('code');
+
+    // A new code works.
+    $this->travel(2)->minutes();
+    $this->actingAs($admin)->post(route('payouts.accounts.resend'))->assertSessionHas('success');
+    $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => Mail::sent(ActionCodeMail::class)->last()->code])->assertSessionHas('success');
+    expect(PayoutAccount::withoutGlobalScopes()->count())->toBe(1);
+
+    // Codes expire.
+    $this->travel(5)->minutes();
+    $this->actingAs($admin)->post(route('payouts.accounts.store'), ['account_number' => '9030012345679'] + $details);
+    $code = Mail::sent(ActionCodeMail::class)->last()->code;
+    $this->travel(11)->minutes();
+    $this->actingAs($admin)->post(route('payouts.accounts.confirm'), ['code' => $code])->assertSessionHas('error');
+    expect(PayoutAccount::withoutGlobalScopes()->count())->toBe(1);
 });
 
 // --- Requests -----------------------------------------------------------------
@@ -253,9 +371,10 @@ test('requests stay within the available balance and hold it while in progress',
     [$landlord, $admin] = payoutLandlord(500000);
     $account = verifiedAccount($landlord);
 
-    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 600000, 'password' => 'secret-pass-1'])->assertSessionHas('error');
-    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 1000, 'password' => 'secret-pass-1'])->assertSessionHasErrors('amount');
-    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 300000, 'password' => 'secret-pass-1'])->assertSessionHas('success');
+    requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 600000])->assertSessionHasErrors('request');
+    Mail::assertNotSent(ActionCodeMail::class); // no code for a request that can't go through
+    requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 1000])->assertSessionHasErrors('amount');
+    requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 300000])->assertSessionHas('payout_received');
 
     $l = Liquidation::withoutGlobalScopes()->sole();
     expect($l->status)->toBe('pending')->and((float) $l->fee)->toBe(1500.0)->and((float) $l->net_amount)->toBe(298500.0)
@@ -263,13 +382,47 @@ test('requests stay within the available balance and hold it while in progress',
         ->and(app(Liquidations::class)->available($landlord->id))->toBe(200000.0);
 
     // The rest is still available; more than that isn't.
-    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 250000, 'password' => 'secret-pass-1'])->assertSessionHas('error');
+    requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 250000])->assertSessionHasErrors('request');
 
     // Cancelling releases it.
     $this->actingAs($admin)->post(route('payouts.cancel', $l))->assertSessionHas('success');
     expect(app(Liquidations::class)->available($landlord->id))->toBe(500000.0);
 
     $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('UGX 500,000')->assertSee('Cancelled');
+});
+
+test('a payout request needs the code sent to the user; the landlord is told it was received', function () {
+    payoutBands();
+    [$landlord, $admin] = payoutLandlord(500000);
+    $account = verifiedAccount($landlord);
+    $approver = staffWith(['liquidations.approve']);
+
+    $this->actingAs($admin)->post(route('payouts.store'), ['payout_account_id' => $account->id, 'amount' => 300000, 'note' => 'Rent for March', 'password' => 'secret-pass-1'])
+        ->assertRedirect(route('payouts.index'));
+    expect(Liquidation::withoutGlobalScopes()->count())->toBe(0);
+    Mail::assertSent(ActionCodeMail::class, fn ($m) => $m->hasTo($admin->email) && str_contains($m->action, 'UGX 300,000'));
+    $code = Mail::sent(ActionCodeMail::class)->last()->code;
+    $wrong = $code === '000000' ? '111111' : '000000';
+
+    // The code screen shows what is being confirmed.
+    $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('Confirm your payout request')->assertSee('UGX 298,500');
+
+    $this->actingAs($admin)->post(route('payouts.confirm'), ['code' => $wrong])->assertSessionHasErrors('code');
+    expect(Liquidation::withoutGlobalScopes()->count())->toBe(0);
+
+    $this->actingAs($admin)->post(route('payouts.confirm'), ['code' => $code])->assertRedirect(route('payouts.index'))->assertSessionHas('payout_received');
+    $l = Liquidation::withoutGlobalScopes()->sole();
+    expect($l->request_note)->toBe('Rent for March')->and((float) $l->amount)->toBe(300000.0);
+
+    // Received: email to the landlord and to Primora, and a receipt on screen.
+    Mail::assertSent(NoticeMail::class, fn ($m) => $m->hasTo($admin->email) && str_contains($m->subjectLine, "{$l->reference} received"));
+    Mail::assertSent(NoticeMail::class, fn ($m) => $m->hasTo('owner@ntinda.test') && str_contains($m->subjectLine, 'received'));
+    Mail::assertSent(NoticeMail::class, fn ($m) => $m->hasTo($approver->email));
+    $this->actingAs($admin)->get(route('payouts.index'))->assertSee('Payout request received')->assertSee($l->reference);
+
+    // The code can't be used again.
+    $this->actingAs($admin)->post(route('payouts.confirm'), ['code' => $code])->assertSessionHas('error');
+    expect(Liquidation::withoutGlobalScopes()->count())->toBe(1);
 });
 
 test('staff in staff mode can see payouts but not request them', function () {

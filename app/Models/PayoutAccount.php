@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Payments\Msisdn;
+use App\Support\Settings;
 use App\Traits\Auditable;
 use App\Traits\BelongsToLandlord;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,14 @@ class PayoutAccount extends Model
         'rejected' => ['Rejected', 'red'],
         'disabled' => ['Removed', 'gray'],
     ];
+
+    /** Platform setting: how many mobile money numbers a landlord may have (staff can change it). */
+    public const MOBILE_MONEY_LIMIT_KEY = 'payouts.max_mobile_money_accounts';
+
+    public const MOBILE_MONEY_LIMIT_DEFAULT = 2;
+
+    /** Statuses that take up a slot; rejected and removed numbers don't count. */
+    public const COUNTED_STATUSES = ['pending', 'verified'];
 
     protected $fillable = ['landlord_id', 'type', 'account_name', 'msisdn', 'bank_name', 'bank_branch', 'account_number', 'swift_code', 'yo_bank_identifier', 'yo_bank_info', 'yo_registered_at', 'status', 'review_note', 'created_by_user_id', 'reviewed_by_staff_user_id', 'reviewed_at'];
 
@@ -77,6 +86,17 @@ class PayoutAccount extends Model
             'swift_code' => $this->swift_code,
             'summary' => $this->summary(),
         ], fn ($v) => $v !== null && $v !== '');
+    }
+
+    public static function mobileMoneyLimit(): int
+    {
+        return max(1, Settings::int(self::MOBILE_MONEY_LIMIT_KEY, self::MOBILE_MONEY_LIMIT_DEFAULT));
+    }
+
+    /** Mobile money numbers the current landlord has pending or verified. */
+    public static function mobileMoneyInUse(): int
+    {
+        return static::where('type', 'mobile_money')->whereIn('status', self::COUNTED_STATUSES)->count();
     }
 
     public function statusLabel(): string

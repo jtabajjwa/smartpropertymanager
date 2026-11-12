@@ -9,6 +9,7 @@ use App\Models\PayoutAccount;
 use App\Models\User;
 use App\Services\LiquidationException;
 use App\Services\Liquidations;
+use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -128,7 +129,18 @@ class LiquidationController extends Controller
                 ->unique(fn ($a) => mb_strtolower(trim((string) $a->bank_name)))->mapWithKeys(fn ($a) => [mb_strtolower(trim((string) $a->bank_name)) => $a->yo_bank_info]),
             'canRegisterWithYo' => ($g = app(\App\Payments\PaymentGatewayManager::class)->gateway()) instanceof \App\Payments\Contracts\PayoutGateway && $g->canSendPayouts(),
             'counts' => PayoutAccount::withoutGlobalScopes()->selectRaw('status, COUNT(*) as n')->groupBy('status')->pluck('n', 'status'),
+            'mobileLimit' => PayoutAccount::mobileMoneyLimit(),
         ]);
+    }
+
+    /** How many mobile money numbers each landlord may have (pending + verified). */
+    public function updateAccountSettings(Request $request)
+    {
+        $data = $request->validate(['max_mobile_money_accounts' => ['required', 'integer', 'min:1', 'max:20']]);
+
+        Settings::set(PayoutAccount::MOBILE_MONEY_LIMIT_KEY, $data['max_mobile_money_accounts']);
+
+        return back()->with('success', 'Saved. Landlords can now have up to '.$data['max_mobile_money_accounts'].' mobile money payout '.($data['max_mobile_money_accounts'] == 1 ? 'number' : 'numbers').'.');
     }
 
     public function verifyAccount(Request $request, int $id)

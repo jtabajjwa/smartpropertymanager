@@ -121,8 +121,14 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
         // Payouts of rent Primora collected (landlords Primora collects for)
         Route::get('payouts', [\App\Http\Controllers\PayoutController::class, 'index'])->name('payouts.index');
         Route::post('payouts', [\App\Http\Controllers\PayoutController::class, 'store'])->middleware('throttle:10,1')->name('payouts.store');
+        Route::post('payouts/confirm', [\App\Http\Controllers\PayoutController::class, 'confirm'])->middleware('throttle:10,1')->name('payouts.confirm');
+        Route::post('payouts/resend-code', [\App\Http\Controllers\PayoutController::class, 'resendCode'])->middleware('throttle:5,1')->name('payouts.resend');
+        Route::post('payouts/cancel-pending', [\App\Http\Controllers\PayoutController::class, 'cancelPending'])->name('payouts.cancel-pending');
         Route::post('payouts/{liquidation}/cancel', [\App\Http\Controllers\PayoutController::class, 'cancel'])->name('payouts.cancel');
         Route::post('payouts/accounts', [\App\Http\Controllers\PayoutController::class, 'storeAccount'])->middleware('throttle:10,1')->name('payouts.accounts.store');
+        Route::post('payouts/accounts/confirm', [\App\Http\Controllers\PayoutController::class, 'confirmAccount'])->middleware('throttle:10,1')->name('payouts.accounts.confirm');
+        Route::post('payouts/accounts/resend-code', [\App\Http\Controllers\PayoutController::class, 'resendAccountCode'])->middleware('throttle:5,1')->name('payouts.accounts.resend');
+        Route::post('payouts/accounts/cancel-pending', [\App\Http\Controllers\PayoutController::class, 'cancelPendingAccount'])->name('payouts.accounts.cancel-pending');
         Route::delete('payouts/accounts/{payoutAccount}', [\App\Http\Controllers\PayoutController::class, 'destroyAccount'])->name('payouts.accounts.destroy');
         // Books & taxes (from what the landlord already records)
         Route::get('books', [\App\Http\Controllers\BooksController::class, 'index'])->middleware('feature:books')->name('books.index');
