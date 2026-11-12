@@ -61,6 +61,12 @@ class LandlordBooks
         return [$from, $from->addYear()->subDay()->endOfDay()];
     }
 
+    /** "Cash basis" / "Accrual basis" */
+    public function booksBasisLabel(): string
+    {
+        return $this->landlord->booksBasis() === 'accrual' ? 'Accrual basis' : 'Cash basis';
+    }
+
     public function fiscalYearLabel(int $year): string
     {
         return ($this->landlord->fiscal_year_start_month ?: 7) === 1 ? (string) $year : 'FY '.$year.'/'.substr((string) ($year + 1), -2);

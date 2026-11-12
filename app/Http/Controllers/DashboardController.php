@@ -89,28 +89,16 @@ class DashboardController extends Controller
         // --- Revenue vs expenses, last 6 months ---
         $monthsWindow = collect(range(5, 0))->map(fn ($i) => now()->startOfMonth()->subMonths($i)); // start of month first: on the 31st, subMonths() overflows into the wrong month
 
-        $monthlyIncomeRaw = DB::table('payment_allocations')
-            ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
-            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
-            ->where('invoices.landlord_id', CurrentLandlord::id())
-            ->where('invoices.type', '!=', 'security_deposit')
-            ->where('payments.payment_date', '>=', $monthsWindow->first())
-            ->selectRaw("DATE_FORMAT(payments.payment_date, '%Y-%m') as ym, SUM(payment_allocations.amount) as total")
-            ->groupBy('ym')
-            ->pluck('total', 'ym');
-
-        $monthlyExpenseRaw = Expense::where('date', '>=', $monthsWindow->first())
-            ->selectRaw("DATE_FORMAT(date, '%Y-%m') as ym, SUM(amount) as total")
-            ->groupBy('ym')
-            ->pluck('total', 'ym');
-
-        $monthlyRevenueExpense = $monthsWindow->map(function (Carbon $month) use ($monthlyIncomeRaw, $monthlyExpenseRaw) {
-            $key = $month->format('Y-m');
+        // Each month's income and expenses from the income statement, like the Net Income card.
+        $monthlyBooks = \App\Accounting\LandlordBooks::for(\App\Models\Landlord::findOrFail(CurrentLandlord::id()));
+        $monthlyRevenueExpense = $monthsWindow->map(function (Carbon $month) use ($monthlyBooks) {
+            $from = \Carbon\CarbonImmutable::parse($month)->startOfMonth();
+            $statement = $monthlyBooks->incomeStatement($from, $from->endOfMonth());
 
             return [
                 'label' => $month->format('M Y'),
-                'income' => (float) ($monthlyIncomeRaw[$key] ?? 0),
-                'expense' => (float) ($monthlyExpenseRaw[$key] ?? 0),
+                'income' => $statement->sectionTotal('income', 0),
+                'expense' => $statement->sectionTotal('expense', 0),
             ];
         })->values();
 
@@ -143,40 +131,46 @@ class DashboardController extends Controller
             ->get();
 
         // --- Date-filtered totals ---
-        $incomeAllocationsQuery = \App\Models\PaymentAllocation::whereHas('invoice', function ($query) {
-            $query->where('type', '!=', 'security_deposit');
-        });
-        $forfeitsQuery = SecurityDepositLedger::where('type', 'forfeit');
         $rawPaymentsQuery = Payment::where('status', '!=', 'cancelled');
 
-        $expensesQuery = Expense::query();
         $recentPaymentsQuery = Payment::with('payable')->where('status', '!=', 'cancelled');
         $recentInvoicesQuery = Invoice::with(['invoiceable', 'lease.tenant']);
 
         if ($dateFrom) {
-            $incomeAllocationsQuery->whereHas('payment', fn ($q) => $q->whereDate('payment_date', '>=', $dateFrom));
-            $forfeitsQuery->whereDate('date', '>=', $dateFrom);
             $rawPaymentsQuery->whereDate('payment_date', '>=', $dateFrom);
-            $expensesQuery->whereDate('date', '>=', $dateFrom);
             $recentPaymentsQuery->whereDate('payment_date', '>=', $dateFrom);
             $recentInvoicesQuery->whereDate('invoice_date', '>=', $dateFrom);
         }
 
         if ($dateTo) {
-            $incomeAllocationsQuery->whereHas('payment', fn ($q) => $q->whereDate('payment_date', '<=', $dateTo));
-            $forfeitsQuery->whereDate('date', '<=', $dateTo);
             $rawPaymentsQuery->whereDate('payment_date', '<=', $dateTo);
-            $expensesQuery->whereDate('date', '<=', $dateTo);
             $recentPaymentsQuery->whereDate('payment_date', '<=', $dateTo);
             $recentInvoicesQuery->whereDate('invoice_date', '<=', $dateTo);
         }
 
-        $totalIncomeAllocations = (float) $incomeAllocationsQuery->sum('amount');
-        $totalForfeits = (float) $forfeitsQuery->sum('amount');
-        $totalPaymentsCollected = $totalIncomeAllocations + $totalForfeits;
         $totalRawPayments = (float) $rawPaymentsQuery->sum('amount');
-        $totalExpenses = (float) $expensesQuery->sum('amount');
-        $netIncome = $totalPaymentsCollected - $totalExpenses;
+
+        // Income, expenses and net income come from the income statement (Books & Taxes),
+        // so the dashboard and the books always agree. No dates chosen: the current fiscal
+        // year, as Books shows by default.
+        $books = \App\Accounting\LandlordBooks::for(\App\Models\Landlord::findOrFail(CurrentLandlord::id()));
+        if ($dateFrom || $dateTo) {
+            $periodFrom = \Carbon\CarbonImmutable::parse($dateFrom ?: '2000-01-01')->startOfDay();
+            $periodTo = ($dateTo ? \Carbon\CarbonImmutable::parse($dateTo) : \Carbon\CarbonImmutable::now())->endOfDay();
+            $periodLabel = ($dateFrom ? $periodFrom->format('d M Y') : 'All time').' – '.$periodTo->format('d M Y');
+        } else {
+            $fiscalYear = $books->fiscalYearOf();
+            [$periodFrom, $periodTo] = $books->fiscalYearRange($fiscalYear);
+            $periodLabel = $books->fiscalYearLabel($fiscalYear);
+        }
+        $statement = $books->incomeStatement($periodFrom, $periodTo);
+        $totalPaymentsCollected = $statement->sectionTotal('income', 0);
+        $totalExpenses = $statement->sectionTotal('expense', 0);
+        $netIncome = round($totalPaymentsCollected - $totalExpenses, 2);
+        $netIncomeLabel = $periodLabel.' · '.$books->booksBasisLabel();
+        $netIncomeUrl = route('books.income-statement', ($dateFrom || $dateTo)
+            ? ['from' => $periodFrom->toDateString(), 'to' => $periodTo->toDateString()]
+            : ['year' => $fiscalYear]);
 
         $recentPayments = $recentPaymentsQuery->latest()->take(5)->get();
         $recentInvoices = $recentInvoicesQuery->latest()->take(5)->get();
@@ -188,7 +182,7 @@ class DashboardController extends Controller
             'totalTenants', 'totalCustomers', 'activeLeases', 'vacantUnits', 'totalUnits',
             'occupancyRate', 'pendingInvoices', 'pendingInvoiceAmount',
             'overdueInvoices', 'overdueAmount', 'securityDepositsHeld',
-            'totalPaymentsCollected', 'totalRawPayments', 'totalExpenses', 'netIncome',
+            'totalPaymentsCollected', 'totalRawPayments', 'totalExpenses', 'netIncome', 'netIncomeLabel', 'netIncomeUrl',
             'recentPayments', 'recentInvoices', 'expiringLeases',
             'occupancyBreakdown', 'vacantUnitsList', 'topEstatesByRevenue', 'topUnitsByRevenue',
             'monthlyRevenueExpense'
