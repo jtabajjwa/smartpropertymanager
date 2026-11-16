@@ -59,11 +59,77 @@
                     <h3 class="text-lg font-semibold text-gray-900">Subscription Plans</h3>
                     <p class="mt-1 text-sm text-gray-500">Manage the plans landlords can subscribe to — flat-rate or tiered by unit count.</p>
                 </div>
-                @staffcan('plans.manage')<x-button @click="createModal = true" type="button">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Add Plan
-                </x-button>@endstaffcan
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('staff.plans.export') }}" hx-boost="false" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:border-orange-300" title="Download every plan as a file, to import into another environment">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                        Export
+                    </a>
+                    @staffcan('plans.manage')
+                        <form method="POST" action="{{ route('staff.plans.import') }}" enctype="multipart/form-data" x-ref="importForm">
+                            @csrf
+                            <input type="file" name="file" accept=".json,application/json" class="hidden" x-ref="importFile" @change="$refs.importForm.submit()">
+                            <button type="button" @click="$refs.importFile.click()" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:border-orange-300" title="Upload a plans file exported from another environment">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+                                Import
+                            </button>
+                        </form>
+                        <x-button @click="createModal = true" type="button">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Add Plan
+                        </x-button>
+                    @endstaffcan
+                </div>
             </div>
+
+            {{-- Import: errors, or a preview waiting to be applied --}}
+            @if(session('import_errors'))
+                <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+                    <p class="font-semibold">That file can't be imported. Nothing was changed.</p>
+                    <ul class="mt-2 list-disc space-y-0.5 pl-5">
+                        @foreach(session('import_errors') as $problem)<li>{{ $problem }}</li>@endforeach
+                    </ul>
+                </div>
+            @endif
+            @if($pendingImport)
+                @php $counts = collect($importPreview)->countBy('action'); @endphp
+                <div class="mb-6 rounded-2xl border border-orange-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex flex-col gap-3 border-b border-orange-100 bg-orange-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="text-sm">
+                            <p class="font-semibold text-gray-900">Review the import: {{ $pendingImport['file'] }}</p>
+                            <p class="text-gray-600">
+                                @if($pendingImport['source'])From {{ $pendingImport['source'] }}@endif
+                                @if($pendingImport['exported_at']) · exported {{ \Illuminate\Support\Carbon::parse($pendingImport['exported_at'])->format('d M Y, H:i') }}@endif
+                                · {{ $counts['create'] ?? 0 }} new, {{ $counts['update'] ?? 0 }} to update, {{ $counts['same'] ?? 0 }} unchanged. Nothing is saved until you apply it; no plan is deleted.
+                            </p>
+                        </div>
+                        <div class="flex shrink-0 gap-2">
+                            <form method="POST" action="{{ route('staff.plans.import.cancel') }}">@csrf<button type="submit" class="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</button></form>
+                            @if(($counts['create'] ?? 0) + ($counts['update'] ?? 0) > 0)
+                                <form method="POST" action="{{ route('staff.plans.import.apply') }}" @submit.prevent="$store.confirm.open('Apply this import? {{ ($counts['create'] ?? 0) }} plan(s) will be created and {{ ($counts['update'] ?? 0) }} updated. Updating a plan has the same effect as editing it by hand.', $el)">
+                                    @csrf
+                                    <x-button type="submit">Apply import</x-button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                    @if($pendingImport['warnings'])
+                        <ul class="border-b border-orange-100 px-5 py-3 text-xs text-orange-800 list-disc pl-9">
+                            @foreach($pendingImport['warnings'] as $w)<li>{{ $w }}</li>@endforeach
+                        </ul>
+                    @endif
+                    <ul class="divide-y divide-gray-100">
+                        @foreach($importPreview as $row)
+                            <li class="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-gray-900">{{ $row['name'] }}</p>
+                                    @foreach($row['changes'] as $change)<p class="text-xs text-gray-600">{{ $change }}</p>@endforeach
+                                </div>
+                                <x-badge :color="['create' => 'green', 'update' => 'orange', 'same' => 'gray'][$row['action']]" class="shrink-0">{{ ['create' => 'New', 'update' => 'Will update', 'same' => 'No change'][$row['action']] }}</x-badge>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             {{-- Table (md and up) --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200">

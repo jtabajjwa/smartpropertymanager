@@ -65,6 +65,10 @@ Route::prefix('staff')->name('staff.')->group(function () {
 
         $P = \App\Http\Controllers\Staff\PlanController::class;
         Route::get('plans', [$P, 'index'])->middleware('staff.can:plans.view')->name('plans.index');
+        Route::get('plans/export', [$P, 'export'])->middleware('staff.can:plans.view')->name('plans.export');
+        Route::post('plans/import', [$P, 'import'])->middleware('staff.can:plans.manage')->name('plans.import');
+        Route::post('plans/import/apply', [$P, 'applyImport'])->middleware('staff.can:plans.manage')->name('plans.import.apply');
+        Route::post('plans/import/cancel', [$P, 'cancelImport'])->middleware('staff.can:plans.manage')->name('plans.import.cancel');
         Route::post('plans', [$P, 'store'])->middleware('staff.can:plans.manage')->name('plans.store');
         Route::put('plans/{plan}', [$P, 'update'])->middleware('staff.can:plans.manage')->name('plans.update');
         Route::delete('plans/{plan}', [$P, 'destroy'])->middleware('staff.can:plans.manage')->name('plans.destroy');
