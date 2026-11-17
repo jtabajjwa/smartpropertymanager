@@ -220,12 +220,14 @@ test('"Pay for Self" as Yo! sends it (anumbermsisdn "1", caller in a signed msis
     $call = fn (string $msisdn) => $this->postJson(route('api.ussd.yo', 'unit'), ['datetime' => $datetime, 'anumbermsisdn' => '1',
         'signature' => base64_encode($sig), 'code' => '217', 'msisdn' => $msisdn, 'url' => 'https://example.test'])->assertOk()->json();
 
-    // One unit on the phone: the same answer as typing its unit ID.
+    // One unit on the phone: the list answer as before (the menu shows it), plus the unit's details and a reference.
     $json = $call('256772123456');
     $intent = UssdPaymentIntent::sole();
     expect($json['validated'])->toBeTrue()
-        ->and($json['message'])->toBe("Primora PropTech:\nEstate: Acacia Court\nTenant: Grace Namata\nUnit No: A4 ({$t['unit']->code})\nBal: UGX 500,000")
+        ->and($json['message'])->toBe('Primora PropTech: 1 active property unit found against your phone number.')
         ->and($json['ussd_processor_params'])->toMatchArray([
+            'property_unit_list_text' => "Primora PropTech:\n1. Acacia Court A4 #{$t['unit']->code} (Grace, Bal: UGX 500,000)",
+            'property_unit_count' => 1,
             'tenant_name' => 'Grace Namata', 'estate_name' => 'Acacia Court', 'unit_number' => "A4 ({$t['unit']->code})",
             'property_unit_number' => $t['unit']->code, 'payment_external_reference' => $intent->reference, 'user_phonenumber' => '256772123456',
         ])
@@ -241,6 +243,7 @@ test('"Pay for Self" as Yo! sends it (anumbermsisdn "1", caller in a signed msis
     $json = $call('256772123456');
     expect($json['validated'])->toBeTrue()
         ->and($json['ussd_processor_params']['property_unit_count'])->toBe(2)
+        ->and($json['ussd_processor_params']['property_unit_list_text'])->toContain('2. Acacia Court A4')
         ->and($json['ussd_processor_params']['tenant_name'])->toBe('Grace Namata')
         ->and($json['ussd_processor_params'])->not->toHaveKey('payment_external_reference')
         ->and(UssdPaymentIntent::count())->toBe(1);

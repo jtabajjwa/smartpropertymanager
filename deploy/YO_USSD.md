@@ -105,9 +105,18 @@ configuration.
   - If the landlord bears it, the tenant is credited the full amount.
   - If the landlord passes it to tenants, the tenant is credited the amount
     minus the fee.
-- **Narrative:** the template's dynamic narrative
-  (`{"propty_unit_number":"$property_unit_number","tenant_name":"$tenant_name"}`)
-  is fine. Primora doesn't rely on it.
+- **Narrative:** use the `dispatcher_` names for values Primora returned:
+  ```
+  {"propty_unit_number":"$dispatcher_property_unit_number","tenant_name":"$dispatcher_tenant_name"}
+  ```
+  - Yo! keeps each `ussd_processor_params` value under `dispatcher_<key>`.
+    It sends them back that way (e.g. `dispatcher_user_phonenumber`), and the
+    menu texts use `[XXdispatcher_tenant_nameXX]`.
+  - `$tenant_name` is not a variable, so it stays unreplaced.
+  - `$property_unit_number` only exists when the caller typed a unit ID.
+    `$dispatcher_property_unit_number` works on every path.
+  - Primora doesn't rely on the narrative: payments are matched by
+    `payment_external_reference`.
 
 ## Signature
 
@@ -125,10 +134,13 @@ The "Pay for Self" step on Yo!'s menu deviates from the spec. It sends
 - a `unit` call-out without `property_unit_number` is answered for the
   caller (logged as "unit call-out without a unit ID, answered for the
   caller"):
-  - **one unit on the caller's phone:** exactly like a typed unit ID. The
-    answer has `tenant_name`, `estate_name`, `unit_number`,
-    `property_unit_number`, `payment_external_reference` and the IPN URLs,
-    so the payment narrative is filled in;
+  - **always:** the same answer as `units` (`message`,
+    `property_unit_list_text`, `property_unit_count`, `user_phonenumber`),
+    which the menu screens show;
+  - **one unit on the caller's phone:** also `tenant_name`, `estate_name`,
+    `unit_number`, `property_unit_number`, `balance`,
+    `payment_external_reference` and the IPN URLs, so the payment narrative
+    is filled in;
   - **several units:** the list (as `units`), with `tenant_name` and, when
     they're all in one estate, `estate_name`. The payment reference then
     comes from the `confirm` call-out, so the menu must go on to the

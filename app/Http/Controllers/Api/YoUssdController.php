@@ -66,6 +66,11 @@ class YoUssdController extends Controller
             $response = $callout->fail('Something went wrong on our side. Please try again in a few minutes.');
         }
 
+        // Sandbox only: exactly what we answered, to compare with what Yo! puts in its screens and narrative.
+        if (config('services.yo_ussd.mode') !== 'production') {
+            Log::info('Yo! USSD call-out answered', ['step' => $step, 'response' => $response]);
+        }
+
         return response()->json($response);
     }
 }

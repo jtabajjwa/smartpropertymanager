@@ -157,17 +157,26 @@ class YoUssdCallout
     }
 
     /**
-     * "Pay for Self" sent to the unit-ID URL (no unit ID typed). One unit on the
-     * caller's phone: answered exactly like a typed unit ID, with the tenant,
-     * estate, unit and a payment reference, so Yo! can fill the payment
-     * narrative. Several: the list to choose from (the reference then comes
-     * from the confirm call-out).
+     * "Pay for Self" sent to the unit-ID URL (no unit ID typed): the same answer
+     * as units() (message, property_unit_list_text, property_unit_count,
+     * user_phonenumber; the menu screens show these). With one unit on the
+     * caller's phone it also carries that unit's tenant, estate, unit, a
+     * payment reference and the IPN URLs, so Yo! can fill the payment
+     * narrative. With several, the reference comes from the confirm call-out.
      */
     public function self(array $p): array
     {
+        $answer = $this->units($p);
         $tenancies = $this->payable($this->caller($p));
+        if (!$answer['validated'] || $tenancies->count() !== 1) {
+            return $answer;
+        }
 
-        return $tenancies->count() === 1 ? $this->tenancyAnswer($tenancies->first(), $p) : $this->units($p);
+        $single = $this->tenancyAnswer($tenancies->first(), $p);
+        $single['ussd_processor_params'] = $answer['ussd_processor_params'] + $single['ussd_processor_params'];
+        $single['message'] = $answer['message'];
+
+        return $single;
     }
 
     /** The answer for one tenancy: its details, a payment reference and the IPN URLs. */
