@@ -73,7 +73,8 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($report->sections as $section)
+            @foreach($report->blocks() as $section)
+                @if($section['kind'] === 'section')
                 @if($section['title'])
                     <tr class="section"><td colspan="{{ $cols + ($report->showCodes ? 2 : 1) }}">{{ $section['title'] }}</td></tr>
                 @endif
@@ -92,13 +93,14 @@
                     </tr>
                 @endif
                 <tr class="spacer"><td colspan="{{ $cols + ($report->showCodes ? 2 : 1) }}"></td></tr>
-            @endforeach
-            @foreach($report->totals as $total)
+                @else
+                @php $total = $section; @endphp
                 <tr class="total {{ $total['grand'] ? 'grand' : '' }}">
                     @if($report->showCodes)<td></td>@endif
                     <td>{{ $total['label'] }}</td>
                     @foreach($report->columns as $i => $_)<td class="num">{{ $n($report->totalValue($total, $i)) }}</td>@endforeach
                 </tr>
+                @endif
             @endforeach
         </tbody>
     </table>

@@ -80,9 +80,11 @@ class BooksController extends Controller
             'code' => ['required', 'string', 'max:10', 'regex:/^[0-9]{3,6}$/', 'unique:ledger_accounts,code'],
             'name' => ['required', 'string', 'max:100'],
             'type' => ['required', Rule::in(array_keys(LedgerAccount::TYPES))],
+            'category' => ['nullable', 'string', Rule::in(LedgerAccount::categoriesFor((string) $request->input('type')))],
             'description' => ['nullable', 'string', 'max:300'],
-        ], ['code.regex' => 'Use a number, e.g. 5300.']);
+        ], ['code.regex' => 'Use a number, e.g. 5300.', 'category.in' => 'Choose a category that belongs to the account type.']);
 
+        $data['category'] = ($data['category'] ?? null) ?: LedgerAccount::categoriesFor($data['type'])[0];
         LedgerAccount::create($data + ['is_active' => true]);
 
         return back()->with('success', "Account {$data['code']} {$data['name']} added.");
@@ -92,13 +94,17 @@ class BooksController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
+            'category' => ['nullable', 'string', Rule::in(LedgerAccount::categoriesFor($ledgerAccount->type))],
             'description' => ['nullable', 'string', 'max:300'],
             'is_active' => ['nullable', 'boolean'],
-        ]);
+        ], ['category.in' => 'Choose a category that belongs to the account type.']);
 
         // Accounts the app posts to automatically always stay active.
         $active = $ledgerAccount->system_key ? true : $request->boolean('is_active');
-        $ledgerAccount->update(['name' => $data['name'], 'description' => $data['description'] ?? null, 'is_active' => $active]);
+        $ledgerAccount->update([
+            'name' => $data['name'], 'description' => $data['description'] ?? null, 'is_active' => $active,
+            'category' => ($data['category'] ?? null) ?: $ledgerAccount->categoryKey(),
+        ]);
 
         return back()->with('success', 'Account updated.');
     }

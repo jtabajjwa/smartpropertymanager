@@ -17,7 +17,9 @@ final class Report
     /**
      * Totals below the sections, each a signed combination of section totals.
      *
-     * @var list<array{label: string, combine: array<string, int>, grand: bool}>
+     * Placed after section "after", or below all sections when null.
+     *
+     * @var list<array{label: string, combine: array<string, int>, grand: bool, after: ?string}>
      */
     public array $totals = [];
 
@@ -52,11 +54,51 @@ final class Report
         return $this;
     }
 
-    public function total(string $label, array $combine, bool $grand = false): self
+    public function total(string $label, array $combine, bool $grand = false, ?string $after = null): self
     {
-        $this->totals[] = ['label' => $label, 'combine' => $combine, 'grand' => $grand];
+        $this->totals[] = ['label' => $label, 'combine' => $combine, 'grand' => $grand, 'after' => $after];
 
         return $this;
+    }
+
+    /** Totals placed right after a section (or, for null, below all sections). */
+    public function totalsAfter(?string $key): array
+    {
+        return array_values(array_filter($this->totals, fn ($t) => ($t['after'] ?? null) === $key));
+    }
+
+    /**
+     * Sections and totals in the order they're shown: each section, the
+     * totals placed after it, then the remaining totals.
+     *
+     * @return list<array>  each with 'kind' => 'section'|'total'
+     */
+    public function blocks(): array
+    {
+        $blocks = [];
+        foreach ($this->sections as $section) {
+            $blocks[] = ['kind' => 'section'] + $section;
+            foreach ($this->totalsAfter($section['key']) as $total) {
+                $blocks[] = ['kind' => 'total'] + $total;
+            }
+        }
+        foreach ($this->totalsAfter(null) as $total) {
+            $blocks[] = ['kind' => 'total'] + $total;
+        }
+
+        return $blocks;
+    }
+
+    /** A total's value by its label (0 if there's no such total). */
+    public function namedTotal(string $label, int $column): float
+    {
+        foreach ($this->totals as $total) {
+            if ($total['label'] === $label) {
+                return $this->totalValue($total, $column);
+            }
+        }
+
+        return 0.0;
     }
 
     public function note(string $note): self

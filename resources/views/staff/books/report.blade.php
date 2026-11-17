@@ -67,7 +67,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($report->sections as $section)
+                        @foreach($report->blocks() as $section)
+                            @if($section['kind'] === 'section')
                             @if($section['title'])
                                 <tr><td colspan="{{ $span }}" class="px-6 pt-5 pb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $section['title'] }}</td></tr>
                             @endif
@@ -96,8 +97,8 @@
                                     @endforeach
                                 </tr>
                             @endif
-                        @endforeach
-                        @foreach($report->totals as $total)
+                            @else
+                            @php $total = $section; @endphp
                             <tr class="{{ $total['grand'] ? 'border-t-2 border-gray-900 text-base' : 'border-t border-gray-200' }} font-bold bg-orange-50/50">
                                 @if($report->showCodes)<td></td>@endif
                                 <td class="px-3 py-3">{{ $total['label'] }}</td>
@@ -106,6 +107,7 @@
                                     <td class="px-6 py-3 text-right whitespace-nowrap {{ $i > 0 ? 'text-gray-400' : ($report->slug === 'profit-and-loss' ? ($v < 0 ? 'text-red-600' : 'text-green-700') : 'text-gray-900') }}">{{ $n($v) }}</td>
                                 @endforeach
                             </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>

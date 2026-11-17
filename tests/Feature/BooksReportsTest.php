@@ -49,22 +49,25 @@ test('the balance sheet balances, with profit to date in equity and a comparison
     booksActivity();
     $report = app(FinancialReports::class)->balanceSheet(CarbonImmutable::now()->endOfDay(), CarbonImmutable::now()->subMonthNoOverflow()->endOfMonth());
 
-    expect($report->sectionTotal('assets', 0))->toBe(1655000.0)
-        ->and($report->sectionTotal('liabilities', 0))->toBe(500000.0)
-        ->and($report->sectionTotal('equity', 0))->toBe(1155000.0)   // capital 1,000,000 + profit 155,000
-        ->and($report->totalValue($report->totals[0], 0))->toBe(1655000.0)
+    expect($report->namedTotal('Total assets', 0))->toBe(1655000.0)
+        ->and($report->sectionTotal('current_asset', 0))->toBe(1655000.0)
+        ->and($report->namedTotal('Total liabilities', 0))->toBe(500000.0)
+        ->and($report->sectionTotal('current_liability', 0))->toBe(500000.0)
+        ->and($report->namedTotal('Total equity', 0))->toBe(1155000.0)   // capital 1,000,000 + profit 155,000
+        ->and($report->namedTotal('Total liabilities and equity', 0))->toBe(1655000.0)
         ->and($report->check[1])->toBeTrue()
-        ->and($report->sectionTotal('assets', 1))->toBe(0.0);       // nothing at the end of last month
+        ->and($report->namedTotal('Total assets', 1))->toBe(0.0);       // nothing at the end of last month
 });
 
 test('profit and loss shows income, expenses and net profit, with the previous period', function () {
     booksActivity();
     $report = app(FinancialReports::class)->profitAndLoss(CarbonImmutable::now()->startOfMonth(), CarbonImmutable::now());
 
-    expect($report->sectionTotal('income', 0))->toBe(180000.0)
-        ->and($report->sectionTotal('expense', 0))->toBe(25000.0)
-        ->and($report->totalValue($report->totals[0], 0))->toBe(155000.0)
-        ->and($report->totals[0]['label'])->toBe('Net profit');
+    expect($report->namedTotal('Total income', 0))->toBe(180000.0)
+        ->and($report->namedTotal('Total expenses', 0))->toBe(25000.0)
+        ->and($report->sectionTotal('cost_of_sales', 0))->toBe(25000.0)   // the SMS purchase
+        ->and($report->namedTotal('Net profit', 0))->toBe(155000.0)
+        ->and(end($report->totals)['label'])->toBe('Net profit');
 });
 
 test('each report renders on screen and exports to PDF and Excel', function () {
@@ -109,9 +112,12 @@ test('the Excel workbook is formatted, and its formulas give the same totals', f
 
         return null;
     };
+    $current = $find('Total current assets');
     $assets = $find('Total assets');
     $grand = $find('Total liabilities and equity');
-    expect($sheet->getCell("C{$assets}")->getValue())->toStartWith('=SUM(')
+    expect($sheet->getCell("C{$current}")->getValue())->toStartWith('=SUM(')
+        ->and($sheet->getCell("C{$assets}")->getValue())->toBe("=C{$current}")   // categories added up, right below them
+        ->and($assets)->toBeGreaterThan($current)->and($assets)->toBeLessThan($grand)
         ->and($sheet->getCell("C{$assets}")->getCalculatedValue())->toEqual(1655000)
         ->and($sheet->getCell("C{$grand}")->getCalculatedValue())->toEqual(1655000)
         ->and($sheet->getStyle("C{$assets}")->getNumberFormat()->getFormatCode())->toContain('#,##0.00');
@@ -123,4 +129,45 @@ test('reports need the books permission', function () {
     foreach (['staff.books.pnl', 'staff.books.trial-balance', 'staff.books.balance-sheet'] as $route) {
         $this->actingAs($staff, 'staff')->get(route($route, ['format' => 'xlsx']))->assertForbidden();
     }
+});
+
+test('accounts have categories that group the balance sheet and profit and loss', function () {
+    booksActivity();
+    $staff = StaffUser::factory()->withPermissions(['books.view', 'books.post'])->create();
+
+    // The app's own accounts start in the usual categories.
+    expect(\App\Models\LedgerAccount::key('bank')->category)->toBe('current_asset')
+        ->and(\App\Models\LedgerAccount::key('landlord_payable')->category)->toBe('current_liability')
+        ->and(\App\Models\LedgerAccount::key('bank_charges')->category)->toBe('finance_cost');
+
+    // A category must belong to the account's type.
+    $this->actingAs($staff, 'staff')->post(route('staff.books.accounts.store'), ['code' => '1500', 'name' => 'Laptops', 'type' => 'asset', 'category' => 'current_liability'])
+        ->assertSessionHasErrors('category');
+    $this->actingAs($staff, 'staff')->post(route('staff.books.accounts.store'), ['code' => '1500', 'name' => 'Laptops', 'type' => 'asset', 'category' => 'non_current_asset'])->assertSessionHas('success');
+    $this->actingAs($staff, 'staff')->post(route('staff.books.accounts.store'), ['code' => '2500', 'name' => 'Bank loan', 'type' => 'liability'])->assertSessionHas('success');
+    $laptops = \App\Models\LedgerAccount::where('code', '1500')->sole();
+    $loan = \App\Models\LedgerAccount::where('code', '2500')->sole();
+    expect($laptops->category)->toBe('non_current_asset')->and($loan->category)->toBe('current_liability'); // the type's default
+
+    $this->actingAs($staff, 'staff')->put(route('staff.books.accounts.update', $loan), ['name' => 'Bank loan', 'category' => 'non_current_liability'])->assertSessionHas('success');
+    expect($loan->fresh()->category)->toBe('non_current_liability');
+
+    app(Ledger::class)->post(today(), 'Laptops bought on a loan', [['account' => $laptops, 'debit' => 3000000], ['account' => $loan, 'credit' => 3000000]], 'manual');
+
+    $report = app(FinancialReports::class)->balanceSheet(CarbonImmutable::now()->endOfDay(), CarbonImmutable::now()->subMonthNoOverflow()->endOfMonth());
+    expect($report->sectionTotal('current_asset', 0))->toBe(1655000.0)
+        ->and($report->sectionTotal('non_current_asset', 0))->toBe(3000000.0)
+        ->and($report->namedTotal('Total assets', 0))->toBe(4655000.0)
+        ->and($report->sectionTotal('non_current_liability', 0))->toBe(3000000.0)
+        ->and($report->check[1])->toBeTrue()
+        ->and(collect($report->blocks())->map(fn ($b) => $b['kind'] === 'section' ? $b['key'] : $b['label'])->all())->toBe([
+            'current_asset', 'non_current_asset', 'Total assets',
+            'current_liability', 'non_current_liability', 'Total liabilities',
+            'capital', 'reserves', 'Total equity', 'Total liabilities and equity',
+        ]);
+
+    $this->actingAs($staff, 'staff')->get(route('staff.books.accounts'))->assertOk()->assertSeeInOrder(['Current assets', 'Non-current assets', 'Laptops', 'Current liabilities', 'Non-current liabilities', 'Bank loan']);
+    $this->actingAs($staff, 'staff')->get(route('staff.books.balance-sheet'))->assertOk()->assertSeeInOrder(['Current assets', 'Total current assets', 'Non-current assets', 'Total assets', 'Current liabilities']);
+    $this->actingAs($staff, 'staff')->get(route('staff.books.balance-sheet', ['format' => 'xlsx']))->assertOk();
+    $this->actingAs($staff, 'staff')->get(route('staff.books.balance-sheet', ['format' => 'pdf']))->assertOk();
 });

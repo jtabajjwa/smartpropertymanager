@@ -110,6 +110,32 @@ class ReportSpreadsheet
         $headerRow = $row;
         $row++;
 
+        // Totals combining sections (e.g. net profit = income − expenses), after their section or at the end.
+        $writeTotals = function (array $totals) use ($sheet, $letter, $nameCol, $firstValueCol, $report, $lastLetter, &$row, &$sectionTotalRows) {
+            foreach ($totals as $total) {
+                $sheet->setCellValue($letter($nameCol).$row, $total['label']);
+                foreach ($report->columns as $i => $_) {
+                    $col = $letter($firstValueCol + $i);
+                    $parts = [];
+                    foreach ($total['combine'] as $key => $sign) {
+                        if (isset($sectionTotalRows[$key])) {
+                            $parts[] = ($sign < 0 ? '-' : '+').$col.$sectionTotalRows[$key];
+                        }
+                    }
+                    $sheet->setCellValue("{$col}{$row}", '='.ltrim(implode('', $parts) ?: '0', '+'));
+                }
+                $sheet->getStyle("A{$row}:{$lastLetter}{$row}")->applyFromArray([
+                    'font' => ['bold' => true, 'size' => $total['grand'] ? 11 : 10, 'color' => ['rgb' => self::NAVY]],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::TOTAL_FILL]],
+                    'borders' => $total['grand']
+                        ? ['top' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => self::NAVY]], 'bottom' => ['borderStyle' => Border::BORDER_DOUBLE, 'color' => ['rgb' => self::NAVY]]]
+                        : ['top' => ['borderStyle' => Border::BORDER_THIN]],
+                ]);
+                $sheet->getRowDimension($row)->setRowHeight(20);
+                $row += 2;
+            }
+        };
+
         // --- Sections
         $sectionTotalRows = [];
         $sectionRows = [];
@@ -153,31 +179,10 @@ class ReportSpreadsheet
                 $row++;
             }
             $row++; // breathing space
+            $writeTotals($report->totalsAfter($section['key']));
         }
 
-        // --- Totals combining sections (e.g. net profit = income − expenses)
-        foreach ($report->totals as $total) {
-            $sheet->setCellValue($letter($nameCol).$row, $total['label']);
-            foreach ($report->columns as $i => $_) {
-                $col = $letter($firstValueCol + $i);
-                $parts = [];
-                foreach ($total['combine'] as $key => $sign) {
-                    if (isset($sectionTotalRows[$key])) {
-                        $parts[] = ($sign < 0 ? '-' : '+').$col.$sectionTotalRows[$key];
-                    }
-                }
-                $sheet->setCellValue("{$col}{$row}", '='.ltrim(implode('', $parts) ?: '0', '+'));
-            }
-            $sheet->getStyle("A{$row}:{$lastLetter}{$row}")->applyFromArray([
-                'font' => ['bold' => true, 'size' => $total['grand'] ? 11 : 10, 'color' => ['rgb' => self::NAVY]],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => self::TOTAL_FILL]],
-                'borders' => $total['grand']
-                    ? ['top' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => self::NAVY]], 'bottom' => ['borderStyle' => Border::BORDER_DOUBLE, 'color' => ['rgb' => self::NAVY]]]
-                    : ['top' => ['borderStyle' => Border::BORDER_THIN]],
-            ]);
-            $sheet->getRowDimension($row)->setRowHeight(20);
-            $row += 2;
-        }
+        $writeTotals($report->totalsAfter(null));
 
         // Number format and alignment for every value cell.
         $sheet->getStyle($letter($firstValueCol).($headerRow + 1).':'.$lastLetter.$row)->getNumberFormat()->setFormatCode(self::NUMBER);

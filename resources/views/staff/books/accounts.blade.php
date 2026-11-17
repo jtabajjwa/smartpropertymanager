@@ -18,7 +18,13 @@
                     <h2 class="text-sm font-semibold text-gray-900">{{ $label }} <span class="ml-2 text-xs font-normal text-gray-500">{{ $range }} · normal balance: {{ $side }}</span></h2>
                     <span class="text-sm font-semibold text-gray-900">{{ number_format($group->sum('balance')) }}</span>
                 </div>
-                @forelse($group as $a)
+                @php $byCategory = $group->groupBy(fn ($a) => $a->categoryKey()); @endphp
+                @forelse(collect(\App\Models\LedgerAccount::CATEGORIES[$type])->keys()->filter(fn ($k) => $byCategory->has($k)) as $categoryKey)
+                    <div class="px-6 pt-3 pb-1.5 flex items-center justify-between border-b border-gray-100 {{ $loop->first ? '' : 'border-t' }}">
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ \App\Models\LedgerAccount::CATEGORIES[$type][$categoryKey][0] }}</h3>
+                        <span class="text-xs font-semibold text-gray-500">{{ number_format($byCategory[$categoryKey]->sum('balance')) }}</span>
+                    </div>
+                @foreach($byCategory[$categoryKey] as $a)
                     <div class="px-6 py-3 {{ ! $loop->last ? 'border-b border-gray-100' : '' }} flex items-center gap-4 text-sm {{ $a->is_active ? '' : 'opacity-60' }}">
                         <span class="w-14 shrink-0 font-mono text-gray-500">{{ $a->code }}</span>
                         <div class="min-w-0 flex-1">
@@ -29,9 +35,10 @@
                         </div>
                         <span class="font-semibold whitespace-nowrap {{ $a->balance < 0 ? 'text-red-600' : 'text-gray-900' }}">{{ number_format($a->balance) }}</span>
                         @staffcan('books.post')
-                            <button type="button" class="text-xs text-gray-400 hover:text-orange-600" @click="editing = {{ Js::from(['id' => $a->id, 'name' => $a->name, 'description' => $a->description, 'is_active' => $a->is_active, 'system' => (bool) $a->system_key]) }}">Edit</button>
+                            <button type="button" class="text-xs text-gray-400 hover:text-orange-600" @click="editing = {{ Js::from(['id' => $a->id, 'name' => $a->name, 'description' => $a->description, 'is_active' => $a->is_active, 'system' => (bool) $a->system_key, 'type' => $a->type, 'category' => $a->categoryKey()]) }}">Edit</button>
                         @endstaffcan
                     </div>
+                @endforeach
                 @empty
                     <p class="px-6 py-4 text-sm text-gray-500">None.</p>
                 @endforelse
@@ -40,7 +47,8 @@
 
         @staffcan('books.post')
             <template x-if="addModal">
-                <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) addModal = false })">
+                <div x-data="{ show: false, type: {{ Js::from(old('type', 'expense')) }}, category: {{ Js::from(old('category', '')) }}, categories: {{ Js::from(\App\Models\LedgerAccount::CATEGORIES) }} }"
+                     x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) addModal = false }); if (!categories[type][category]) category = Object.keys(categories[type])[0]; $watch('type', t => category = Object.keys(categories[t])[0])">
                     <x-modal title="Add account">
                         <form method="POST" action="{{ route('staff.books.accounts.store') }}" class="space-y-4">
                             @csrf
@@ -51,12 +59,19 @@
                                 </div>
                                 <div class="col-span-2">
                                     <x-label :required="true">Type</x-label>
-                                    <x-select name="type">
+                                    <x-select name="type" x-model="type">
                                         @foreach(\App\Models\LedgerAccount::TYPES as $value => [$l, , $r])
-                                            <option value="{{ $value }}" @selected(old('type', 'expense') === $value)>{{ $l }} ({{ $r }})</option>
+                                            <option value="{{ $value }}">{{ $l }} ({{ $r }})</option>
                                         @endforeach
                                     </x-select>
                                 </div>
+                            </div>
+                            <div>
+                                <x-label :required="true">Category</x-label>
+                                <select name="category" x-model="category" class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                                    <template x-for="(c, key) in categories[type]" :key="key"><option :value="key" x-text="c[0]" :selected="key === category"></option></template>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500" x-text="categories[type][category]?.[1]"></p>
                             </div>
                             <div>
                                 <x-label :required="true">Name</x-label>
@@ -83,6 +98,13 @@
                             <div>
                                 <x-label :required="true">Name</x-label>
                                 <x-input name="name" x-model="editing.name" required />
+                            </div>
+                            <div x-data="{ categories: {{ Js::from(\App\Models\LedgerAccount::CATEGORIES) }} }">
+                                <x-label :required="true">Category</x-label>
+                                <select name="category" x-model="editing.category" class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                                    <template x-for="(c, key) in categories[editing.type]" :key="key"><option :value="key" x-text="c[0]" :selected="key === editing.category"></option></template>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500" x-text="categories[editing.type][editing.category]?.[1]"></p>
                             </div>
                             <div>
                                 <x-label>Description</x-label>
