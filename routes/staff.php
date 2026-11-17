@@ -141,8 +141,13 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('books/journal', [$Bk, 'journal'])->middleware('staff.can:books.view')->name('books.journal');
         Route::post('books/journal', [$Bk, 'storeJournal'])->middleware('staff.can:books.post')->name('books.journal.store');
         Route::post('books/journal/{journalEntry}/reverse', [$Bk, 'reverse'])->middleware('staff.can:books.post')->name('books.journal.reverse');
+        Route::post('books/journal/{journalEntry}/attachments', [$Bk, 'attach'])->middleware('staff.can:books.post')->name('books.journal.attach');
+        Route::get('books/attachments/{journalAttachment}', [$Bk, 'attachment'])->middleware('staff.can:books.view')->name('books.attachments.show');
+        Route::delete('books/attachments/{journalAttachment}', [$Bk, 'destroyAttachment'])->middleware('staff.can:books.post')->name('books.attachments.destroy');
         Route::post('books/expenses', [$Bk, 'storeExpense'])->middleware('staff.can:books.post')->name('books.expenses.store');
         Route::post('books/transfers', [$Bk, 'storeTransfer'])->middleware('staff.can:books.post')->name('books.transfers.store');
+        Route::get('books/reconciliation', [\App\Http\Controllers\Staff\ReconciliationController::class, 'index'])->middleware('staff.can:books.view')->name('books.reconciliation');
+        Route::post('books/reconciliation/check', [\App\Http\Controllers\Staff\ReconciliationController::class, 'check'])->middleware(['staff.can:books.view', 'throttle:6,1'])->name('books.reconciliation.check');
         Route::get('books/profit-and-loss', [$Bk, 'profitAndLoss'])->middleware('staff.can:books.view')->name('books.pnl');
         Route::get('books/trial-balance', [$Bk, 'trialBalance'])->middleware('staff.can:books.view')->name('books.trial-balance');
         Route::get('books/balance-sheet', [$Bk, 'balanceSheet'])->middleware('staff.can:books.view')->name('books.balance-sheet');

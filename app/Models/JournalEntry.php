@@ -21,6 +21,12 @@ class JournalEntry extends Model
         return $this->hasMany(JournalLine::class);
     }
 
+    /** Receipts, invoices and other supporting documents. */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(JournalAttachment::class)->oldest('id');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(StaffUser::class, 'created_by_staff_user_id');

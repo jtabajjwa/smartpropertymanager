@@ -3,6 +3,7 @@
         'staff.books.index' => 'Overview',
         'staff.books.accounts' => 'Chart of accounts',
         'staff.books.journal' => 'Journal',
+        'staff.books.reconciliation' => 'Reconciliation',
         'staff.books.pnl' => 'Profit & Loss',
         'staff.books.balance-sheet' => 'Balance sheet',
         'staff.books.trial-balance' => 'Trial balance',

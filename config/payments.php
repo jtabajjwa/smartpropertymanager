@@ -39,6 +39,25 @@ return [
         'not_found_after_minutes' => 30,
     ],
 
+    // Reconciliation with Yo! (php artisan reconcile:balances, hourly): the pool
+    // balance Yo! reports is compared with the books, and the money held must
+    // cover what is owed to landlords. Staff with "Record in the books" are emailed.
+    'balance_check' => [
+        // Gateway holding the "Yo! Payments pool" account (the default gateway if empty).
+        'gateway' => env('RECONCILE_GATEWAY'),
+        // Differences up to this many shillings count as matched.
+        'tolerance' => (float) env('RECONCILE_TOLERANCE', 0),
+        // Yo! wallets that aren't money we hold (airtime), by wallet code.
+        'exclude_wallets' => '/AT$/',
+        // A difference is only reported once it shows on this many checks in a row
+        // (a collection Yo! completed a moment before we heard about it is normal).
+        'alert_after_checks' => 2,
+        // While a problem lasts, repeat the email at most this often.
+        'realert_hours' => 24,
+        // Payouts still being sent after this long are listed for follow-up.
+        'stale_payout_minutes' => 60,
+    ],
+
     'gateways' => [
 
         // Yo! Payments (Yo! Uganda) — mobile money collections via acdepositfunds.

@@ -89,7 +89,7 @@
                 <div class="px-6 py-3 {{ ! $loop->last ? 'border-b border-gray-100' : '' }} flex items-center justify-between gap-4 text-sm">
                     <div class="min-w-0">
                         <p class="text-gray-900 truncate">{{ $e->description }}</p>
-                        <p class="text-xs text-gray-500">{{ $e->number }} · {{ $e->entry_date->format('d M Y') }} · {{ $e->sourceLabel() }}</p>
+                        <p class="text-xs text-gray-500">{{ $e->number }} · {{ $e->entry_date->format('d M Y') }} · {{ $e->sourceLabel() }}@if($e->attachments_count) · <a href="{{ route('staff.books.journal', ['period' => 'all', 'search' => $e->number]) }}" class="text-orange-600 hover:text-orange-700">{{ $e->attachments_count }} {{ Str::plural('document', $e->attachments_count) }}</a>@endif</p>
                     </div>
                     <p class="font-medium text-gray-900 whitespace-nowrap">{{ number_format($e->total()) }}</p>
                 </div>

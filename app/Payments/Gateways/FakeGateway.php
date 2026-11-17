@@ -17,8 +17,17 @@ use Illuminate\Http\Request;
  *
  * Refuses to run in production.
  */
-class FakeGateway implements PaymentGateway, PayoutGateway
+class FakeGateway implements PaymentGateway, PayoutGateway, \App\Payments\Contracts\BalanceGateway
 {
+    /** Simulated: Yo! holds exactly what the books say (less payouts being sent), so local reconciliation matches. */
+    public function accountBalance(): array
+    {
+        $this->guard();
+        $held = app(\App\Accounting\Ledger::class)->balance('yo_pool') - app(\App\Services\Reconciliation::class)->payoutsInFlight();
+
+        return ['total' => round($held, 2), 'wallets' => ['UGX-SIMULATED' => round($held, 2)]];
+    }
+
     public function __construct(protected array $config)
     {
     }

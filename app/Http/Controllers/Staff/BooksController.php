@@ -8,12 +8,15 @@ use App\Accounting\Reports\Report;
 use App\Accounting\Reports\ReportPdf;
 use App\Accounting\Reports\ReportSpreadsheet;
 use App\Http\Controllers\Controller;
+use App\Models\JournalAttachment;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
 use App\Models\Landlord;
 use App\Models\LedgerAccount;
+use App\Services\JournalAttachments;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /** Primora's books: chart of accounts, ledgers, journal, P&L, and manual entries. */
@@ -54,7 +57,7 @@ class BooksController extends Controller
             'own' => $cash - $liabilities,
             'month' => $month,
             'retained' => $allTime['profit'],
-            'recent' => JournalEntry::with('lines.account')->latest('id')->limit(8)->get(),
+            'recent' => JournalEntry::with('lines.account')->withCount('attachments')->latest('id')->limit(8)->get(),
             'moneyAccounts' => LedgerAccount::moneyAccounts(),
             'expenseAccounts' => LedgerAccount::where('type', 'expense')->where('is_active', true)->orderBy('code')->get(),
             'allAccounts' => LedgerAccount::where('is_active', true)->orderBy('code')->get(),
@@ -145,7 +148,7 @@ class BooksController extends Controller
     {
         [$period, $from, $to] = $this->range($request, 'this_month');
 
-        $entries = JournalEntry::with(['lines.account', 'lines.landlord', 'createdBy'])
+        $entries = JournalEntry::with(['lines.account', 'lines.landlord', 'createdBy', 'attachments.uploadedBy'])
             ->when($from, fn ($q) => $q->whereDate('entry_date', '>=', $from->toDateString()))
             ->when($to, fn ($q) => $q->whereDate('entry_date', '<=', $to->toDateString()))
             ->when($request->input('source'), fn ($q, $s) => $s === 'manual' ? $q->where('source_type', 'manual') : $q->where('source_type', $s))
@@ -168,7 +171,7 @@ class BooksController extends Controller
             'lines.*.debit' => ['nullable', 'numeric', 'min:0'],
             'lines.*.credit' => ['nullable', 'numeric', 'min:0'],
             'lines.*.memo' => ['nullable', 'string', 'max:200'],
-        ]);
+        ] + JournalAttachments::rules(), JournalAttachments::messages());
 
         $payable = LedgerAccount::key('landlord_payable')->id;
         $lines = collect($data['lines'])->map(fn ($l) => [
@@ -183,8 +186,9 @@ class BooksController extends Controller
         } catch (\InvalidArgumentException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
+        $files = $this->storeAttachments($request, $entry);
 
-        return back()->with('success', "Journal {$entry->number} posted.");
+        return back()->with('success', "Journal {$entry->number} posted.".$this->filesNote($files));
     }
 
     public function storeExpense(Request $request)
@@ -195,14 +199,16 @@ class BooksController extends Controller
             'paid_from_id' => ['required', Rule::exists('ledger_accounts', 'id')->where('type', 'asset')],
             'amount' => ['required', 'numeric', 'min:1'],
             'description' => ['required', 'string', 'max:300'],
-        ]);
+        ] + JournalAttachments::rules(), JournalAttachments::messages());
 
         $entry = $this->ledger->post($data['entry_date'], $data['description'], [
             ['account' => (int) $data['expense_account_id'], 'debit' => $data['amount']],
             ['account' => (int) $data['paid_from_id'], 'credit' => $data['amount']],
         ], 'manual', null, null, $request->user('staff'));
 
-        return back()->with('success', "Expense recorded ({$entry->number}).");
+        $files = $this->storeAttachments($request, $entry);
+
+        return back()->with('success', "Expense recorded ({$entry->number}).".$this->filesNote($files));
     }
 
     public function storeTransfer(Request $request)
@@ -213,7 +219,7 @@ class BooksController extends Controller
             'to_id' => ['required', 'different:from_id', Rule::exists('ledger_accounts', 'id')->where('type', 'asset')],
             'amount' => ['required', 'numeric', 'min:1'],
             'description' => ['nullable', 'string', 'max:300'],
-        ], ['to_id.different' => 'Choose two different accounts.']);
+        ] + JournalAttachments::rules(), ['to_id.different' => 'Choose two different accounts.'] + JournalAttachments::messages());
 
         $from = LedgerAccount::find($data['from_id']);
         $to = LedgerAccount::find($data['to_id']);
@@ -222,7 +228,9 @@ class BooksController extends Controller
             ['account' => $from, 'credit' => $data['amount']],
         ], 'manual', null, null, $request->user('staff'));
 
-        return back()->with('success', "Transfer recorded ({$entry->number}).");
+        $files = $this->storeAttachments($request, $entry);
+
+        return back()->with('success', "Transfer recorded ({$entry->number}).".$this->filesNote($files));
     }
 
     /** Manual entries can be reversed; automatic ones are corrected at their source. */
@@ -241,6 +249,52 @@ class BooksController extends Controller
         }
 
         return back()->with('success', "{$journalEntry->number} reversed by {$reversal->number}.");
+    }
+
+    // --- Supporting documents ---------------------------------------------------
+
+    /** Attach documents to any entry, manual or automatic (e.g. a bank statement for a payout). */
+    public function attach(Request $request, JournalEntry $journalEntry)
+    {
+        $request->validate(JournalAttachments::rules(required: true), JournalAttachments::messages());
+        $room = JournalAttachments::MAX_FILES * 4 - $journalEntry->attachments()->count();
+        if (count($request->file('attachments', [])) > $room) {
+            return back()->with('error', "{$journalEntry->number} already has the most documents allowed.");
+        }
+
+        $files = $this->storeAttachments($request, $journalEntry);
+
+        return back()->with('success', $files === 1 ? "Document attached to {$journalEntry->number}." : "{$files} documents attached to {$journalEntry->number}.");
+    }
+
+    /** Opens PDFs and images in the browser; downloads anything else. Staff only (private disk). */
+    public function attachment(JournalAttachment $journalAttachment)
+    {
+        $disk = Storage::disk(JournalAttachment::DISK);
+        abort_unless($disk->exists($journalAttachment->path), 404);
+
+        return $journalAttachment->opensInBrowser()
+            ? $disk->response($journalAttachment->path, $journalAttachment->original_name, ['Content-Type' => $journalAttachment->mime_type, 'X-Content-Type-Options' => 'nosniff'])
+            : $disk->download($journalAttachment->path, $journalAttachment->original_name);
+    }
+
+    public function destroyAttachment(Request $request, JournalAttachment $journalAttachment)
+    {
+        $number = $journalAttachment->entry->number;
+        $name = $journalAttachment->original_name;
+        $journalAttachment->delete();
+
+        return back()->with('success', "Removed {$name} from {$number}.");
+    }
+
+    protected function storeAttachments(Request $request, JournalEntry $entry): int
+    {
+        return app(JournalAttachments::class)->store($entry, $request->file('attachments', []), $request->user('staff'));
+    }
+
+    protected function filesNote(int $files): string
+    {
+        return $files ? ' '.($files === 1 ? '1 document' : "{$files} documents").' attached.' : '';
     }
 
     // --- Reports ----------------------------------------------------------------

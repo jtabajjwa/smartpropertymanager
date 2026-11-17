@@ -5,6 +5,7 @@ namespace App\Payments\Gateways;
 use App\Models\PaymentGatewayLog;
 use App\Models\PaymentTransaction;
 use App\Models\Liquidation;
+use App\Payments\Contracts\BalanceGateway;
 use App\Payments\Contracts\PaymentGateway;
 use App\Payments\Contracts\PayoutGateway;
 use App\Payments\GatewayLogger;
@@ -29,7 +30,7 @@ use SimpleXMLElement;
  *    (spec §4.1: SHA1-with-RSA over username, amount, account, narrative,
  *    external reference and a single-use nonce). Never re-sent automatically.
  */
-class YoPaymentsGateway implements PaymentGateway, PayoutGateway
+class YoPaymentsGateway implements PaymentGateway, PayoutGateway, BalanceGateway
 {
     public function __construct(protected array $config)
     {
@@ -151,6 +152,39 @@ class YoPaymentsGateway implements PaymentGateway, PayoutGateway
         return 'OK';
     }
 
+
+    // --- Balance (reconciliation) ---------------------------------------------
+
+    /**
+     * acacctbalance: one balance per wallet (e.g. UGX-MTNMM, UGX-OATMM). Airtime
+     * wallets (codes ending "AT") aren't money we hold, so they're left out
+     * of the total (config payments.balance_check.exclude_wallets).
+     */
+    public function accountBalance(): array
+    {
+        try {
+            $xml = $this->send(['Method' => 'acacctbalance']);
+        } catch (ConnectionException $e) {
+            throw new \RuntimeException('Could not reach Yo! Payments: '.$e->getMessage());
+        }
+
+        $r = $xml->Response;
+        if (strtoupper((string) $r->Status) !== 'OK') {
+            throw new \RuntimeException('Yo! Payments refused the balance request: '.(trim((string) $r->ErrorMessage) ?: trim((string) $r->StatusMessage) ?: 'status code '.(string) $r->StatusCode).'.');
+        }
+
+        $exclude = (string) config('payments.balance_check.exclude_wallets', '/AT$/');
+        $wallets = [];
+        foreach ($r->Balance->Currency ?? [] as $currency) {
+            $code = trim((string) $currency->Code);
+            if ($code === '' || ($exclude !== '' && preg_match($exclude, $code))) {
+                continue;
+            }
+            $wallets[$code] = round((float) $currency->Balance, 2);
+        }
+
+        return ['total' => round(array_sum($wallets), 2), 'wallets' => $wallets];
+    }
 
     // --- Payouts ------------------------------------------------------------
     //  mobile money: acwithdrawfunds (§4) / actransactioncheckstatus

@@ -10,7 +10,7 @@
     <template x-if="form === 'expense'">
         <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) form = null })">
             <x-modal title="Record an expense">
-                <form method="POST" action="{{ route('staff.books.expenses.store') }}" class="space-y-4">
+                <form method="POST" action="{{ route('staff.books.expenses.store') }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -39,6 +39,7 @@
                         <x-label :required="true">Description</x-label>
                         <x-input name="description" maxlength="300" placeholder="e.g. October office rent" required />
                     </div>
+                    @include('staff.books._attach-input')
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button" @click="show = false" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</button>
                         <x-button type="submit">Record expense</x-button>
@@ -52,7 +53,7 @@
     <template x-if="form === 'transfer'">
         <div x-data="{ show: false }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) form = null })">
             <x-modal title="Transfer between accounts">
-                <form method="POST" action="{{ route('staff.books.transfers.store') }}" class="space-y-4">
+                <form method="POST" action="{{ route('staff.books.transfers.store') }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
                     <p class="text-sm text-gray-600">Moving Primora's money between its own accounts, e.g. withdrawing from the Yo! pool to the bank.</p>
                     <div class="grid grid-cols-2 gap-4">
@@ -83,6 +84,7 @@
                         <x-label>Description</x-label>
                         <x-input name="description" maxlength="300" placeholder="Optional" />
                     </div>
+                    @include('staff.books._attach-input')
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button" @click="show = false" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</button>
                         <x-button type="submit">Record transfer</x-button>
@@ -103,7 +105,7 @@
                 fmt(n) { return Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) },
              }" x-init="$nextTick(() => show = true); $watch('show', v => { if (!v) form = null })">
             <x-modal title="Journal entry" maxWidth="2xl">
-                <form method="POST" action="{{ route('staff.books.journal.store') }}" class="space-y-4">
+                <form method="POST" action="{{ route('staff.books.journal.store') }}" enctype="multipart/form-data" class="space-y-4">
                     @csrf
                     <p class="text-sm text-gray-600">For anything the other forms don't cover: opening balances (e.g. bank against Owner's equity), capital, corrections. Debits must equal credits.</p>
                     <div class="grid grid-cols-3 gap-4">
@@ -141,6 +143,7 @@
                             <span class="col-span-3 text-xs" :class="balanced ? 'text-green-700' : 'text-red-600'" x-text="balanced ? 'Balanced' : 'Debits must equal credits'"></span>
                         </div>
                     </div>
+                    @include('staff.books._attach-input')
                     <p class="text-xs text-gray-500">Landlord funds can't be used here: they change only through collections and payouts.</p>
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button" @click="show = false" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</button>
