@@ -213,20 +213,37 @@ test('the caller sees the units on their own phone, or on another tenant\'s', fu
         ->and(ussdCall($this, 'units', ['other_tenant_phonenumber' => '12'])->json('validated'))->toBeFalse();
 });
 
-test('"Pay for Self" as Yo! sends it (anumbermsisdn "1", caller in a signed msisdn, unit-ID URL) lists the caller\'s units', function () {
-    ussdTenancy();
+test('"Pay for Self" as Yo! sends it (anumbermsisdn "1", caller in a signed msisdn, unit-ID URL) answers for the caller\'s unit, with everything the narrative needs', function () {
+    $t = ussdTenancy();
     $datetime = '20261103181150';
     openssl_sign(sha1($datetime.'256772123456'), $sig, $this->ussdKey, OPENSSL_ALGO_SHA1);
     $call = fn (string $msisdn) => $this->postJson(route('api.ussd.yo', 'unit'), ['datetime' => $datetime, 'anumbermsisdn' => '1',
         'signature' => base64_encode($sig), 'code' => '217', 'msisdn' => $msisdn, 'url' => 'https://example.test'])->assertOk()->json();
 
+    // One unit on the phone: the same answer as typing its unit ID.
     $json = $call('256772123456');
+    $intent = UssdPaymentIntent::sole();
     expect($json['validated'])->toBeTrue()
-        ->and($json['ussd_processor_params']['user_phonenumber'])->toBe('256772123456')
-        ->and($json['ussd_processor_params']['property_unit_list_text'])->toContain('Acacia Court A4');
+        ->and($json['message'])->toBe("Primora PropTech:\nEstate: Acacia Court\nTenant: Grace Namata\nUnit No: A4 ({$t['unit']->code})\nBal: UGX 500,000")
+        ->and($json['ussd_processor_params'])->toMatchArray([
+            'tenant_name' => 'Grace Namata', 'estate_name' => 'Acacia Court', 'unit_number' => "A4 ({$t['unit']->code})",
+            'property_unit_number' => $t['unit']->code, 'payment_external_reference' => $intent->reference, 'user_phonenumber' => '256772123456',
+        ])
+        ->and($json['success_ipn_url'])->toBe(route('payments.callback', ['gateway' => 'yo', 'type' => 'ipn']))
+        ->and($json['failure_ipn_url'])->toBe(route('payments.callback', ['gateway' => 'yo', 'type' => 'failure']))
+        ->and($intent->lease_id)->toBe($t['lease']->id)->and($intent->msisdn)->toBe('256772123456');
 
     // A msisdn the signature doesn't cover is refused.
     expect($call('256701999999')['validated'])->toBeFalse();
+
+    // Two units on the phone: the list to choose from, with the tenant's name; the reference comes at confirm.
+    $second = ussdTenancy();
+    $json = $call('256772123456');
+    expect($json['validated'])->toBeTrue()
+        ->and($json['ussd_processor_params']['property_unit_count'])->toBe(2)
+        ->and($json['ussd_processor_params']['tenant_name'])->toBe('Grace Namata')
+        ->and($json['ussd_processor_params'])->not->toHaveKey('payment_external_reference')
+        ->and(UssdPaymentIntent::count())->toBe(1);
 });
 
 test('choosing a listed unit and an amount hands out a reference for that amount', function () {

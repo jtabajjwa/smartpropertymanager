@@ -71,7 +71,7 @@ to the call-out body.
 | `amount`, `amount_formatted` | confirm | `200000`, `UGX 200,000` |
 | `property_unit_list_text` | units | `Primora PropTech:\n1. Acacia Court A4 (Grace, Bal: UGX 500,000)` (at most 4 units) |
 | `property_unit_count` | units | `1` |
-| `user_phonenumber` | units | `256772123456` |
+| `user_phonenumber` | units, unit (Pay for Self) | `256772123456` |
 | `payment_external_reference` | unit, confirm | `RNT-261030-K3QX7M` |
 
 The template's placeholders map to these keys:
@@ -122,8 +122,17 @@ The "Pay for Self" step on Yo!'s menu deviates from the spec. It sends
 - when the `anumbermsisdn` check fails, Primora checks the signature against
   `msisdn`, with the same key;
 - the caller is whichever phone number the signature covers;
-- a `unit` call-out without `property_unit_number` is answered as `units`
-  (logged as "unit call-out without a unit ID, answered as units").
+- a `unit` call-out without `property_unit_number` is answered for the
+  caller (logged as "unit call-out without a unit ID, answered for the
+  caller"):
+  - **one unit on the caller's phone:** exactly like a typed unit ID. The
+    answer has `tenant_name`, `estate_name`, `unit_number`,
+    `property_unit_number`, `payment_external_reference` and the IPN URLs,
+    so the payment narrative is filled in;
+  - **several units:** the list (as `units`), with `tenant_name` and, when
+    they're all in one estate, `estate_name`. The payment reference then
+    comes from the `confirm` call-out, so the menu must go on to the
+    choice and amount steps for these callers.
 
 The keys are in `resources/certs/yo/ussd-sandbox.pem` and
 `ussd-production.pem`. Which one is used follows `YO_USSD_MODE`, which

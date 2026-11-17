@@ -47,15 +47,17 @@ class YoUssdController extends Controller
             return response()->json($callout->fail('We could not verify this request. Please try again.'));
         }
 
-        // "Pay for Self" configured against the unit-ID URL: no unit ID was typed, so list the caller's units.
+        // "Pay for Self" configured against the unit-ID URL: no unit ID was typed, so answer for the caller's
+        // own unit (or list their units when they have several).
         if ($step === 'unit' && !array_key_exists('property_unit_number', $payload)) {
-            Log::info('Yo! USSD unit call-out without a unit ID, answered as units', ['fields' => array_keys($payload)]);
-            $step = 'units';
+            Log::info('Yo! USSD unit call-out without a unit ID, answered for the caller', ['fields' => array_keys($payload)]);
+            $step = 'self';
         }
 
         try {
             $response = match ($step) {
                 'unit' => $callout->unit($payload),
+                'self' => $callout->self($payload),
                 'units' => $callout->units($payload),
                 'confirm' => $callout->confirm($payload),
             };

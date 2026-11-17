@@ -153,6 +153,26 @@ class YoUssdCallout
             return $this->fail("This unit's landlord doesn't take payments through Primora yet. Please pay them directly.");
         }
 
+        return $this->tenancyAnswer($tenancy, $p);
+    }
+
+    /**
+     * "Pay for Self" sent to the unit-ID URL (no unit ID typed). One unit on the
+     * caller's phone: answered exactly like a typed unit ID, with the tenant,
+     * estate, unit and a payment reference, so Yo! can fill the payment
+     * narrative. Several: the list to choose from (the reference then comes
+     * from the confirm call-out).
+     */
+    public function self(array $p): array
+    {
+        $tenancies = $this->payable($this->caller($p));
+
+        return $tenancies->count() === 1 ? $this->tenancyAnswer($tenancies->first(), $p) : $this->units($p);
+    }
+
+    /** The answer for one tenancy: its details, a payment reference and the IPN URLs. */
+    protected function tenancyAnswer(Tenancy $tenancy, array $p): array
+    {
         $intent = $this->ussd->reserve($tenancy, $this->caller($p));
 
         return $this->ok(
@@ -161,6 +181,7 @@ class YoUssdCallout
                 'balance' => (int) round($tenancy->balance),
                 'balance_formatted' => $this->money($tenancy->balance),
                 'payment_external_reference' => $intent->reference,
+                'user_phonenumber' => $this->caller($p),
             ],
             withIpn: true,
         );
@@ -186,11 +207,14 @@ class YoUssdCallout
 
         return $this->ok(
             'Primora PropTech: '.$tenancies->count().' active property '.Str::plural('unit', $tenancies->count()).' found against '.($other ? 'that' : 'your').' phone number.',
-            [
+            array_filter([
                 'property_unit_list_text' => $this->listText($tenancies),
                 'property_unit_count' => $tenancies->count(),
                 'user_phonenumber' => $msisdn,
-            ],
+                // The same for every listed unit (usually: one tenant's phone), so menu texts can use them.
+                'tenant_name' => $tenancies->map(fn (Tenancy $t) => $t->tenantName())->unique()->count() === 1 ? $tenancies->first()->tenantName() : null,
+                'estate_name' => $tenancies->map(fn (Tenancy $t) => $t->estateName())->unique()->count() === 1 ? $tenancies->first()->estateName() : null,
+            ], fn ($v) => $v !== null),
         );
     }
 
@@ -257,7 +281,8 @@ class YoUssdCallout
             'tenant_name' => $t->tenantName(),
             'estate_name' => $t->estateName(),
             'unit_number' => $this->unitLabel($t),
-            'property_unit_number' => $t->unitCode(),
+            // Never empty: Yo! leaves a placeholder unreplaced when a value is missing.
+            'property_unit_number' => $t->unitCode() ?: $t->unitName(),
         ];
     }
 
