@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             Route::middleware('web')->group(__DIR__.'/../routes/staff.php');
             Route::middleware('web')->group(__DIR__.'/../routes/tenant.php');
+            Route::middleware('web')->group(__DIR__.'/../routes/partner.php');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -34,6 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff.landlord-context' => \App\Http\Middleware\ResolveStaffLandlordContext::class,
             'staff.can' => \App\Http\Middleware\StaffCan::class,
             'auth.tenant' => \App\Http\Middleware\AuthenticateTenant::class,
+            'auth.partner' => \App\Http\Middleware\AuthenticatePartner::class,
+            'api.landlord' => \App\Http\Middleware\ApiLandlord::class,
             'subscription.access' => \App\Http\Middleware\EnforceSubscriptionAccess::class,
             'terms' => \App\Http\Middleware\EnsureTermsAccepted::class,
         ]);
@@ -48,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Signing out with an expired session: they're already signed out.
-            foreach (['logout' => 'login', 'staff.logout' => 'staff.login', 'tenant.logout' => 'tenant.login'] as $logout => $login) {
+            foreach (['logout' => 'login', 'staff.logout' => 'staff.login', 'tenant.logout' => 'tenant.login', 'partner.logout' => 'partner.login'] as $logout => $login) {
                 if ($request->routeIs($logout)) {
                     return redirect()->route($login);
                 }

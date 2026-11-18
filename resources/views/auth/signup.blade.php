@@ -11,7 +11,7 @@
 
     @php
         $initialStep = 1;
-        if ($errors->hasAny(['password', 'password_confirmation', 'terms'])) {
+        if ($errors->hasAny(['password', 'password_confirmation', 'terms', 'partner_code'])) {
             $initialStep = 3;
         } elseif ($errors->hasAny(['name', 'email', 'phone'])) {
             $initialStep = 2;
@@ -137,6 +137,12 @@
                 </div>
             @endif
 
+            @if($refCode)
+                <div class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    Signing up with code <strong>{{ $refCode->code }}</strong>@if($refCode->partner) from {{ $refCode->partner->name }}@endif.
+                    @if($refPromotion)<span class="block mt-0.5 font-medium">{{ $refPromotion->summary() }}.</span>@endif
+                </div>
+            @endif
             <form method="POST" action="{{ route('signup') }}">
                 @csrf
 
@@ -245,6 +251,17 @@
                             class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
                             placeholder="Re-enter your password" />
                         <p class="mt-1.5 text-xs text-red-600" x-show="password_confirmation.length > 0 && password !== password_confirmation" x-cloak>Passwords don't match.</p>
+                    </div>
+
+                    <div x-data="{ open: {{ old('partner_code') || $errors->has('partner_code') || $refCode ? 'true' : 'false' }} }">
+                        <button type="button" x-show="!open" @click="open = true" class="text-sm font-medium text-orange-500 hover:text-orange-600">Have a partner or promo code?</button>
+                        <div x-show="open" x-cloak>
+                            <label class="block text-sm font-medium text-gray-600 mb-1.5">Partner or promo code <span class="text-gray-400 font-normal">(optional)</span></label>
+                            <input type="text" name="partner_code" value="{{ old('partner_code', $refCode?->code) }}" maxlength="30" autocomplete="off"
+                                class="w-full rounded-xl border {{ $errors->has('partner_code') ? 'border-red-400' : 'border-gray-200' }} bg-gray-50 px-4 py-2.5 text-sm uppercase text-gray-900 placeholder-gray-400 focus:bg-gray-100 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition"
+                                placeholder="e.g. JOHN24, or an agent number" />
+                            @error('partner_code')<p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
 
                     <label class="flex items-start gap-3 text-sm text-gray-600 cursor-pointer">

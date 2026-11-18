@@ -69,42 +69,9 @@ class InvoiceController extends Controller
         return view('invoices.index', compact('invoices'));
     }
 
-    public function store(StoreInvoiceRequest $request)
+    public function store(StoreInvoiceRequest $request, \App\Actions\CreateInvoice $create)
     {
-        $data = $request->validated();
-
-        $invoice = DB::transaction(function () use ($data) {
-            // Determine the polymorphic owner
-            if (isset($data['customer_id'])) {
-                $data['invoiceable_type'] = \App\Models\Customer::class;
-                $data['invoiceable_id'] = $data['customer_id'];
-                unset($data['customer_id']);
-            } elseif (isset($data['lease_id'])) {
-                $data['invoiceable_type'] = \App\Models\Lease::class;
-                $data['invoiceable_id'] = $data['lease_id'];
-            }
-
-            unset($data['send_sms'], $data['send_email']); // Don't save these to the DB
-
-            $invoice = Invoice::create($data);
-            $invoice->update(['number' => 'INV-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT)]);
-
-            // A tenant's money paid in advance pays the new invoice.
-            if ($invoice->invoiceable_type === \App\Models\Lease::class && ($tenantId = \App\Models\Lease::whereKey($invoice->lease_id)->value('tenant_id'))) {
-                app(\App\Services\TenantCredit::class)->apply($tenantId);
-                $invoice->refresh();
-            }
-
-            return $invoice;
-        });
-
-        if ($request->boolean('send_sms')) {
-            app(SmsNotificationService::class)->invoiceCreated($invoice->load('lease.tenant'));
-        }
-
-        if ($request->boolean('send_email')) {
-            app(InvoiceEmailService::class)->invoiceCreated($invoice->load('lease.tenant'));
-        }
+        $create($request->validated());
 
         return redirect()->back()->with('success', 'Invoice created successfully.');
     }

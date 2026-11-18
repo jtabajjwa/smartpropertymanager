@@ -45,6 +45,12 @@ return [
             'driver' => 'session',
             'provider' => 'staff_users',
         ],
+
+        // Marketing partners and agents (the partner portal, /partners).
+        'partner' => [
+            'driver' => 'session',
+            'provider' => 'partner_users',
+        ],
     ],
 
     /*
@@ -74,6 +80,11 @@ return [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+
+        'partner_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\PartnerUser::class,
+        ],
 
         'staff_users' => [
             'driver' => 'eloquent',

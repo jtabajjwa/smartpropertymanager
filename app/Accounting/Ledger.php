@@ -74,6 +74,7 @@ class Ledger
                 'debit' => $debit,
                 'credit' => $credit,
                 'landlord_id' => $line['landlord_id'] ?? null,
+                'partner_id' => $line['partner_id'] ?? null,
                 'memo' => isset($line['memo']) ? mb_substr((string) $line['memo'], 0, 200) : null,
             ];
             $debits = bcadd($debits, $debit, 2);

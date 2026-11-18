@@ -44,6 +44,10 @@ class BackfillBooks extends Command
             fn ($t) => $postings->paymentSucceeded($t));
         $run('SMS purchases', SmsPurchase::orderBy('purchased_on')->get(), fn ($p) => $postings->smsPurchaseSaved($p));
         $run('Settlements', LandlordSettlement::with('landlord')->orderBy('settled_on')->get(), fn ($s) => $postings->settlementSaved($s));
+        $run('Partner commissions', \App\Models\PartnerCommission::with('partner')->whereNotIn('type', ['discount'])
+            ->where(fn ($q) => $q->where('type', '!=', 'reversal')->orWhereHas('partner'))->orderBy('earned_at')->get()
+            ->reject(fn ($c) => $c->type === 'reversal' && \App\Models\PartnerCommission::find($c->reverses_id)?->type === 'discount'),
+            fn ($c) => app(\App\Services\PartnerCommissions::class)->post($c));
         $run('Payouts', Liquidation::withoutGlobalScopes()->with('landlord')->where('status', Liquidation::COMPLETED)->orderBy('completed_at')->get(),
             fn ($l) => $postings->liquidationCompleted($l));
 

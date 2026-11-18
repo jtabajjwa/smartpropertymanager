@@ -35,6 +35,13 @@ class Landlord extends Model
         'extra_features',
         'current_period_end',
         'grace_ends_at',
+        'partner_id',
+        'partner_code_id',
+        'promotion_id',
+        'partner_source',
+        'partner_attributed_at',
+        'partner_locked_at',
+        'promotion_periods_used',
     ];
 
     protected function casts(): array
@@ -48,7 +55,27 @@ class Landlord extends Model
             'fiscal_year_start_month' => 'integer',
             'extra_features' => 'array',
             'terms_accepted_at' => 'datetime',
+            'partner_attributed_at' => 'datetime',
+            'partner_locked_at' => 'datetime',
+            'promotion_periods_used' => 'integer',
         ];
+    }
+
+    /** The marketing partner or agent who brought this landlord in (revenue share). */
+    public function partner(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Partner::class);
+    }
+
+    public function partnerCode(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(PartnerCode::class);
+    }
+
+    /** The promotion this landlord signed up with (discounts their first paid periods). */
+    public function promotion(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Promotion::class);
     }
 
     /** Has this landlord accepted the current Terms of Service (config/legal.php)? */

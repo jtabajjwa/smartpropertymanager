@@ -48,7 +48,21 @@ class SubscriptionController extends Controller
         // A payment started in the last 15 minutes that is still awaiting approval.
         $awaiting = $payments->first(fn ($p) => $p->isOpen() && $p->created_at->gt(now()->subMinutes(15)));
 
+        $program = app(\App\Services\PartnerProgram::class);
+        $promotion = $landlord->promotion;
+        $promo = $promotion && $promotion->isRunning($landlord) && $landlord->promotion_periods_used < $promotion->periods ? [
+            'name' => $promotion->name,
+            'summary' => $promotion->summary(),
+            'type' => $promotion->discount_type,
+            'value' => $promotion->discount_value,
+            'plan_ids' => $promotion->plan_ids ? array_map('intval', $promotion->plan_ids) : null,
+            'cycles' => $promotion->cycles,
+            'left' => $promotion->periods - $landlord->promotion_periods_used,
+        ] : null;
+
         return view('subscription.show', [
+            'promo' => $promo,
+            'canTakeCode' => $program->canTakeCode($landlord),
             'landlord' => $landlord,
             'units' => $units,
             'plans' => $plans,
@@ -98,11 +112,24 @@ class SubscriptionController extends Controller
             return back()->withInput()->with('error', $message);
         }
 
+        // A promotion (partner or campaign code) takes money off the first paid periods.
+        $discount = app(\App\Services\PartnerProgram::class)->discountFor($landlord, $plan->id, $data['cycle'], (float) $quote['amount']);
+        $promoContext = $discount ? [
+            'list_amount' => $discount['list_amount'],
+            'discount' => $discount['discount'],
+            'promotion_id' => $discount['promotion_id'],
+            'promotion' => $discount['promotion'],
+            'period_number' => $discount['period_number'],
+            'partner_id' => $landlord->partner_id,
+            'partner_share' => $discount['partner_share'],
+            'primora_share' => $discount['primora_share'],
+        ] : [];
+
         try {
             $transaction = $this->payments->initiate(
                 purpose: 'subscription',
                 landlord: $landlord,
-                amount: $quote['amount'],
+                amount: $discount['amount'] ?? $quote['amount'],
                 msisdn: $msisdn,
                 context: [
                     'plan_id' => $plan->id,
@@ -112,7 +139,7 @@ class SubscriptionController extends Controller
                     'tier' => $quote['tier'],
                     'tier_id' => $quote['tier_id'],
                     'max_units' => $quote['max_units'],
-                ],
+                ] + $promoContext,
                 payable: $landlord,
                 initiator: auth()->user(),
             );
@@ -126,6 +153,26 @@ class SubscriptionController extends Controller
 
         return redirect()->route('subscription.show')
             ->with('success', 'Payment request sent to '.$transaction->displayMsisdn().'. Approve it on the phone.');
+    }
+
+    /** A partner or promo code added before the first paid subscription. */
+    public function applyCode(Request $request, \App\Services\PartnerProgram $program)
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:30']]);
+        $landlord = Landlord::findOrFail(CurrentLandlord::id());
+
+        if (!$program->canTakeCode($landlord)) {
+            return back()->with('error', 'A code can only be added once, before your first subscription payment.');
+        }
+        $code = $program->resolve($data['code']);
+        if (!$code) {
+            return back()->withInput()->withErrors(['code' => "We don't recognise that code. Check it with the person who gave it to you."]);
+        }
+
+        $program->attach($landlord, $code, 'payment');
+        $promotion = $landlord->fresh()->promotion;
+
+        return back()->with('success', 'Code '.$code->code.' added.'.($promotion ? ' '.$promotion->summary().'.' : ''));
     }
 
 }

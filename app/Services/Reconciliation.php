@@ -60,6 +60,7 @@ class Reconciliation
             'book_balance' => $book,
             'in_flight' => $inFlight,
             'landlord_funds' => $this->ledger->balance('landlord_payable'),
+            'partner_funds' => LedgerAccount::where('system_key', 'partner_payable')->exists() ? max(0.0, $this->ledger->balance('partner_payable')) : 0.0,
             'checked_by_staff_user_id' => $by?->id,
         ];
 
@@ -147,7 +148,8 @@ class Reconciliation
         $tolerance = (float) config('payments.balance_check.tolerance', 0);
 
         if (($cover = $check->cover()) !== null && $cover < -$tolerance) {
-            $problems['shortfall'] = 'Money held ('.$ugx($check->money_held).') is '.$ugx(-$cover).' less than landlord funds ('.$ugx($check->landlord_funds).').'
+            $problems['shortfall'] = 'Money held ('.$ugx($check->money_held).') is '.$ugx(-$cover).' less than what is owed to landlords ('.$ugx($check->landlord_funds).')'
+                .($check->partner_funds > 0 ? ' and partners ('.$ugx($check->partner_funds).')' : '').'.'
                 .($check->status === BalanceCheck::FAILED ? ' (Yo! balance from the books: the check with Yo! failed.)' : '');
         }
 

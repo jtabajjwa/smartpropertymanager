@@ -9,3 +9,7 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# The Flutter app (mobile/) is built separately; server releases (git archive) leave it out.
+/mobile export-ignore
+/mobile/** export-ignore

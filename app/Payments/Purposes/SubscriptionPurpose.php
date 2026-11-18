@@ -64,6 +64,9 @@ class SubscriptionPurpose implements PaymentPurpose
             'period_start' => $periodStart->toDateString(),
             'period_end' => $periodEnd->toDateString(),
         ]]);
+
+        // Promotions and partners: the discounted period is used, and the partner link is now fixed.
+        app(\App\Services\PartnerProgram::class)->paymentSucceeded($landlord->fresh(), $transaction);
     }
 
     public function onFailed(PaymentTransaction $transaction): void

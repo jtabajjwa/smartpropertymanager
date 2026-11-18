@@ -95,21 +95,29 @@ test('recurring invoice title shows period range', function () {
     expect($invoice->title)->toContain('28 Feb 2026');
 });
 
-test('recurring invoice amount respects required_upfront_periods', function () {
+test('upfront periods are paid on the first invoice; after that each recurring invoice is one period', function () {
+    // A monthly lease from 1 Jan with 3 months upfront: billing resumes on 1 Apr.
+    $service = app(InvoicingService::class);
     $lease = createLeaseWithDeps([
-        'next_invoice_date' => '2026-02-01',
+        'start_date' => '2026-01-01',
         'billing_cycle' => 'monthly',
         'rent_amount' => 300000,
         'required_upfront_periods' => 3,
+        'next_invoice_date' => $service->calculateNextInvoiceDate('2026-01-01', 'monthly', 3)->toDateString(),
     ]);
+    expect($lease->next_invoice_date->format('Y-m-d'))->toBe('2026-04-01');
 
-    $invoice = app(InvoicingService::class)->createRecurringInvoice($lease);
+    // The first rent invoice covers the upfront periods: 300,000 × 3.
+    $first = collect($service->createLeaseInvoices($lease))->firstWhere('type', 'rent');
+    expect((float) $first->amount)->toBe(900000.00)
+        ->and($first->title)->toBe('3 months rent (UGX 300,000 each)')
+        ->and($first->due_date->format('Y-m-d'))->toBe('2026-01-01');
 
-    // 300000 * 3 = 900000
-    expect((float) $invoice->amount)->toBe(900000.00);
-
-    // next_invoice_date should advance by 3 months
-    expect($lease->fresh()->next_invoice_date->format('Y-m-d'))->toBe('2026-05-01');
+    // Recurring invoices bill one period each and advance one period.
+    $next = $service->createRecurringInvoice($lease->fresh());
+    expect((float) $next->amount)->toBe(300000.00)
+        ->and($next->title)->toBe('Rent — 01 Apr 2026 to 30 Apr 2026')
+        ->and($lease->fresh()->next_invoice_date->format('Y-m-d'))->toBe('2026-05-01');
 });
 
 // --- GenerateRecurringInvoices Command ---

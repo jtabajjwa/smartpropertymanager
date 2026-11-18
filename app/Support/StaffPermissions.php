@@ -60,6 +60,12 @@ final class StaffPermissions
             'books.post' => ['Record in the books', 'Record expenses, transfers and journals, reverse entries, and manage accounts.'],
             'books.tax_rates' => ['Set landlord tax rates', 'Change the default rates and bands of the taxes and levies landlords can switch on in their Books.'],
         ],
+        'Partners' => [
+            'partners.view' => ['View partners', 'See marketing partners and agents, their codes and the landlords they brought in.'],
+            'partners.manage' => ['Manage partners', 'Approve, suspend and edit partners, their codes and sign-ins, and move a landlord to another partner.'],
+            'promotions.manage' => ['Manage promotions', 'Create and change subscription discounts given through partner and campaign codes.'],
+            'commissions.manage' => ['Manage commissions', 'Set commission plans, the holding period, minimum payout and withholding tax; adjust or reverse partner earnings.'],
+        ],
         'Revenue' => [
             'revenue.view' => ['View revenue', 'See revenue from subscriptions and SMS sales, SMS costs and margins.'],
         ],
@@ -103,6 +109,9 @@ final class StaffPermissions
         'liquidations.approve' => ['liquidations.view'],
         'liquidations.execute' => ['liquidations.view'],
         'books.post' => ['books.view'],
+        'partners.manage' => ['partners.view', 'landlords.view'],
+        'promotions.manage' => ['partners.view'],
+        'commissions.manage' => ['partners.view'],
         'books.tax_rates' => ['books.view'],
     ];
 

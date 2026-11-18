@@ -52,44 +52,9 @@ class PaymentController extends Controller
         return view('payments.index', compact('payments'));
     }
 
-    public function store(StorePaymentRequest $request)
+    public function store(StorePaymentRequest $request, \App\Actions\RecordPayment $record)
     {
-        $data = $request->validated();
-        unset($data['send_sms']);
-
-        if ($request->hasFile('receipt_photo')) {
-            $data['receipt_photo'] = $request->file('receipt_photo')->store('payments/receipts', 'public');
-        }
-
-        $payment = DB::transaction(function () use ($data) {
-            // Determine the polymorphic owner
-            if (isset($data['customer_id'])) {
-                $data['payable_type'] = \App\Models\Customer::class;
-                $data['payable_id'] = $data['customer_id'];
-                unset($data['customer_id']);
-            } elseif (isset($data['tenant_id'])) {
-                $data['payable_type'] = \App\Models\Tenant::class;
-                $data['payable_id'] = $data['tenant_id'];
-                unset($data['tenant_id']);
-            }
-
-            $applyToInvoices = (bool) ($data['apply_to_invoices'] ?? false);
-            unset($data['apply_to_invoices']);
-
-            $payment = Payment::create($data);
-            $payment->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'payment', 'PAY')]);
-
-            // Put it on the tenant's unpaid invoices, oldest first (the rest is kept as advance payment).
-            if ($applyToInvoices && $payment->payable_type === \App\Models\Tenant::class) {
-                app(\App\Services\TenantCredit::class)->apply($payment->payable_id);
-            }
-
-            return $payment;
-        });
-
-        if ($request->boolean('send_sms')) {
-            app(SmsNotificationService::class)->paymentReceived($payment->load('payable'));
-        }
+        $payment = $record($request->validated(), $request->file('receipt_photo'));
 
         return redirect()->back()->with('success', "Payment {$payment->number} recorded.")->with('receipt_payment_id', $payment->id);
     }

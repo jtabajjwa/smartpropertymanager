@@ -36,24 +36,11 @@ class TenantController extends Controller
         return view('tenants.index', compact('tenants', 'balances'));
     }
 
-    public function store(StoreTenantRequest $request)
+    public function store(StoreTenantRequest $request, \App\Actions\CreateTenant $create)
     {
-        $data = $request->validated();
-
-        if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('tenants/photos', 'public');
-        }
-        if ($request->hasFile('id_scan')) {
-            $data['id_scan'] = $request->file('id_scan')->store('tenants/id-scans', 'public');
-        }
-        if ($request->hasFile('lc_letter')) {
-            $data['lc_letter'] = $request->file('lc_letter')->store('tenants/lc-letters', 'public');
-        }
-
-        DB::transaction(function () use ($data) {
-            $tenant = Tenant::create($data);
-            $tenant->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'tenant', 'TEN')]);
-        });
+        $create($request->validated(), [
+            'photo' => $request->file('photo'), 'id_scan' => $request->file('id_scan'), 'lc_letter' => $request->file('lc_letter'),
+        ]);
 
         return redirect()->back()->with('success', 'Tenant created successfully.');
     }

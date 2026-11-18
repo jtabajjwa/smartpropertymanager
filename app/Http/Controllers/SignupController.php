@@ -11,9 +11,19 @@ use Illuminate\Support\Facades\DB;
 
 class SignupController extends Controller
 {
-    public function show()
+    public const REF_COOKIE = 'primora_ref';
+
+    /** The sign-up form; ?ref=CODE (a partner's link) is remembered for 30 days. */
+    public function show(\Illuminate\Http\Request $request, \App\Services\PartnerProgram $program)
     {
-        return view('auth.signup');
+        $ref = $request->query('ref');
+        if (is_string($ref) && ($code = $program->resolve($ref))) {
+            \Illuminate\Support\Facades\Cookie::queue(self::REF_COOKIE, $code->code, 60 * 24 * 30);
+        } else {
+            $code = $program->resolve((string) $request->cookie(self::REF_COOKIE));
+        }
+
+        return view('auth.signup', ['refCode' => $code, 'refPromotion' => $code?->effectivePromotion()?->isRunning() ? $code->effectivePromotion() : null]);
     }
 
     public function store(StoreSignupRequest $request)
@@ -43,8 +53,15 @@ class SignupController extends Controller
 
             $landlord->acceptTerms($user, $request->ip());
 
+            // A partner's code (typed, or from their link): the landlord is theirs, with any promotion.
+            $program = app(\App\Services\PartnerProgram::class);
+            if ($request->filled('partner_code') && ($code = $program->resolve($request->partner_code))) {
+                $program->attach($landlord, $code, 'code');
+            }
+
             return $user;
         });
+        \Illuminate\Support\Facades\Cookie::queue(\Illuminate\Support\Facades\Cookie::forget(self::REF_COOKIE));
 
         Auth::login($user);
         $user->sendEmailVerificationNotification();

@@ -71,6 +71,7 @@
                 @staffcan('subscriptions.view')<x-sidebar-link route="staff.subscriptions.index" label="Subscriptions" icon="clipboard" />@endstaffcan
                 @staffcan('payments.view')<x-sidebar-link route="staff.payments.index" label="Payments" icon="banknotes" />@endstaffcan
                 @staffcan('sms.view')<x-sidebar-link route="staff.sms.index" label="SMS" icon="chat" />@endstaffcan
+                @staffcan('partners.view')<x-sidebar-link route="staff.partners.index" label="Partners" icon="megaphone" />@endstaffcan
             </div>
 
             @if(collect(['revenue.view', 'collections.view', 'liquidations.view', 'books.view'])->contains(fn ($p) => auth('staff')->user()->hasPermission($p)))

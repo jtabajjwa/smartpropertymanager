@@ -131,6 +131,34 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('payout-accounts/{id}/yo-register', [$Liq, 'registerWithYo'])->whereNumber('id')->middleware(['staff.can:liquidations.approve', 'throttle:10,1'])->name('payout-accounts.yo-register');
         Route::post('payout-accounts/{id}/yo-identifier', [$Liq, 'setYoIdentifier'])->whereNumber('id')->middleware('staff.can:liquidations.approve')->name('payout-accounts.yo-identifier');
 
+        // Marketing partners and agents, and promotions (see App\Services\PartnerProgram).
+        $Pt = \App\Http\Controllers\Staff\PartnerController::class;
+        $Pr = \App\Http\Controllers\Staff\PromotionController::class;
+        Route::get('partners', [$Pt, 'index'])->middleware('staff.can:partners.view')->name('partners.index');
+        Route::post('partners', [$Pt, 'store'])->middleware('staff.can:partners.manage')->name('partners.store');
+        Route::get('partners/{partner}', [$Pt, 'show'])->whereNumber('partner')->middleware('staff.can:partners.view')->name('partners.show');
+        Route::put('partners/{partner}', [$Pt, 'update'])->middleware('staff.can:partners.manage')->name('partners.update');
+        Route::post('partners/{partner}/status', [$Pt, 'setStatus'])->middleware('staff.can:partners.manage')->name('partners.status');
+        Route::post('partners/{partner}/codes', [$Pt, 'storeCode'])->middleware('staff.can:partners.manage')->name('partners.codes.store');
+        Route::put('partners/{partner}/codes/{code}', [$Pt, 'updateCode'])->middleware('staff.can:partners.manage')->name('partners.codes.update');
+        Route::post('partners/{partner}/users', [$Pt, 'storeUser'])->middleware('staff.can:partners.manage')->name('partners.users.store');
+        Route::post('partners/{partner}/users/{user}/toggle', [$Pt, 'toggleUser'])->middleware('staff.can:partners.manage')->name('partners.users.toggle');
+        Route::post('partners/{partner}/landlords', [$Pt, 'assignLandlord'])->middleware('staff.can:partners.manage')->name('partners.landlords.assign');
+        Route::post('partners/{partner}/landlords/{landlord}/remove', [$Pt, 'unassignLandlord'])->middleware('staff.can:partners.manage')->name('partners.landlords.remove');
+        Route::get('promotions', [$Pr, 'index'])->middleware('staff.can:partners.view')->name('promotions.index');
+        Route::post('promotions', [$Pr, 'store'])->middleware('staff.can:promotions.manage')->name('promotions.store');
+        Route::put('promotions/{promotion}', [$Pr, 'update'])->middleware('staff.can:promotions.manage')->name('promotions.update');
+        Route::post('promotions/codes', [$Pr, 'storeCampaignCode'])->middleware('staff.can:promotions.manage')->name('promotions.codes.store');
+        Route::post('promotions/codes/{code}/toggle', [$Pr, 'toggleCampaignCode'])->middleware('staff.can:promotions.manage')->name('promotions.codes.toggle');
+
+        $Cm = \App\Http\Controllers\Staff\CommissionController::class;
+        Route::get('commissions', [$Cm, 'index'])->middleware('staff.can:partners.view')->name('commissions.index');
+        Route::post('commissions/settings', [$Cm, 'updateSettings'])->middleware('staff.can:commissions.manage')->name('commissions.settings');
+        Route::post('commissions/plans', [$Cm, 'storePlan'])->middleware('staff.can:commissions.manage')->name('commissions.plans.store');
+        Route::put('commissions/plans/{plan}', [$Cm, 'updatePlan'])->middleware('staff.can:commissions.manage')->name('commissions.plans.update');
+        Route::post('partners/{partner}/adjust', [$Cm, 'adjust'])->middleware('staff.can:commissions.manage')->name('partners.adjust');
+        Route::post('commissions/{commission}/reverse', [$Cm, 'reverse'])->middleware('staff.can:commissions.manage')->name('commissions.reverse');
+
         // Primora's books.
         $Bk = \App\Http\Controllers\Staff\BooksController::class;
         Route::get('books', [$Bk, 'index'])->middleware('staff.can:books.view')->name('books.index');

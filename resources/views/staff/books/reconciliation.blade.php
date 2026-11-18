@@ -64,12 +64,13 @@
                 @php $cover = $latest->cover(); @endphp
                 <section class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
-                        <h2 class="text-base font-semibold text-gray-900">Landlord funds covered</h2>
+                        <h2 class="text-base font-semibold text-gray-900">Landlord {{ $latest->partner_funds > 0 ? 'and partner ' : '' }}funds covered</h2>
                         <x-badge :color="$cover !== null && $cover >= 0 ? 'green' : 'red'">{{ $cover !== null && $cover >= 0 ? 'Covered' : 'Shortfall' }}</x-badge>
                     </div>
                     <dl class="divide-y divide-gray-100 text-sm">
                         <div class="px-6 py-3 flex justify-between gap-4"><dt class="text-gray-600">Money held <span class="block text-xs text-gray-400">{{ $latest->status === 'failed' ? 'Yo! from the books' : 'Yo! as reported' }}, plus bank, wallet and cash from the books</span></dt><dd class="font-medium text-gray-900">{{ $ugx($latest->money_held) }}</dd></div>
                         <div class="px-6 py-3 flex justify-between gap-4"><dt class="text-gray-600">Owed to landlords</dt><dd class="font-medium text-gray-900">{{ $ugx($latest->landlord_funds) }}</dd></div>
+                        @if($latest->partner_funds > 0)<div class="px-6 py-3 flex justify-between gap-4"><dt class="text-gray-600">Owed to partners</dt><dd class="font-medium text-gray-900">{{ $ugx($latest->partner_funds) }}</dd></div>@endif
                         <div class="px-6 py-3 flex justify-between gap-4 bg-gray-50/60"><dt class="font-semibold text-gray-900">{{ $cover >= 0 ? 'Primora\'s own money' : 'Shortfall' }}</dt><dd class="font-bold {{ $cover >= 0 ? 'text-gray-900' : 'text-red-600' }}">{{ $ugx(abs($cover)) }}</dd></div>
                     </dl>
                 </section>

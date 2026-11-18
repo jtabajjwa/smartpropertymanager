@@ -121,6 +121,7 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
         Route::patch('users/{user}/toggle-active', [\App\Http\Controllers\UserController::class, 'toggleActive'])->name('users.toggle-active');
         Route::get('subscription', [\App\Http\Controllers\SubscriptionController::class, 'show'])->name('subscription.show');
         Route::post('subscription/pay', [\App\Http\Controllers\SubscriptionController::class, 'pay'])->middleware('throttle:10,1')->name('subscription.pay');
+        Route::post('subscription/code', [\App\Http\Controllers\SubscriptionController::class, 'applyCode'])->middleware('throttle:10,1')->name('subscription.code');
         Route::get('subscription/payments/{reference}', [\App\Http\Controllers\LandlordPaymentController::class, 'status'])->middleware('throttle:60,1')->name('subscription.payment-status');
         Route::get('sms-credits', [\App\Http\Controllers\SmsCreditController::class, 'show'])->name('sms-credits.show');
         Route::post('sms-credits/buy', [\App\Http\Controllers\SmsCreditController::class, 'buy'])->middleware('throttle:10,1')->name('sms-credits.buy');

@@ -37,6 +37,11 @@ class StoreSignupRequest extends FormRequest
             'phone' => ['required', 'string', new PhoneNumber, 'unique:users,phone', 'unique:landlords,contact_phone'],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
             'terms' => 'accepted',
+            'partner_code' => ['nullable', 'string', 'max:30', function ($attribute, $value, $fail) {
+                if (!app(\App\Services\PartnerProgram::class)->resolve($value)) {
+                    $fail("We don't recognise that partner or promo code. Check it, or leave it empty.");
+                }
+            }],
         ];
     }
 

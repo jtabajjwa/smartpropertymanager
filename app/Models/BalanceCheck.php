@@ -14,7 +14,7 @@ class BalanceCheck extends Model
 
     protected $fillable = [
         'ledger_account_id', 'gateway', 'checked_at', 'status', 'partner_balance', 'book_balance', 'in_flight', 'difference',
-        'wallets', 'money_held', 'landlord_funds', 'message', 'problems', 'alerted_at', 'checked_by_staff_user_id',
+        'wallets', 'money_held', 'landlord_funds', 'partner_funds', 'message', 'problems', 'alerted_at', 'checked_by_staff_user_id',
     ];
 
     protected function casts(): array
@@ -22,7 +22,7 @@ class BalanceCheck extends Model
         return [
             'checked_at' => 'datetime', 'alerted_at' => 'datetime', 'wallets' => 'array', 'problems' => 'array',
             'partner_balance' => 'float', 'book_balance' => 'float', 'in_flight' => 'float', 'difference' => 'float',
-            'money_held' => 'float', 'landlord_funds' => 'float',
+            'money_held' => 'float', 'landlord_funds' => 'float', 'partner_funds' => 'float',
         ];
     }
 
@@ -36,10 +36,10 @@ class BalanceCheck extends Model
         return $this->belongsTo(StaffUser::class, 'checked_by_staff_user_id');
     }
 
-    /** Money held minus what landlords are owed; negative is a shortfall. */
+    /** Money held minus what landlords and partners are owed; negative is a shortfall. */
     public function cover(): ?float
     {
-        return $this->money_held === null ? null : round($this->money_held - $this->landlord_funds, 2);
+        return $this->money_held === null ? null : round($this->money_held - $this->landlord_funds - $this->partner_funds, 2);
     }
 
     public function statusLabel(): array

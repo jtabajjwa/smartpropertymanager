@@ -9,7 +9,7 @@ class JournalLine extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['journal_entry_id', 'ledger_account_id', 'debit', 'credit', 'landlord_id', 'memo'];
+    protected $fillable = ['journal_entry_id', 'ledger_account_id', 'debit', 'credit', 'landlord_id', 'partner_id', 'memo'];
 
     protected function casts(): array
     {

@@ -33,8 +33,17 @@ class Postings
         $asset = $this->assetFor($t);
         $c = $t->context ?? [];
 
+        // A discounted subscription: income at the full price; the discount is Primora's expense,
+        // or (for the share a partner bears) taken off what Primora owes that partner.
+        $discount = $t->purpose === 'subscription' ? (float) ($c['discount'] ?? 0) : 0.0;
+        $partnerShare = $discount > 0 && !empty($c['partner_id']) ? (float) ($c['partner_share'] ?? 0) : 0.0;
+        $discountDebits = $discount > 0 ? [
+            ['account' => 'promo_discounts', 'debit' => round($discount - $partnerShare, 2), 'memo' => $c['promotion'] ?? 'Promotion'],
+            ['account' => 'partner_payable', 'debit' => $partnerShare, 'partner_id' => $c['partner_id'] ?? null, 'memo' => 'Discount borne by partner'],
+        ] : [];
+
         $credits = match ($t->purpose) {
-            'subscription' => [['account' => 'subscription_income', 'credit' => $amount]],
+            'subscription' => [['account' => 'subscription_income', 'credit' => round($amount + $discount, 2)]],
             'sms' => [['account' => 'sms_income', 'credit' => $amount]],
             'rent' => [
                 ['account' => 'landlord_payable', 'credit' => (float) ($t->landlord_amount ?? $amount - (float) $t->fee_amount), 'landlord_id' => $t->landlord_id, 'memo' => ($c['tenant_name'] ?? 'Tenant').(!empty($c['invoice_number']) ? ' · '.$c['invoice_number'] : ' · advance')],
@@ -52,6 +61,7 @@ class Postings
 
         $this->ledger->post($date, "{$what} · {$t->reference}".($t->landlord ? " · {$t->landlord->name}" : ''), array_merge(
             [['account' => $asset, 'debit' => $amount]],
+            $discountDebits,
             $credits,
         ), 'payment_transaction', $t->id, 'received');
 

@@ -103,9 +103,28 @@
                 @elseif($plans->isEmpty())
                     <div class="px-6 py-8 text-center text-sm text-gray-600">No subscription plans are available for {{ $units }} units. Please contact Primora.</div>
                 @else
+                    @if($promo)
+                        <div class="mx-6 mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                            <strong>{{ $promo['name'] }}:</strong> {{ $promo['summary'] }}.
+                            {{ $promo['left'] }} discounted {{ \Illuminate\Support\Str::plural('payment', $promo['left']) }} left. The price below already includes it.
+                        </div>
+                    @elseif($canTakeCode)
+                        <div class="mx-6 mt-6" x-data="{ open: {{ $errors->has('code') ? 'true' : 'false' }} }">
+                            <button type="button" x-show="!open" @click="open = true" class="text-sm font-medium text-orange-600 hover:text-orange-700">Have a partner or promo code?</button>
+                            <form method="POST" action="{{ route('subscription.code') }}" x-show="open" x-cloak class="flex flex-wrap items-start gap-2">
+                                @csrf
+                                <div class="w-56">
+                                    <x-input name="code" value="{{ old('code') }}" placeholder="e.g. JOHN24 or 4821" maxlength="30" required />
+                                    @error('code')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                </div>
+                                <x-button type="submit">Apply</x-button>
+                            </form>
+                        </div>
+                    @endif
                     <form method="POST" action="{{ route('subscription.pay') }}" class="p-6 space-y-6"
                           x-data="{
                               plans: {{ Js::from($plans) }},
+                              promo: {{ Js::from($promo) }},
                               cycles: {{ Js::from(collect($cycles)->map(fn ($c) => $c['label'])) }},
                               units: {{ $units }},
                               planId: {{ (int) old('plan_id', $defaultPlanId) }},
@@ -118,7 +137,14 @@
                               },
                               get plan() { return this.plans.find(p => p.id === Number(this.planId)) },
                               get tier() { return this.plan ? (this.plan.tiers.find(t => t.id === (this.plan.tiered ? Number(this.tierId) : null)) || null) : null },
-                              get amount() { return this.tier && this.tier.eligible ? (this.tier.prices[this.cycle] || null) : null },
+                              get listAmount() { return this.tier && this.tier.eligible ? (this.tier.prices[this.cycle] || null) : null },
+                              get discount() {
+                                  const p = this.promo, a = this.listAmount;
+                                  if (!p || !a || (p.plan_ids && !p.plan_ids.includes(Number(this.planId))) || (p.cycles && !p.cycles.includes(this.cycle))) return 0;
+                                  const d = p.type === 'percent' ? Math.round(a * Math.min(p.value, 99) / 100) : Math.min(p.value, a);
+                                  return Math.max(0, Math.min(d, a - 1));
+                              },
+                              get amount() { return this.listAmount ? this.listAmount - this.discount : null },
                               fromPrice(p) {
                                   const prices = p.tiers.filter(t => t.eligible).map(t => t.prices[this.cycle]).filter(Boolean);
                                   return prices.length ? Math.min(...prices) : null;
@@ -197,6 +223,10 @@
                             <div class="rounded-xl bg-gray-50 border border-gray-100 p-4">
                                 <p class="text-xs uppercase tracking-wide text-gray-500">You'll pay</p>
                                 <p class="mt-1 text-2xl font-bold text-gray-900" x-text="amount ? 'UGX ' + fmt(amount) : '—'"></p>
+                                <p class="text-xs text-green-700" x-show="discount > 0" x-cloak>
+                                    <span class="line-through text-gray-400" x-text="'UGX ' + fmt(listAmount)"></span>
+                                    · <span x-text="promo ? promo.name + ': UGX ' + fmt(discount) + ' off' : ''"></span>
+                                </p>
                                 <p class="text-xs text-gray-500" x-text="plan ? [plan.name, plan.tiered && tier ? tier.label : null, cycles[cycle]].filter(Boolean).join(' · ') : ''"></p>
                             </div>
                         </div>
