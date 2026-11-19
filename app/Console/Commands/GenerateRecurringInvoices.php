@@ -45,6 +45,8 @@ class GenerateRecurringInvoices extends Command
                             $invoice = $invoicingService->createRecurringInvoice($lease);
                             $lease->refresh();
 
+                            app(\App\Services\Push\PushNotifications::class)->invoiceIssued($invoice);
+
                             try {
                                 $sms->invoiceCreated($invoice->load('lease.tenant'));
                             } catch (\Throwable $e) {

@@ -15,6 +15,9 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
+// Helpers for the mobile app's API tests.
+require_once __DIR__.'/Feature/Api/helpers.php';
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

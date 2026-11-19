@@ -21,6 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Payment gateways (e.g. Yo! IPNs) post here from their own servers.
         $middleware->validateCsrfTokens(except: ['payments/callback/*']);
 
+        // The mobile API sets the landlord before route model binding looks records up
+        // (they're filtered to the current landlord), right after token sign-in.
+        $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\ApiLandlord::class);
+        $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\SubstituteBindings::class, \App\Http\Middleware\ApiTenant::class);
+
         $middleware->alias([
             'check-active' => \App\Http\Middleware\CheckActive::class,
             'must-change-password' => \App\Http\Middleware\MustChangePassword::class,
@@ -37,6 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.tenant' => \App\Http\Middleware\AuthenticateTenant::class,
             'auth.partner' => \App\Http\Middleware\AuthenticatePartner::class,
             'api.landlord' => \App\Http\Middleware\ApiLandlord::class,
+            'api.admin' => \App\Http\Middleware\ApiAdmin::class,
+            'api.tenant' => \App\Http\Middleware\ApiTenant::class,
+            'api.feature' => \App\Http\Middleware\ApiFeature::class,
             'subscription.access' => \App\Http\Middleware\EnforceSubscriptionAccess::class,
             'terms' => \App\Http\Middleware\EnsureTermsAccepted::class,
         ]);

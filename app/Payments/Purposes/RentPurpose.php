@@ -60,6 +60,10 @@ class RentPurpose implements PaymentPurpose
                 report($e);
             }
         });
+        // Push: the tenant's receipt, and the landlord's "tenant paid".
+        $push = app(\App\Services\Push\PushNotifications::class);
+        $push->paymentReceived($payment);
+        $push->tenantPaid($transaction, $payment);
         $this->tellWhatsApp($transaction, true);
     }
 
@@ -67,6 +71,7 @@ class RentPurpose implements PaymentPurpose
     {
         // Nothing was recorded for the landlord, so nothing to undo.
         $this->tellWhatsApp($transaction, false);
+        app(\App\Services\Push\PushNotifications::class)->rentPaymentFailed($transaction);
     }
 
     /** A payment started from the WhatsApp bot is confirmed in that chat. */

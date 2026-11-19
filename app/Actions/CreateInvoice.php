@@ -46,6 +46,7 @@ class CreateInvoice
             return $invoice;
         });
 
+        app(\App\Services\Push\PushNotifications::class)->invoiceIssued($invoice);
         if ($sendSms) {
             app(SmsNotificationService::class)->invoiceCreated($invoice->load('lease.tenant'));
         }

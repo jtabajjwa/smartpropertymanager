@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
-import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/session.dart';
 
-/// Account, subscription, and the web portal for what the app doesn't do yet.
+/// Account, plan, and the sections that aren't tabs.
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
@@ -16,8 +15,6 @@ class MoreScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final landlord = session.landlord;
     final user = session.user;
-
-    Future<void> openWeb(String path) => launchUrl(Uri.parse('${AppConfig.webBaseUrl}$path'), mode: LaunchMode.externalApplication);
 
     return Scaffold(
       appBar: AppBar(title: const Text('More')),
@@ -39,28 +36,24 @@ class MoreScreen extends ConsumerWidget {
               subtitle: Text(landlord['current_period_end'] != null
                   ? '${landlord['subscription_state'] == 'trial' ? 'Trial ends' : 'Paid until'} ${date(landlord['current_period_end'] as String?)}'
                   : '${landlord['subscription_state'] ?? ''}'),
-              trailing: const Icon(Icons.open_in_new, size: 18),
-              onTap: () => openWeb('/subscription'),
+              trailing: session.isAdmin ? const Icon(Icons.chevron_right) : null,
+              onTap: session.isAdmin ? () => context.push('/subscription') : null,
             ),
           ]),
         ),
         const SizedBox(height: 12),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(4, 4, 4, 8),
-          child: Text('In the web portal (coming to the app)', style: TextStyle(color: Brand.navyMuted, fontWeight: FontWeight.w600)),
-        ),
         Card(
           child: Column(children: [
-            for (final (icon, label, path) in [
-              (Icons.apartment_outlined, 'Properties & units', '/estates'),
-              (Icons.description_outlined, 'Leases', '/leases'),
-              (Icons.receipt_outlined, 'Expenses', '/expenses'),
-              (Icons.build_outlined, 'Issues & repairs', '/issues'),
-              (Icons.sms_outlined, 'SMS & bulk SMS', '/sms-logs'),
-              (Icons.account_balance_outlined, 'Books & taxes', '/books'),
-              (Icons.account_balance_wallet_outlined, 'Payouts', '/payouts'),
-            ])
-              ListTile(leading: Icon(icon), title: Text(label), trailing: const Icon(Icons.open_in_new, size: 18), onTap: () => openWeb(path)),
+            ListTile(leading: const Icon(Icons.apartment_outlined), title: const Text('Properties & units'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/properties')),
+            ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Leases'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/leases')),
+            ListTile(leading: const Icon(Icons.receipt_outlined), title: const Text('Expenses'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/expenses')),
+            ListTile(leading: const Icon(Icons.build_outlined), title: const Text('Issues & repairs'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/issues')),
+            if (session.isAdmin)
+              ListTile(leading: const Icon(Icons.sms_outlined), title: const Text('SMS & bulk SMS'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/sms')),
+            if (session.isAdmin)
+              ListTile(leading: const Icon(Icons.account_balance_wallet_outlined), title: const Text('Payouts'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/payouts')),
+            if (session.isAdmin && session.features.contains('books'))
+              ListTile(leading: const Icon(Icons.account_balance_outlined), title: const Text('Books & taxes'), trailing: const Icon(Icons.chevron_right), onTap: () => context.push('/books')),
           ]),
         ),
         const SizedBox(height: 20),

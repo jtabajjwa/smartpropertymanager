@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\CreateLease;
+use App\Actions\UpdateLease;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreLeaseRequest;
+use App\Http\Requests\UpdateLeaseRequest;
+use App\Models\Invoice;
 use App\Models\Lease;
 use Illuminate\Http\Request;
 
-/** Leases: list (e.g. active ones, to pick from when raising an invoice) and one lease. */
+/** Leases: list, one lease with its invoices; start one (with its first invoices); change or end one. */
 class LeaseController extends Controller
 {
     public function index(Request $request)
@@ -28,6 +33,28 @@ class LeaseController extends Controller
 
     public function show(Lease $lease)
     {
-        return response()->json(LeaseResource::make($lease->load(['tenant', 'unit.estate'])));
+        $lease->load(['tenant', 'unit.estate']);
+
+        return response()->json(LeaseResource::make($lease) + [
+            'has_invoices' => $lease->invoices()->exists(),
+            'locked_fields' => $lease->invoices()->exists() ? UpdateLease::LOCKED_ONCE_INVOICED : [],
+            'invoices' => Invoice::with('allocations')->where('lease_id', $lease->id)->latest('invoice_date')->latest('id')->limit(30)->get()
+                ->map(fn (Invoice $i) => InvoiceController::summary($i)),
+        ]);
+    }
+
+    public function store(StoreLeaseRequest $request, CreateLease $create)
+    {
+        [$lease, $invoices] = $create($request->validated(), $request->file('agreement_file'));
+
+        return response()->json(LeaseResource::make($lease->fresh(['tenant', 'unit.estate'])) + ['invoices_created' => count($invoices)], 201);
+    }
+
+    /** POST (an agreement file may come as multipart). */
+    public function update(UpdateLeaseRequest $request, Lease $lease, UpdateLease $update)
+    {
+        $update($lease, $request->validated(), $request->file('agreement_file'));
+
+        return response()->json(LeaseResource::make($lease->fresh(['tenant', 'unit.estate'])));
     }
 }

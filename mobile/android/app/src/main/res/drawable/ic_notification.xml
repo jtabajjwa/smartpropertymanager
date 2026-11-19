@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Primora mark in one colour, for the status bar (Android tints it). Same geometry as lib/core/logo.dart. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:pathData="M15,55 L60,15 L105,55"
+        android:strokeWidth="11"
+        android:strokeColor="#FFFFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="square" />
+    <path
+        android:pathData="M35,72 L60,50 L85,72"
+        android:strokeWidth="10"
+        android:strokeColor="#FFFFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="square" />
+    <path
+        android:pathData="M54,83 L66,83 L66,100 L54,100 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

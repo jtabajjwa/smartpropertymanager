@@ -38,6 +38,7 @@ class SendOverdueReminders extends Command
                     ->get();
 
                 foreach ($invoices as $invoice) {
+                    app(\App\Services\Push\PushNotifications::class)->invoiceOverdue($invoice);
                     $smsNotification->invoiceOverdue($invoice);
                     $sent++;
                 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../core/api.dart';
+import '../../core/logo.dart';
 import '../../core/session.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -49,9 +50,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const Text('Primora', textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-                const SizedBox(height: 4),
+                const Center(child: PrimoraLogo(size: 52, dark: true)),
+                const SizedBox(height: 14),
                 const Text('Property management, in your pocket', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFC9CCD4))),
                 const SizedBox(height: 32),
                 Card(
@@ -94,7 +94,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Tenants: the tenant app is coming soon. Use the tenant portal on the web for now.',
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/tenant-login'),
+                  icon: const Icon(Icons.vpn_key_outlined),
+                  label: const Text("I'm a tenant"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFF4A5163)),
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text('Tenants sign in with a code sent to their phone. No password needed.',
                     textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF9BA0AE), fontSize: 12)),
               ]),
             ),

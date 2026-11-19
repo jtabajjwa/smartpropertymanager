@@ -121,6 +121,7 @@ class SecurityDepositLedgerController extends Controller
                 return redirect()->back()->withInput()->with('error', $e->getMessage());
             }
 
+            app(\App\Services\Push\PushNotifications::class)->depositChanged($result['entry'], (float) $result['remaining']);
             app(SmsNotificationService::class)->depositDeduction($result['entry']->load('lease.tenant'), $result['remaining']);
 
             return redirect()->back()->with('success', 'Deduction recorded'.($result['entry']->expense_id ? ' and added to your expenses' : '').'. The tenant can see it in their portal.');
@@ -140,6 +141,7 @@ class SecurityDepositLedgerController extends Controller
             });
 
             if ($result['entry']->type === 'refund') {
+                app(\App\Services\Push\PushNotifications::class)->depositChanged($result['entry'], (float) $result['remaining']);
                 app(SmsNotificationService::class)->depositRefund($result['entry']->load('lease.tenant'), $result['remaining']);
             }
         } catch (\Exception $e) {

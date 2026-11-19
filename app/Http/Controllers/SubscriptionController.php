@@ -22,22 +22,10 @@ class SubscriptionController extends Controller
     {
     }
 
-    public function show()
+    public function show(\App\Services\SubscriptionCheckout $checkout)
     {
         $landlord = Landlord::with('plan')->findOrFail(CurrentLandlord::id());
         $units = $this->billing->unitCount($landlord);
-
-        // Every plan with its unit tiers; tiers smaller than what the landlord
-        // already has are listed but not selectable.
-        $plans = $this->billing->availablePlans()->map(fn (Plan $plan) => [
-            'id' => $plan->id,
-            'name' => $plan->name,
-            'tiered' => $plan->isTiered(),
-            'features' => collect($plan->featureKeys())->map(fn ($k) => \App\Support\PlanFeatures::name($k))->values(),
-            'missing' => collect(\App\Support\PlanFeatures::FEATURES)->keys()->reject(fn ($k) => $plan->includes($k))->map(fn ($k) => \App\Support\PlanFeatures::name($k))->values(),
-            'tiers' => $this->billing->tierOptions($plan, $units),
-            'default_tier' => $this->billing->defaultTierId($plan, $units, $landlord->max_units),
-        ])->filter(fn ($p) => collect($p['tiers'])->contains(fn ($t) => $t['eligible'] && $t['prices']))->values();
 
         $payments = PaymentTransaction::forLandlord($landlord->id)
             ->where('purpose', 'subscription')
@@ -48,24 +36,12 @@ class SubscriptionController extends Controller
         // A payment started in the last 15 minutes that is still awaiting approval.
         $awaiting = $payments->first(fn ($p) => $p->isOpen() && $p->created_at->gt(now()->subMinutes(15)));
 
-        $program = app(\App\Services\PartnerProgram::class);
-        $promotion = $landlord->promotion;
-        $promo = $promotion && $promotion->isRunning($landlord) && $landlord->promotion_periods_used < $promotion->periods ? [
-            'name' => $promotion->name,
-            'summary' => $promotion->summary(),
-            'type' => $promotion->discount_type,
-            'value' => $promotion->discount_value,
-            'plan_ids' => $promotion->plan_ids ? array_map('intval', $promotion->plan_ids) : null,
-            'cycles' => $promotion->cycles,
-            'left' => $promotion->periods - $landlord->promotion_periods_used,
-        ] : null;
-
         return view('subscription.show', [
-            'promo' => $promo,
-            'canTakeCode' => $program->canTakeCode($landlord),
+            'promo' => $checkout->promo($landlord),
+            'canTakeCode' => app(\App\Services\PartnerProgram::class)->canTakeCode($landlord),
             'landlord' => $landlord,
             'units' => $units,
-            'plans' => $plans,
+            'plans' => $checkout->plans($landlord, $units),
             'cycles' => SubscriptionBilling::CYCLES,
             'payments' => $payments,
             'awaiting' => $awaiting,
@@ -75,7 +51,7 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function pay(Request $request)
+    public function pay(Request $request, \App\Services\SubscriptionCheckout $checkout)
     {
         $data = $request->validate([
             'plan_id' => ['required', Rule::exists('plans', 'id')->where('is_active', true)],
@@ -84,66 +60,10 @@ class SubscriptionController extends Controller
             'tier_id' => ['nullable', 'integer'],
         ]);
 
-        $msisdn = Msisdn::normalize($data['phone']);
-        if (!$msisdn) {
-            return back()->withInput()->withErrors(['phone' => 'Enter a Ugandan mobile money number, e.g. 0772 123 456.']);
-        }
-
-        $landlord = Landlord::findOrFail(CurrentLandlord::id());
-
-        // Don't send a second prompt while one is still waiting on the phone.
-        $recent = PaymentTransaction::forLandlord($landlord->id)->where('purpose', 'subscription')
-            ->open()->where('created_at', '>', now()->subMinutes(3))->exists();
-        if ($recent) {
-            return back()->with('error', 'A payment request is already waiting for approval on a phone. Approve or decline it first, or try again in a few minutes.');
-        }
-
-        $plan = Plan::with('tiers')->findOrFail($data['plan_id']);
-        $units = $this->billing->unitCount($landlord);
-        $tierId = $data['tier_id'] ?? $this->billing->defaultTierId($plan, $units, $landlord->max_units);
-        $quote = $this->billing->quoteForTier($plan, $tierId, $data['cycle'], $units);
-
-        if (!$quote) {
-            $chosen = $plan->tiers->firstWhere('id', $tierId);
-            $message = $chosen && $chosen->max_units !== null && $chosen->max_units < $units
-                ? "That tier covers up to {$chosen->max_units} units, but you already have {$units}. Please choose a larger tier."
-                : "That plan and tier can't be paid for {$units} units. Please choose another, or contact Primora.";
-
-            return back()->withInput()->with('error', $message);
-        }
-
-        // A promotion (partner or campaign code) takes money off the first paid periods.
-        $discount = app(\App\Services\PartnerProgram::class)->discountFor($landlord, $plan->id, $data['cycle'], (float) $quote['amount']);
-        $promoContext = $discount ? [
-            'list_amount' => $discount['list_amount'],
-            'discount' => $discount['discount'],
-            'promotion_id' => $discount['promotion_id'],
-            'promotion' => $discount['promotion'],
-            'period_number' => $discount['period_number'],
-            'partner_id' => $landlord->partner_id,
-            'partner_share' => $discount['partner_share'],
-            'primora_share' => $discount['primora_share'],
-        ] : [];
-
         try {
-            $transaction = $this->payments->initiate(
-                purpose: 'subscription',
-                landlord: $landlord,
-                amount: $discount['amount'] ?? $quote['amount'],
-                msisdn: $msisdn,
-                context: [
-                    'plan_id' => $plan->id,
-                    'plan_name' => $plan->name,
-                    'cycle' => $data['cycle'],
-                    'units' => $units,
-                    'tier' => $quote['tier'],
-                    'tier_id' => $quote['tier_id'],
-                    'max_units' => $quote['max_units'],
-                ] + $promoContext,
-                payable: $landlord,
-                initiator: auth()->user(),
-            );
-        } catch (PaymentException $e) {
+            $transaction = $checkout->start(Landlord::findOrFail(CurrentLandlord::id()), auth()->user(), (int) $data['plan_id'], $data['cycle'], $data['phone'],
+                isset($data['tier_id']) ? (int) $data['tier_id'] : null);
+        } catch (\App\Services\CheckoutException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
 
@@ -156,23 +76,17 @@ class SubscriptionController extends Controller
     }
 
     /** A partner or promo code added before the first paid subscription. */
-    public function applyCode(Request $request, \App\Services\PartnerProgram $program)
+    public function applyCode(Request $request, \App\Services\SubscriptionCheckout $checkout)
     {
         $data = $request->validate(['code' => ['required', 'string', 'max:30']]);
-        $landlord = Landlord::findOrFail(CurrentLandlord::id());
 
-        if (!$program->canTakeCode($landlord)) {
-            return back()->with('error', 'A code can only be added once, before your first subscription payment.');
-        }
-        $code = $program->resolve($data['code']);
-        if (!$code) {
-            return back()->withInput()->withErrors(['code' => "We don't recognise that code. Check it with the person who gave it to you."]);
+        try {
+            $message = $checkout->applyCode(Landlord::findOrFail(CurrentLandlord::id()), $data['code']);
+        } catch (\App\Services\CheckoutException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        $program->attach($landlord, $code, 'payment');
-        $promotion = $landlord->fresh()->promotion;
-
-        return back()->with('success', 'Code '.$code->code.' added.'.($promotion ? ' '.$promotion->summary().'.' : ''));
+        return back()->with('success', $message);
     }
 
 }

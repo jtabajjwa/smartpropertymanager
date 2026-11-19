@@ -36,6 +36,7 @@ class SendUpcomingInvoiceReminders extends Command
                     ->get();
 
                 foreach ($invoices as $invoice) {
+                    app(\App\Services\Push\PushNotifications::class)->invoiceDueSoon($invoice);
                     $smsNotification->invoiceUpcoming($invoice);
                     $sent++;
                 }

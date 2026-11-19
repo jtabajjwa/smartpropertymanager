@@ -46,5 +46,14 @@ class AppServiceProvider extends ServiceProvider
 
             return \Illuminate\Cache\RateLimiting\Limit::perMinute($perMinute)->by('tenant-portal|'.$request->route()?->getName().'|'.$tenant);
         });
+        // The same limits for the mobile app's tenant API (no session there: per signed-in tenant).
+        \Illuminate\Support\Facades\RateLimiter::for('tenant-api', function (\Illuminate\Http\Request $request) {
+            $perMinute = $request->isMethod('GET') ? 60 : 10;
+
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute($perMinute)->by('tenant-api|'.$request->route()?->getName().'|'.($request->user()?->getKey() ?? $request->ip()));
+        });
+
+        // Tenants sign in to the app with tokens too; theirs load without a landlord set.
+        \Laravel\Sanctum\Sanctum::usePersonalAccessTokenModel(\App\Models\PersonalAccessToken::class);
     }
 }

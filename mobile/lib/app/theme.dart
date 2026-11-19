@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'background.dart';
+
 /// Primora's colours, as on the web: terracotta and navy.
 class Brand {
   static const orange = Color(0xFFC1704A);
@@ -23,7 +25,12 @@ ThemeData primoraTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: Brand.background,
+    // Screens are see-through over the web's gradient, which each page paints under itself (app/background.dart).
+    scaffoldBackgroundColor: Colors.transparent,
+    pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      TargetPlatform.android: GlowPageTransitionsBuilder(ZoomPageTransitionsBuilder()),
+      TargetPlatform.iOS: GlowPageTransitionsBuilder(CupertinoPageTransitionsBuilder()),
+    }),
     appBarTheme: const AppBarTheme(
       backgroundColor: Brand.navy,
       foregroundColor: Colors.white,

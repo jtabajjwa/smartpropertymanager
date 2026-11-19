@@ -40,8 +40,26 @@ class IssueReporter
         });
 
         $this->notifyLandlord($issue->load(['tenant', 'unit.estate', 'landlord']));
+        app(\App\Services\Push\PushNotifications::class)->issueReported($issue);
 
         return $issue;
+    }
+
+    /**
+     * The tenant adds a follow-up note (e.g. "still leaking"); a resolved issue
+     * re-opens. Returns true if it re-opened. The caller checks it isn't closed.
+     */
+    public function addNote(Issue $issue, string $note): bool
+    {
+        $reopen = $issue->status === 'resolved';
+        $issue->updates()->create(['author' => 'tenant', 'status' => $reopen ? 'open' : null, 'note' => $note]);
+        if ($reopen) {
+            $issue->update(['status' => 'open', 'resolved_at' => null]);
+        }
+
+        app(\App\Services\Push\PushNotifications::class)->tenantNote($issue->loadMissing('tenant'), $note, $reopen);
+
+        return $reopen;
     }
 
     /** Email the landlord (their contact email, or their admins if none is set). */

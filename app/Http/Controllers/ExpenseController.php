@@ -54,35 +54,16 @@ class ExpenseController extends Controller
         return (new ExpensesExport($request))->download('expenses.csv');
     }
 
-    public function store(StoreExpenseRequest $request, SecurityDeposits $deposits)
+    public function store(StoreExpenseRequest $request, \App\Actions\RecordExpense $record)
     {
-        $data = $request->validated();
-        $fromDeposit = $request->boolean('paid_from_deposit');
-        unset($data['paid_from_deposit'], $data['deposit_lease_id'], $data['deposit_category']);
-
         try {
-            $remaining = DB::transaction(function () use ($data, $fromDeposit, $request, $deposits) {
-                $expense = Expense::create($data);
-                $expense->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'expense', 'EXP')]);
-
-                // Paid with a tenant's security deposit: the deposit goes down by the same amount.
-                if ($fromDeposit) {
-                    $lease = \App\Models\Lease::with('tenant')->findOrFail($request->deposit_lease_id);
-                    $result = $deposits->deduct($lease, (string) $expense->amount, $expense->date->toDateString(), $request->deposit_category, $data['notes'] ?? null, expense: $expense);
-
-                    return [$result['entry'], $result['remaining']];
-                }
-
-                return null;
-            });
+            [, $entry, $remaining] = $record($request->validated());
         } catch (DepositException $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
-        if ($remaining) {
-            app(\App\Services\SmsNotificationService::class)->depositDeduction($remaining[0]->load('lease.tenant'), $remaining[1]);
-
-            return redirect()->back()->with('success', 'Expense recorded and paid from '.$remaining[0]->lease->tenant?->name.'\'s security deposit (UGX '.number_format($remaining[1]).' left).');
+        if ($entry) {
+            return redirect()->back()->with('success', 'Expense recorded and paid from '.$entry->lease->tenant?->name.'\'s security deposit (UGX '.number_format($remaining).' left).');
         }
 
         return redirect()->back()->with('success', 'Expense created successfully.');

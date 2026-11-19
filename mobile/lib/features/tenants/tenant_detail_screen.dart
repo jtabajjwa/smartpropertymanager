@@ -67,6 +67,17 @@ class TenantDetailScreen extends ConsumerWidget {
               InfoRow('ID', [t['id_type'], t['id_number']].where((e) => e != null).join(' ').replaceAll('_', ' ')),
               InfoRow('Emergency contact', [contact['name'], contact['relationship'], contact['phone']].where((e) => e != null).join(' · ')),
             ]),
+            if (activeLease == null && !readOnly) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final saved = await context.push<bool>('/leases/new?tenant=${t['id']}');
+                  if (saved == true) ref.invalidate(tenantProvider(id));
+                },
+                icon: const Icon(Icons.key_outlined),
+                label: const Text('Start a lease for this tenant'),
+              ),
+            ],
             if (activeLease != null) ...[
               const SizedBox(height: 12),
               SectionCard(
@@ -85,6 +96,7 @@ class TenantDetailScreen extends ConsumerWidget {
                   InfoRow('Rent', '${ugx(toNum(activeLease['rent_amount']))} ${activeLease['billing_cycle']}'),
                   InfoRow('Started', date(activeLease['start_date'] as String?)),
                   InfoRow('Next invoice', date(activeLease['next_invoice_date'] as String?)),
+                  Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: () => context.push('/leases/${activeLease['id']}'), child: const Text('Open lease'))),
                 ],
               ),
             ],

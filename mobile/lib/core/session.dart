@@ -6,8 +6,9 @@ import 'api.dart';
 
 enum SessionStatus { loading, signedOut, signedIn }
 
-/// Who's signed in: the profile from /auth/me (user, landlord, plan features,
-/// and setup steps still to do).
+/// Who's signed in: for a landlord (or their staff), the profile from
+/// /auth/me (user, landlord, plan features, setup steps still to do); for a
+/// tenant, from /tenant/auth/me (tenant, their landlord, role 'tenant').
 class SessionState {
   const SessionState(this.status, [this.profile = const {}]);
 
@@ -25,6 +26,9 @@ class SessionState {
   bool get needsSetup => needsPasswordChange || needsTerms || needsEmailVerification;
   bool get readOnly => landlord['read_only'] == true;
   bool get isAdmin => user['is_admin'] == true;
+
+  bool get isTenant => profile['role'] == 'tenant';
+  Map<String, dynamic> get tenant => (profile['tenant'] as Map?)?.cast<String, dynamic>() ?? {};
 }
 
 class SessionController extends Notifier<SessionState> {
@@ -46,13 +50,27 @@ class SessionController extends Notifier<SessionState> {
       state = const SessionState(SessionStatus.signedOut);
       return;
     }
+    final tenant = await ref.read(tokenStoreProvider).role() == 'tenant';
     try {
-      state = SessionState(SessionStatus.signedIn, await _api.get('/auth/me'));
+      state = SessionState(SessionStatus.signedIn, await _api.get(tenant ? '/tenant/auth/me' : '/auth/me'));
     } on ApiException catch (e) {
       // Offline at launch: stay signed in with what we know; screens show the error.
-      state = e.status == null ? const SessionState(SessionStatus.signedIn) : const SessionState(SessionStatus.signedOut);
+      state = e.status == null ? SessionState(SessionStatus.signedIn, tenant ? const {'role': 'tenant'} : const {}) : const SessionState(SessionStatus.signedOut);
     }
   }
+
+  /// A tenant finished signing in (see TenantLoginScreen), or switched tenancy.
+  Future<void> tenantSignedIn(Map<String, dynamic> data) async {
+    await ref.read(tokenStoreProvider).write(data['token'] as String, role: 'tenant');
+    state = SessionState(SessionStatus.signedIn, Map.of(data)..remove('token'));
+  }
+
+  /// Another tenancy on the same phone (e.g. renting from two landlords).
+  Future<void> switchTenancy(int tenantId) async {
+    await tenantSignedIn(await _api.post('/tenant/accounts/switch', data: {'tenant_id': tenantId}));
+  }
+
+  String get deviceName => _deviceName();
 
   Future<void> login(String email, String password) async {
     final data = await _api.post('/auth/login', data: {'email': email.trim(), 'password': password, 'device_name': _deviceName()});
@@ -61,7 +79,7 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> refresh() async {
-    state = SessionState(SessionStatus.signedIn, await _api.get('/auth/me'));
+    state = SessionState(SessionStatus.signedIn, await _api.get(state.isTenant ? '/tenant/auth/me' : '/auth/me'));
   }
 
   Future<void> changePassword(String current, String password, String confirmation) async {
@@ -77,7 +95,7 @@ class SessionController extends Notifier<SessionState> {
 
   Future<void> logout() async {
     try {
-      await _api.post('/auth/logout');
+      await _api.post(state.isTenant ? '/tenant/auth/logout' : '/auth/logout');
     } catch (_) {
       // Signed out on this phone either way.
     }

@@ -51,6 +51,24 @@ flutter build appbundle --release --dart-define=API_BASE_URL=https://app.primora
 ```
 
 Release signing (a keystore) and store listings are still to be set up.
+
+## Push notifications
+
+Optional at build time: without the Firebase settings the app builds and runs, just without push.
+With them, add `--dart-define-from-file=firebase.json` to any `flutter run` / `flutter build`:
+
+```
+flutter build apk --release --dart-define=API_BASE_URL=https://app.primoraproptech.com/api/v1 --dart-define-from-file=firebase.json
+```
+
+`firebase.json` (copy `firebase.example.json`) holds the Firebase project's **Android app** values from
+Firebase console → Project settings → General → Your apps (or the downloaded `google-services.json`):
+`FCM_API_KEY` = `current_key`, `FCM_APP_ID` = `mobilesdk_app_id`, `FCM_SENDER_ID` = `project_number`,
+`FCM_PROJECT_ID` = `project_id`. These identify the app and are not secret.
+
+The server sends the notifications: set `FCM_PROJECT_ID` and `FCM_CREDENTIALS` (path to the service
+account key; that one **is** secret, keep it only on the server) in its `.env`; the queue worker sends them.
+What is sent and when: `app/Services/Push/PushNotifications.php`.
 iOS builds need a Mac with Xcode.
 
 ## Layout

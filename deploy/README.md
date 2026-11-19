@@ -87,6 +87,7 @@ This opens `.env` in vim (set `PRIMORA_EDITOR` in `/etc/primora/primora.conf` to
 - `MARZ_SMS_ENABLED=true` with the API key and secret.
 - `WEBSITE_API_KEY`: generated already. For production, copy it into the website's `config.local.php`.
 - The Yo! withdrawal signing key: put it in `/etc/primora/keys/<env>-yo.pem` (owner root, group `primora-<env>`, mode 640) and set `YO_PRIVATE_KEY_PATH`.
+- Push notifications to the mobile app: put the Firebase service account key (Firebase console → Project settings → Service accounts → Generate new private key) in `/etc/primora/keys/<env>-firebase.json` (owner root, group `primora-<env>`, mode 640), and set `FCM_PROJECT_ID` (e.g. `primora-9b41a`) and `FCM_CREDENTIALS=/etc/primora/keys/<env>-firebase.json`. The queue worker sends them. Environments created before push existed don't have these lines in `.env` yet; add them.
 - Tenant WhatsApp bot: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`. Step-by-step setup with Meta is in [WHATSAPP.md](WHATSAPP.md). Environments created before the bot existed don't have these lines in `.env` yet; add them.
 
 Yo! payment notifications arrive at `https://<domain>/payments/callback/yo/…`, which works as soon as HTTPS is on.

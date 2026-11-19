@@ -67,69 +67,20 @@ class LeaseController extends Controller
         return $pdf->stream("agreement-{$lease->number}.pdf");
     }
 
-    public function store(StoreLeaseRequest $request)
+    public function store(StoreLeaseRequest $request, \App\Actions\CreateLease $create)
     {
-        $data = $request->validated();
-        $data['status'] = $data['status'] ?? 'active';
-
-        if ($data['security_deposit'] == null) {
-            $data['security_deposit'] = 0;
-        }
-
-        if ($request->hasFile('agreement_file')) {
-            $data['agreement_file'] = $request->file('agreement_file')->store('leases/agreements', 'public');
-        }
-
-        $invoicingService = app(InvoicingService::class);
-        $data['next_invoice_date'] = $invoicingService->calculateNextInvoiceDate(
-            $data['start_date'],
-            $data['billing_cycle'],
-            $data['required_upfront_periods']
-        );
-
-        $invoices = DB::transaction(function () use ($data, $invoicingService) {
-            $lease = Lease::create($data);
-            $lease->update(['number' => app(NumberGenerator::class)->next(CurrentLandlord::id(), 'lease', 'LSE')]);
-
-            app(UnitStatusService::class)->onLeaseCreated($lease);
-
-            return $invoicingService->createLeaseInvoices($lease);
-        });
-
-        $sms = app(SmsNotificationService::class);
-        foreach ($invoices as $invoice) {
-            // $sms->invoiceCreated($invoice->load('lease.tenant'));
-        }
+        $create($request->validated(), $request->file('agreement_file'));
 
         return redirect()->back()->with('success', 'Lease created successfully.');
     }
 
-    public function update(UpdateLeaseRequest $request, Lease $lease)
+    public function update(UpdateLeaseRequest $request, Lease $lease, \App\Actions\UpdateLease $update)
     {
-        if (in_array($lease->status, ['terminated', 'evicted'])) {
-            return redirect()->back()->with('error', 'Cannot edit a terminated or evicted lease.');
+        try {
+            $update($lease, $request->validated(), $request->file('agreement_file'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->with('error', collect($e->errors())->flatten()->first());
         }
-
-        $data = $request->validated();
-        $oldUnitId = $lease->unit_id;
-        $oldStatus = $lease->status;
-
-        // Lock financial fields once invoices exist
-        if ($lease->invoices()->exists()) {
-            unset($data['rent_amount'], $data['security_deposit'], $data['billing_cycle'], $data['required_upfront_periods'], $data['tenant_id'], $data['unit_id'], $data['start_date']);
-        }
-
-        if ($request->hasFile('agreement_file')) {
-            if ($lease->agreement_file) {
-                Storage::disk('public')->delete($lease->agreement_file);
-            }
-            $data['agreement_file'] = $request->file('agreement_file')->store('leases/agreements', 'public');
-        }
-
-        DB::transaction(function () use ($data, $lease, $oldUnitId, $oldStatus) {
-            $lease->update($data);
-            app(UnitStatusService::class)->onLeaseUpdated($lease, $oldUnitId, $oldStatus);
-        });
 
         return redirect()->back()->with('success', 'Lease updated successfully.');
     }

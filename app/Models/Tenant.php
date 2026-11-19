@@ -9,9 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Tenant extends Model
+/**
+ * Tenants sign in to the portal and the app with a one-time code (no
+ * password); being Authenticatable lets an app token stand for one.
+ */
+class Tenant extends Model implements \Illuminate\Contracts\Auth\Authenticatable
 {
-    use HasFactory, Auditable, BelongsToLandlord;
+    use HasFactory, Auditable, BelongsToLandlord, \Laravel\Sanctum\HasApiTokens, \Illuminate\Auth\Authenticatable;
 
     protected $fillable = [
         'number',

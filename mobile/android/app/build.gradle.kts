@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "com.primoraproptech.primora"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // NDK 25 is what this machine has fully installed; the app has no native code of its own.
+    ndkVersion = "25.1.8937393"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

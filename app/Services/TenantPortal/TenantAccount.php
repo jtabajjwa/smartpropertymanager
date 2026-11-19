@@ -71,4 +71,37 @@ class TenantAccount
     {
         return in_array($invoice->lease_id, $this->leaseIds(), true);
     }
+
+    /**
+     * Each lease with a security deposit: what was agreed and paid, every
+     * entry (with the balance after it), and what is left.
+     */
+    public function deposits(): Collection
+    {
+        return \App\Models\Lease::where('tenant_id', $this->tenant->id)
+            ->with(['unit.estate', 'securityDepositLedgers' => fn ($q) => $q->orderBy('date')->orderBy('id')])
+            ->get()
+            ->filter(fn ($lease) => $lease->securityDepositLedgers->isNotEmpty() || (float) $lease->security_deposit > 0)
+            ->map(function ($lease) {
+                $running = 0.0;
+                $rows = $lease->securityDepositLedgers->map(function ($e) use (&$running) {
+                    $in = $e->type === 'deposit';
+                    $running += $in ? (float) $e->amount : -(float) $e->amount;
+
+                    return ['entry' => $e, 'in' => $in, 'balance' => $running];
+                });
+                $sum = fn (string $type) => (float) $lease->securityDepositLedgers->where('type', $type)->sum('amount');
+
+                return (object) [
+                    'lease' => $lease,
+                    'rows' => $rows,
+                    'agreed' => (float) $lease->security_deposit,
+                    'paid' => $sum('deposit'),
+                    'used' => $sum('deduction'),
+                    'refunded' => $sum('refund'),
+                    'kept' => $sum('forfeit'),
+                    'balance' => $running,
+                ];
+            })->values();
+    }
 }

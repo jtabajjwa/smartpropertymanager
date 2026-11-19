@@ -45,7 +45,7 @@ class SmsBroadcastController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Actions\StartSmsBroadcast $start)
     {
         $data = $request->validate([
             'message' => ['required', 'string', 'min:5', 'max:'.SmsBroadcasts::MAX_LENGTH],
@@ -54,32 +54,13 @@ class SmsBroadcastController extends Controller
             'owing_only' => ['nullable', 'boolean'],
         ], ['message.required' => 'Write the message you want to send.']);
 
-        $estates = array_values(array_map('intval', $data['estates'] ?? []));
-        $owingOnly = (bool) ($data['owing_only'] ?? false);
-        $landlord = Landlord::findOrFail(CurrentLandlord::id());
-        $recipients = $this->broadcasts->recipients($estates, $owingOnly)['recipients'];
-
-        if ($recipients->isEmpty()) {
-            return back()->withInput()->withErrors(['audience' => 'No tenants with a phone number match who you chose to send to.']);
-        }
-
-        $needed = $this->broadcasts->credits($data['message'], $recipients, SmsBroadcasts::landlordName($landlord));
-        if ($needed > (int) $landlord->sms_balance) {
-            return back()->withInput()->withErrors(['audience' => 'This needs '.number_format($needed).' SMS credits but you have '.number_format((int) $landlord->sms_balance).'. Buy more SMS, or send to fewer tenants.']);
-        }
-
-        $broadcast = SmsBroadcast::create([
-            'created_by_user_id' => $request->user()->id,
-            'message' => trim($data['message']),
-            'audience' => ['estates' => $estates, 'owing_only' => $owingOnly],
-            'recipients_count' => $recipients->count(),
-            'status' => 'queued',
-        ]);
-
-        SendSmsBroadcast::dispatch($broadcast->id, $landlord->id);
+        $broadcast = $start(
+            Landlord::findOrFail(CurrentLandlord::id()), $request->user(), $data['message'],
+            array_values(array_map('intval', $data['estates'] ?? [])), (bool) ($data['owing_only'] ?? false),
+        );
 
         return redirect()->route('sms-broadcasts.show', $broadcast)
-            ->with('success', 'Your message is being sent to '.number_format($recipients->count()).' '.($recipients->count() === 1 ? 'tenant' : 'tenants').'.');
+            ->with('success', 'Your message is being sent to '.number_format($broadcast->recipients_count).' '.($broadcast->recipients_count === 1 ? 'tenant' : 'tenants').'.');
     }
 
     public function show(SmsBroadcast $smsBroadcast)

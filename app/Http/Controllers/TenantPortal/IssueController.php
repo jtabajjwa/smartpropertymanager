@@ -68,7 +68,7 @@ class IssueController extends Controller
     }
 
     /** The tenant adds a follow-up note (e.g. "still leaking"). Re-opens a resolved issue. */
-    public function comment(Request $request, int $issue)
+    public function comment(Request $request, int $issue, IssueReporter $reporter)
     {
         $issue = Issue::findOrFail($issue);
         abort_unless($issue->tenant_id === $request->attributes->get('tenant')->id, 404);
@@ -79,11 +79,7 @@ class IssueController extends Controller
             return back()->with('error', 'This issue is closed. Please report a new one.');
         }
 
-        $reopen = $issue->status === 'resolved';
-        $issue->updates()->create(['author' => 'tenant', 'status' => $reopen ? 'open' : null, 'note' => $data['note']]);
-        if ($reopen) {
-            $issue->update(['status' => 'open', 'resolved_at' => null]);
-        }
+        $reopen = $reporter->addNote($issue, $data['note']);
 
         return back()->with('success', $reopen ? 'Your note was added and the issue re-opened.' : 'Your note was added.');
     }

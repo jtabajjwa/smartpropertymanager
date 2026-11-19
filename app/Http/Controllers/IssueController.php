@@ -47,7 +47,7 @@ class IssueController extends Controller
     }
 
     /** Change the status and/or add a note; the tenant sees both in their portal. */
-    public function update(Request $request, Issue $issue)
+    public function update(Request $request, Issue $issue, \App\Actions\RespondToIssue $respond)
     {
         $data = $request->validate([
             'status' => ['required', Rule::in(array_keys(Issue::STATUSES))],
@@ -55,25 +55,10 @@ class IssueController extends Controller
         ]);
 
         $changed = $data['status'] !== $issue->status;
-
-        if (!$changed && blank($data['note'] ?? null)) {
-            return back()->with('error', 'Choose a new status or write a note for the tenant.');
-        }
-
-        $user = auth()->user();
-        $issue->updates()->create([
-            'author' => $user instanceof StaffUser ? 'staff' : 'landlord',
-            'user_id' => $user instanceof StaffUser ? null : $user->id,
-            'staff_user_id' => $user instanceof StaffUser ? $user->id : null,
-            'status' => $changed ? $data['status'] : null,
-            'note' => $data['note'] ?? null,
-        ]);
-
-        if ($changed) {
-            $issue->update([
-                'status' => $data['status'],
-                'resolved_at' => in_array($data['status'], ['resolved', 'closed'], true) ? ($issue->resolved_at ?? now()) : null,
-            ]);
+        try {
+            $respond($issue, $data['status'], $data['note'] ?? null, auth()->user());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first());
         }
 
         return back()->with('success', $changed ? 'Status updated. The tenant can see it in their portal.' : 'Note added for the tenant.');

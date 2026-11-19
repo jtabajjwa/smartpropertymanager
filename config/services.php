@@ -50,6 +50,13 @@ return [
 
     // Tenant WhatsApp bot (Meta WhatsApp Cloud API; see deploy/WHATSAPP.md).
     // Without a token and phone number id, replies are only logged.
+    // Push notifications to the mobile app (Firebase Cloud Messaging, HTTP v1).
+    // FCM_CREDENTIALS: path to the Firebase service account's JSON key file on this server.
+    'fcm' => [
+        'project_id' => env('FCM_PROJECT_ID'),
+        'credentials' => env('FCM_CREDENTIALS'),
+    ],
+
     'whatsapp' => [
         'token' => env('WHATSAPP_TOKEN'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),

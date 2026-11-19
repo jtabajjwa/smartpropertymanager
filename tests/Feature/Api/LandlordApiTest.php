@@ -18,32 +18,6 @@ use App\Services\CurrentLandlord;
 
 afterEach(fn () => CurrentLandlord::clear());
 
-/** A landlord who accepted the terms, with an admin and Grace renting A4 (500,000 unpaid). */
-function apiLandlord(array $userAttributes = []): array
-{
-    $landlord = Landlord::factory()->create(['subscription_status' => 'trialing', 'current_period_end' => now()->addDays(20)]);
-    $admin = User::factory()->admin()->create(['landlord_id' => $landlord->id, 'email' => 'owner'.$landlord->id.'@homes.test', 'password' => 'Secret-pass-123'] + $userAttributes);
-    $landlord->acceptTerms($admin, '127.0.0.1');
-
-    CurrentLandlord::set($landlord->id);
-    $unit = Unit::create(['name' => 'A4', 'estate_id' => Estate::create(['name' => 'Acacia Court', 'district' => 'Kampala'])->id, 'status' => 'occupied']);
-    $tenant = Tenant::create(['number' => 'TEN-'.$landlord->id, 'type' => 'individual', 'name' => 'Grace Namata', 'email' => 'grace'.$landlord->id.'@example.test',
-        'primary_phone' => '+2567720000'.str_pad((string) $landlord->id, 2, '0', STR_PAD_LEFT), 'id_type' => 'national_id', 'id_number' => 'N'.$landlord->id,
-        'emergency_contact_name' => 'E', 'emergency_contact_relationship' => 'family', 'emergency_contact_phone' => '+256700000000']);
-    $lease = Lease::create(['number' => 'LSE-'.$landlord->id, 'tenant_id' => $tenant->id, 'unit_id' => $unit->id, 'status' => 'active', 'start_date' => '2026-10-01',
-        'rent_amount' => 500000, 'billing_cycle' => 'monthly', 'security_deposit' => 0, 'required_upfront_periods' => 1, 'next_invoice_date' => '2026-12-01']);
-    $invoice = Invoice::create(['number' => 'INV-'.$landlord->id, 'lease_id' => $lease->id, 'invoiceable_type' => Lease::class, 'invoiceable_id' => $lease->id,
-        'type' => 'rent', 'title' => 'November rent', 'invoice_date' => '2026-11-01', 'amount' => 500000, 'due_date' => '2026-11-05', 'status' => 'unpaid']);
-    CurrentLandlord::clear();
-
-    return compact('landlord', 'admin', 'tenant', 'lease', 'invoice', 'unit');
-}
-
-function apiToken($test, User $user, string $password = 'Secret-pass-123'): string
-{
-    return $test->postJson(route('api.v1.login'), ['email' => $user->email, 'password' => $password, 'device_name' => 'Pixel 8'])->assertOk()->json('token');
-}
-
 test('a landlord signs in with a token per device and sees their profile, plan features and setup state', function () {
     ['admin' => $admin, 'landlord' => $landlord] = apiLandlord();
 
@@ -160,4 +134,15 @@ test('active leases are listed for picking, and each landlord sees only theirs',
 test('the API needs a token, and staff or partner sessions don\'t open it', function () {
     $this->getJson(route('api.v1.dashboard'))->assertUnauthorized();
     $this->getJson(route('api.v1.auth.me'))->assertUnauthorized();
+});
+
+test('detail screens work as the first request after sign-in (the landlord is set before records are looked up)', function () {
+    ['admin' => $admin, 'tenant' => $tenant, 'lease' => $lease, 'invoice' => $invoice, 'unit' => $unit] = apiLandlord();
+    $token = apiToken($this, $admin);
+
+    foreach ([route('api.v1.tenants.show', $tenant), route('api.v1.leases.show', $lease), route('api.v1.invoices.show', $invoice),
+        route('api.v1.units.show', $unit), route('api.v1.estates.show', $unit->estate_id)] as $url) {
+        CurrentLandlord::clear();   // as on a real server, where every request starts fresh
+        $this->withToken($token)->getJson($url)->assertOk();
+    }
 });

@@ -29,7 +29,7 @@ class ApiLandlord
     protected const SETUP_ROUTES = ['api.v1.auth.*'];
 
     /** Writes allowed while the subscription is read-only (paying for it, mainly). */
-    protected const READ_ONLY_ALLOWED = ['api.v1.auth.*', 'api.v1.subscription.*'];
+    protected const READ_ONLY_ALLOWED = ['api.v1.auth.*', 'api.v1.subscription.*', 'api.v1.sms.buy', 'api.v1.payouts.*'];
 
     public function handle(Request $request, Closure $next, string ...$features): Response
     {

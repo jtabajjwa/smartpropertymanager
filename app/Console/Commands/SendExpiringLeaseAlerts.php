@@ -38,6 +38,7 @@ class SendExpiringLeaseAlerts extends Command
                     ->get();
 
                 foreach ($leases as $lease) {
+                    app(\App\Services\Push\PushNotifications::class)->leaseExpiring($lease);
                     $smsNotification->leaseExpiring($lease);
                     $sent++;
                 }

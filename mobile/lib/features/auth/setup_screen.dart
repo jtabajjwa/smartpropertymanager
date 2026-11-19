@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../core/api.dart';
+import '../../core/logo.dart';
 import '../../core/session.dart';
 import '../../core/widgets.dart';
 
@@ -95,7 +96,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Primora'), actions: [
+      appBar: AppBar(title: const PrimoraLogo(size: 30, dark: true), actions: [
         TextButton(onPressed: notifier.logout, child: const Text('Sign out', style: TextStyle(color: Colors.white))),
       ]),
       body: ListView(padding: const EdgeInsets.all(20), children: [

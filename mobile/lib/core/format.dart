@@ -16,6 +16,12 @@ String date(String? iso) {
   return parsed == null ? iso : _date.format(parsed);
 }
 
+/// "5 Nov, 14:30" (local time) from an ISO timestamp.
+String when(String? iso) {
+  final d = DateTime.tryParse(iso ?? '')?.toLocal();
+  return d == null ? '' : DateFormat('d MMM, HH:mm').format(d);
+}
+
 String isoDate(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
 num toNum(Object? v) => v is num ? v : num.tryParse('$v') ?? 0;

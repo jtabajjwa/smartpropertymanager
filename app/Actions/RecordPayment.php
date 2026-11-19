@@ -54,6 +54,7 @@ class RecordPayment
             return $payment;
         });
 
+        app(\App\Services\Push\PushNotifications::class)->paymentReceived($payment);
         if ($sendSms) {
             app(SmsNotificationService::class)->paymentReceived($payment->load('payable'));
         }

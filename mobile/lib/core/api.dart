@@ -52,6 +52,10 @@ class ApiClient {
 
   Future<Map<String, dynamic>> post(String path, {Object? data}) => _send(() => _dio.post(path, data: data));
 
+  Future<Map<String, dynamic>> put(String path, {Object? data}) => _send(() => _dio.put(path, data: data));
+
+  Future<Map<String, dynamic>> delete(String path) => _send(() => _dio.delete(path));
+
   /// Downloads a file (e.g. a PDF receipt) to the app's temporary folder.
   Future<File> download(String path, String filename) async {
     final dir = await getTemporaryDirectory();
