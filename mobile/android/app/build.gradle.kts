@@ -1,3 +1,11 @@
+import java.util.Properties
+
+// Release signing key: kept OUTSIDE the project (it's secret). Point PRIMORA_SIGNING at a
+// key.properties file (storeFile, storePassword, keyAlias, keyPassword); the default is
+// ~/primora-signing/key.properties. Without it, release builds fall back to the debug key.
+val signingFile = file(System.getenv("PRIMORA_SIGNING") ?: "${System.getProperty("user.home")}/primora-signing/key.properties")
+val signing = Properties().apply { if (signingFile.exists()) signingFile.inputStream().use { load(it) } }
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -31,11 +39,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (signingFile.exists()) {
+            create("release") {
+                storeFile = file(signing.getProperty("storeFile"))
+                storePassword = signing.getProperty("storePassword")
+                keyAlias = signing.getProperty("keyAlias")
+                keyPassword = signing.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (signingFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn("Release key not found at $signingFile: signing with the DEBUG key (not for distribution).")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

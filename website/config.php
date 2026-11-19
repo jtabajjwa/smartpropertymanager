@@ -29,6 +29,15 @@ $config = [
     'support_email' => 'support@primoraproptech.com',
     'support_phone' => '+256 757 389014',
 
+    // Rent by USSD: tenants dial this on any phone (Yo! Custom USSD, live since Nov 2026).
+    'ussd_code' => '*217*617#',
+
+    // Android app download. The APK files live in downloads/ (git-ignored; see README.md).
+    // The live site offers 'android_apk', the staging copy 'android_apk_staging'.
+    'android_apk'         => 'downloads/primora.apk',
+    'android_apk_staging' => 'downloads/primora-staging.apk',
+    'android_version'     => '1.0.0',
+
     // Contact form delivery.
     // mail_to:   inbox that receives enquiries from the contact form.
     // mail_from: must be an address on YOUR hosted domain (e.g. no-reply@yourdomain.com),

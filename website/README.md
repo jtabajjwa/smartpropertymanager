@@ -45,6 +45,24 @@ If the app is down, the site keeps showing the last prices it fetched and retrie
 4. In cPanel → **SSL/TLS Status**, run AutoSSL for the domain. Once the padlock works, uncomment the "Force HTTPS" block in `.htaccess`.
 5. Visit the site and send yourself a test message through the contact form.
 
+## Android app download
+
+The "Download for Android" buttons link to `downloads/primora.apk` (live site) or
+`downloads/primora-staging.apk` (staging copy); both are git-ignored. Build them
+from `mobile/` (see its README) and copy them in:
+
+```
+cd mobile
+flutter build apk --release --target-platform android-arm64,android-arm --dart-define=API_BASE_URL=https://app.primoraproptech.com/api/v1 --dart-define-from-file=firebase.json
+cp build/app/outputs/flutter-apk/app-release.apk ../website/downloads/primora.apk
+# then the same with API_BASE_URL=https://staging.primoraproptech.com/api/v1 -> primora-staging.apk
+```
+
+Bump `version:` in `mobile/pubspec.yaml` (the number after `+` must go up) and
+`android_version` in `config.php` for each new release. `scripts/deploy-website.sh`
+uploads only that site's APK, and only when it changed (it keeps a `.sha256` beside it).
+The USSD code shown on the page is `ussd_code` in `config.php`.
+
 ## Notes
 
 - If the Primora app will live on the same hosting under a subdomain (e.g. `app.yourdomain.com`), it needs its own document root pointing at the app's `public/` folder. Keep it separate from this site's `public_html`.

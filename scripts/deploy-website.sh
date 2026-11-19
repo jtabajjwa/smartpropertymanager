@@ -58,8 +58,12 @@ mapfile -t FILES < <(cd "$SITE" && find . -type f \
     ! -name 'config.local.php' ! -name 'config.local.example.php' \
     ! -name 'config.staging.example.php' \
     ! -name 'README.md' ! -name '.gitignore' \
-    ! -path './cache/*.json' ! -name '*.tmp' \
+    ! -path './cache/*.json' ! -name '*.tmp' ! -name '*.apk' \
     | sed 's#^\./##' | sort)
+
+# The Android app: each site offers its own build (see website/README.md).
+APK="downloads/primora.apk"; [[ "$TARGET" == "staging" ]] && APK="downloads/primora-staging.apk"
+if [[ -f "$SITE/$APK" ]]; then FILES+=("$APK"); else echo "Note: $APK not built, so the site's download link won't work." >&2; fi
 
 # Where each file comes from (the staging copy gets its own config.local.php).
 src() { if [[ "$1" == "config.local.php" ]]; then echo "$STAGING_CONFIG"; else echo "$SITE/$1"; fi; }
@@ -75,6 +79,16 @@ echo
 
 declare -a NEW=() CHANGED=() SAME=()
 for f in "${FILES[@]}"; do
+    # APKs are big: compare a checksum file kept beside them instead of downloading a backup
+    # (sizes alone can match between builds; the build itself can be redone from mobile/).
+    if [[ "$f" == *.apk ]]; then
+        local_sum="$(sha256sum "$SITE/$f" | cut -d' ' -f1)"
+        remote_sum="$(ftp "$BASE/$f.sha256" 2>/dev/null | tr -d '\r\n ' || true)"
+        if [[ -z "$remote_sum" ]]; then NEW+=("$f")
+        elif [[ "$remote_sum" == "$local_sum" ]]; then SAME+=("$f")
+        else CHANGED+=("$f"); fi
+        continue
+    fi
     mkdir -p "$BACKUP/$(dirname "$f")"
     if ftp -o "$BACKUP/$f" "$BASE/$f" 2>/dev/null; then
         if cmp -s "$(src "$f")" "$BACKUP/$f"; then SAME+=("$f"); else CHANGED+=("$f"); fi
@@ -103,7 +117,15 @@ fi
 
 echo "Uploading ${#TO_UPLOAD[@]} file(s)..."
 for f in "${TO_UPLOAD[@]}"; do
-    ftp --ftp-create-dirs -T "$(src "$f")" "$BASE/$f"
+    if [[ "$f" == *.apk ]]; then
+        ftp --ftp-create-dirs --max-time 1800 -T "$(src "$f")" "$BASE/$f"
+        # Checksum written only after the APK uploaded, so a failed upload is retried next time.
+        sum_file="$BACKUP/$(basename "$f").sha256"
+        sha256sum "$(src "$f")" | cut -d' ' -f1 > "$sum_file"
+        ftp -T "$sum_file" "$BASE/$f.sha256"
+    else
+        ftp --ftp-create-dirs -T "$(src "$f")" "$BASE/$f"
+    fi
     printf '  uploaded  %s\n' "$f"
 done
 

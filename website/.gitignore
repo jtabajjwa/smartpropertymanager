@@ -4,3 +4,5 @@
 # Runtime cache (pricing fetched from the app)
 /cache/*.json
 /cache/*.tmp
+# APKs are built from mobile/ (see website/README.md); too big for git.
+/downloads/*.apk

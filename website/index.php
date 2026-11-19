@@ -46,24 +46,34 @@ foreach ($comparePlans as $i => $plan) {
     }
 }
 $maxUnits = 60;
+$ussd     = $config['ussd_code'];
+$ussdTel  = 'tel:' . str_replace('#', '%23', $ussd);
+// Android app: the staging copy of the site offers the staging build.
+$apk      = !empty($config['staging']) ? $config['android_apk_staging'] : $config['android_apk'];
+$apkSize  = is_file(__DIR__ . '/' . $apk) ? max(1, (int) round(filesize(__DIR__ . '/' . $apk) / 1048576)) . ' MB' : null;
 $year     = date('Y');
 
 $features = [
     ['building', 'Properties, estates & units', 'Organise your portfolio by location, estate and unit. Occupancy updates itself the moment a lease starts or ends.'],
     ['users', 'Tenants & leases', 'Individuals or companies, ID documents and emergency contacts in one profile. Print lease agreements from your own templates.'],
     ['repeat', 'Automatic rent invoicing', 'Daily, weekly, monthly, quarterly or yearly. Primora raises every rent invoice on schedule and catches up if one was missed.'],
-    ['banknotes', 'Payments & balances', 'Record a payment once and allocate it across invoices. Partial payments, balances and overdue amounts are always exact.'],
+    ['banknotes', 'Rent collection by mobile money', 'Tenants pay with MTN MoMo or Airtel Money from the tenant portal, the Primora app or by dialling ' . $config['ussd_code'] . '. Each payment lands on the right invoices, ready for you to withdraw.'],
+    ['document', 'Payments & balances', 'Record bank, cash and other payments once and allocate them across invoices. Partial payments, credit and arrears are always exact.'],
+    ['device', 'Tenant portal & app', 'Tenants see their bills, receipts and deposit, pay rent and report issues on the web or in the Primora app. They sign in with a one-time code, so there is no password to forget.'],
+    ['wrench', 'Repairs & expenses', 'Tenants report issues with a photo and follow your replies. Track repairs with vendors and job cards, and log every expense against its estate or unit.'],
     ['shield', 'Security deposits', 'A clear ledger for every lease, with deposits, deductions, refunds and forfeits, so move-out is never a dispute.'],
-    ['chat', 'SMS & email reminders', 'Tenants get invoice alerts, due-date and overdue reminders and payment receipts by SMS, and branded PDF invoices by email.'],
-    ['wrench', 'Expenses & vendors', 'Log expenses against an estate or unit. Keep a vendor directory and track repairs with job cards from booking to done.'],
-    ['chart', 'Dashboard & reports', 'Occupancy, collections, revenue against expenses and your top earning estates at a glance. Export anything to CSV.'],
+    ['chat', 'SMS, email & app alerts', 'Invoice alerts, reminders and receipts by SMS, branded PDF invoices by email and notifications in the app. Message all your tenants at once with bulk SMS.'],
+    ['chart', 'Books & taxes', 'An income statement, balance sheet and results by property, built from your records. Rental income tax, LST and property rates worked out, with a tax pack in PDF or Excel.'],
+    ['bell', 'Dashboard & reports', 'Occupancy, collections, revenue against expenses and your top earning estates at a glance. Export anything to CSV.'],
     ['lock', 'Team access & audit trail', 'Invite your staff with the right level of access. Every change is recorded, and your data is visible only to your organisation.'],
 ];
 
 $faqs = [
     ['Is there a free trial?', 'Yes. Every new account starts on a free trial, and you don’t need a card to sign up. Create your account, add your properties and see how Primora fits the way you work.'],
-    ['Does Primora collect rent on my behalf?', 'No. Your tenants keep paying you the way they do today, whether by mobile money, bank or cash. You record each payment in Primora, and it updates invoices, balances and receipts for you.'],
-    ['Will my tenants be notified automatically?', 'Yes. Tenants receive SMS alerts when an invoice is issued, reminders before and after the due date, payment confirmations and notice before their lease expires. Invoices can also be emailed as branded PDFs.'],
+    ['Can my tenants pay rent through Primora?', 'Yes. Once collections are switched on for your account, tenants pay by MTN MoMo or Airtel Money from the tenant portal, the Primora app or by dialling ' . $config['ussd_code'] . ' on any phone. Each payment is matched to their invoices and receipted automatically, and you withdraw what’s collected to your verified mobile money or bank account. A small fee applies to each payment, which you can choose to pass on to your tenants. Payments made to you directly, by bank, cash or otherwise, can still be recorded by hand.'],
+    ['Is there a mobile app?', 'Yes, for Android. Landlords and tenants use the same app: sign in as a landlord to run your portfolio, or as a tenant to see bills, pay rent and report issues. Download it from this page; a Google Play listing is coming soon. On an iPhone or a computer, use Primora in the browser, which has everything the app does.'],
+    ['Do my tenants need a smartphone?', 'No. Tenants get SMS alerts and receipts on any phone, and can pay rent by dialling ' . $config['ussd_code'] . '. Tenants with a smartphone can also use the tenant portal or the app.'],
+    ['Will my tenants be notified automatically?', 'Yes. Tenants receive SMS alerts when an invoice is issued, reminders before and after the due date, payment confirmations and notice before their lease expires. Invoices can also be emailed as branded PDFs, and tenants using the Primora app get notifications on their phone.'],
     ['Can my staff or property manager use it too?', 'Yes. Add as many team members as you need. Administrators control who has access, and the audit log shows who changed what and when.'],
     ['Is my data private and secure?', 'Each organisation’s data is kept completely separate, so no other landlord can ever see your properties, tenants or finances. All access is password-protected and every change is logged.'],
     ['What happens when my portfolio grows?', 'Your plan is based on how many units you manage. As you add units, you move up to the matching tier. There’s no migration and nothing to reinstall.'],
@@ -78,7 +88,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Primora — Property management software for landlords</title>
-    <meta name="description" content="Primora automates rent invoicing, payment tracking, security deposits and SMS reminders for landlords and property managers in Uganda. Start your free trial.">
+    <meta name="description" content="Primora automates rent invoicing, mobile money and USSD rent collection, security deposits and tenant reminders for landlords in Uganda, on the web and in the Primora Android app. Start your free trial.">
     <meta name="theme-color" content="#1c2230">
 <?php if (!empty($config['staging'])): ?>
     <meta name="robots" content="noindex, nofollow">
@@ -88,7 +98,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Primora">
     <meta property="og:title" content="Primora — Property management software for landlords">
-    <meta property="og:description" content="Rent invoicing, payments, deposits and tenant reminders, handled. Built for landlords in Uganda.">
+    <meta property="og:description" content="Rent invoicing, mobile money collection, deposits and tenant reminders, handled. On the web, in the app and by USSD. Built for landlords in Uganda.">
     <meta property="og:url" content="<?= e(rtrim($config['site_url'], '/')) ?>/">
 
     <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
@@ -97,7 +107,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
-    <link rel="stylesheet" href="assets/css/style.css?v=7">
+    <link rel="stylesheet" href="assets/css/style.css?v=8">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -118,6 +128,8 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 
         <nav class="nav-links" aria-label="Main">
             <a href="#features">Features</a>
+            <a href="#app">App</a>
+            <a href="#ussd">USSD</a>
             <a href="#how-it-works">How it works</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
@@ -138,6 +150,8 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="mobile-menu" id="mobile-menu">
         <div class="container">
             <a class="mobile-link" href="#features">Features</a>
+            <a class="mobile-link" href="#app">Mobile app</a>
+            <a class="mobile-link" href="#ussd">Pay by USSD</a>
             <a class="mobile-link" href="#how-it-works">How it works</a>
             <a class="mobile-link" href="#pricing">Pricing</a>
             <a class="mobile-link" href="#faq">FAQ</a>
@@ -155,9 +169,9 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 <!-- ============ Banner ============ -->
 <section class="banner">
     <div class="container banner-copy">
-        <span class="hero-badge"><span>New</span> Branded PDF invoices, emailed automatically</span>
+        <a class="hero-badge" href="#app"><span>New</span> The Primora app for Android, for landlords and tenants</a>
         <h1>Every property, lease and shilling, <em>in one place.</em></h1>
-        <p class="hero-lead">Primora handles rent invoicing, payment tracking, security deposits and tenant reminders for you. Spend less time chasing rent and more time growing your portfolio.</p>
+        <p class="hero-lead">Primora handles rent invoicing, mobile money collection, security deposits and tenant reminders for you, on the web, in the app and by USSD. Spend less time chasing rent and more time growing your portfolio.</p>
         <div class="hero-ctas">
             <a class="btn btn-primary" href="<?= e($signup) ?>">Start your free trial <?= icon('arrow') ?></a>
             <a class="btn btn-outline-light" href="#how-it-works">See how it works</a>
@@ -165,7 +179,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
         <ul class="hero-note">
             <li><?= icon('check') ?> No card required</li>
             <li><?= icon('check') ?> Set up in an afternoon</li>
-            <li><?= icon('check') ?> Built for UGX & mobile money</li>
+            <li><?= icon('check') ?> Tenants pay on any phone with <?= e($ussd) ?></li>
         </ul>
     </div>
     <img class="skyline" src="assets/img/skyline.svg" alt="" width="1600" height="380">
@@ -243,8 +257,8 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <ul>
             <li><span class="ic"><?= icon('repeat') ?></span><span><strong>Automatic rent invoices</strong><small>On every lease’s own schedule</small></span></li>
-            <li><span class="ic"><?= icon('device') ?></span><span><strong>SMS on any phone</strong><small>No app needed for tenants</small></span></li>
-            <li><span class="ic"><?= icon('shield') ?></span><span><strong>Deposits accounted for</strong><small>A full ledger for every lease</small></span></li>
+            <li><span class="ic"><?= icon('banknotes') ?></span><span><strong>Rent by USSD on any phone</strong><small>Tenants dial <?= e($ussd) ?></small></span></li>
+            <li><span class="ic"><?= icon('device') ?></span><span><strong>Primora app for Android</strong><small>For landlords and tenants</small></span></li>
             <li><span class="ic"><?= icon('lock') ?></span><span><strong>Your data stays yours</strong><small>Private to your organisation</small></span></li>
         </ul>
     </div>
@@ -302,9 +316,10 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
             <div class="step">
                 <span class="num">3</span>
                 <h3>Let Primora do the rest</h3>
-                <p>Invoices go out on time, reminders follow up and you simply record payments as they come in.</p>
+                <p>Invoices go out on time, reminders follow up and tenants pay by mobile money, matched to their bills automatically.</p>
                 <ul>
                     <li><?= icon('check') ?> Automatic recurring invoices & SMS reminders</li>
+                    <li><?= icon('check') ?> Rent by MoMo, Airtel Money or <?= e($ussd) ?></li>
                     <li><?= icon('check') ?> Live balances, arrears and reports</li>
                 </ul>
             </div>
@@ -318,26 +333,184 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
         <div>
             <span class="eyebrow">Built for how you work</span>
             <h2 class="section-title">Made for landlords in Uganda, <em>not adapted for them</em></h2>
-            <p class="section-lead">Primora speaks your currency, records the payment methods your tenants actually use and reaches them on the phones they already have.</p>
+            <p class="section-lead">Primora speaks your currency, takes the payment methods your tenants actually use and reaches them on the phones they already have.</p>
             <ul class="checklist">
                 <li><span class="ic"><?= icon('check') ?></span><div><strong>Shillings throughout</strong><span>Invoices, receipts, reports and reminders all in UGX.</span></div></li>
-                <li><span class="ic"><?= icon('check') ?></span><div><strong>Every way your tenants pay</strong><span>Record MTN MoMo, Airtel Money, FlexiPay, bank transfers and cash.</span></div></li>
+                <li><span class="ic"><?= icon('check') ?></span><div><strong>Every way your tenants pay</strong><span>Tenants pay by MTN MoMo or Airtel Money through Primora, even on a basic phone with <?= e($ussd) ?>. Bank transfers, FlexiPay and cash are recorded in a click.</span></div></li>
                 <li><span class="ic"><?= icon('check') ?></span><div><strong>Tenants and walk-in customers</strong><span>Bill long-term tenants and one-off customers from the same system.</span></div></li>
                 <li><span class="ic"><?= icon('check') ?></span><div><strong>Fair, unit-based pricing</strong><span>Pay for the size of your portfolio, not for features you won’t use.</span></div></li>
             </ul>
         </div>
 
         <div class="methods" aria-hidden="true">
-            <h4>Payments recorded this week</h4>
+            <h4>Payments received this week</h4>
             <div class="method-list">
                 <div class="method"><span class="logo lg-mtn">MoMo</span><span class="label">MTN Mobile Money</span><span class="amt">3,250,000</span></div>
                 <div class="method"><span class="logo lg-airtel">Airtel</span><span class="label">Airtel Money</span><span class="amt">1,400,000</span></div>
+                <div class="method"><span class="logo lg-ussd">USSD</span><span class="label">Dialled <?= e($ussd) ?></span><span class="amt">1,150,000</span></div>
                 <div class="method"><span class="logo lg-bank"><?= icon('building') ?></span><span class="label">Bank transfer</span><span class="amt">4,800,000</span></div>
                 <div class="method"><span class="logo lg-cash">UGX</span><span class="label">Cash</span><span class="amt">900,000</span></div>
             </div>
-            <div class="total"><span>Total received</span><strong>UGX 10,350,000</strong></div>
-            <p class="foot">Each payment is matched to its invoices automatically, and tenants receive an SMS receipt.</p>
+            <div class="total"><span>Total received</span><strong>UGX 11,500,000</strong></div>
+            <p class="foot">Mobile money payments are matched to their invoices and receipted by SMS automatically. Bank and cash payments take one step to record.</p>
         </div>
+    </div>
+</section>
+
+<!-- ============ Mobile app ============ -->
+<section class="section app" id="app">
+    <div class="container split app-split">
+        <div>
+            <span class="eyebrow">The Primora app</span>
+            <h2 class="section-title">Your rentals in your pocket, <em>and your tenants’ too</em></h2>
+            <p class="section-lead">One app for Android. Sign in as a landlord to run your portfolio on the go, or as a tenant to see your bills and pay rent.</p>
+
+            <div class="app-roles">
+                <div>
+                    <h3><span class="ic"><?= icon('building') ?></span>For landlords</h3>
+                    <ul>
+                        <li><?= icon('check') ?> Tenants, leases, invoices and payments</li>
+                        <li><?= icon('check') ?> Expenses, repairs, SMS and payouts</li>
+                        <li><?= icon('check') ?> Books and tax reports</li>
+                        <li><?= icon('check') ?> Alerts when a tenant pays or reports an issue</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3><span class="ic"><?= icon('users') ?></span>For tenants</h3>
+                    <ul>
+                        <li><?= icon('check') ?> Bills, receipts and deposit balance</li>
+                        <li><?= icon('check') ?> Pay rent by MTN MoMo or Airtel Money</li>
+                        <li><?= icon('check') ?> Report issues with a photo</li>
+                        <li><?= icon('check') ?> Alerts for new bills, payments and replies</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="app-get">
+                <a class="btn btn-primary" href="<?= e($apk) ?>" download><?= icon('download') ?> Download for Android</a>
+                <span class="meta">APK<?= $apkSize ? ' · ' . e($apkSize) : '' ?> · version <?= e($config['android_version']) ?> · Android 7 or later</span>
+            </div>
+            <p class="app-note"><strong>Coming soon to Google Play.</strong> Until then, open the downloaded file on your phone and, if Android asks, allow your browser to install apps. On an iPhone or a computer, <a href="<?= e($login) ?>">use Primora in your browser</a>.</p>
+        </div>
+
+        <div class="devices" aria-hidden="true">
+            <!-- Tenant screen (behind) -->
+            <div class="phone phone-back">
+                <div class="phone-screen">
+                    <div class="ps-status"><span>9:41</span><span class="ps-sig"><i></i><i></i><i></i></span></div>
+                    <div class="pt-head"><small>Hello,</small><strong>Sarah</strong></div>
+                    <div class="pt-owe">
+                        <small>You owe · Kololo Homes</small>
+                        <strong>UGX 850,000</strong>
+                        <span>Next: due 1 December</span>
+                        <b>Pay now</b>
+                    </div>
+                    <div class="pt-card"><span class="pt-ic"><?= icon('banknotes') ?></span><span><strong>Unit ID 1000124</strong><small>Enter it when paying by USSD</small></span></div>
+                    <div class="pt-card"><span class="pt-ic is-green"><?= icon('check') ?></span><span><strong>UGX 850,000 paid</strong><small>1 Nov · MTN MoMo · Receipt</small></span></div>
+                    <div class="ps-tabs"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+                </div>
+            </div>
+
+            <!-- Landlord dashboard (front) -->
+            <div class="phone phone-front">
+                <div class="phone-screen">
+                    <div class="ps-status"><span>9:41</span><span class="ps-sig"><i></i><i></i><i></i></span></div>
+                    <div class="pl-head">
+                        <span class="pl-logo"><?= logoMark('#ffffff') ?></span>
+                        <span><small>Good morning</small><strong>Kololo Homes</strong></span>
+                        <span class="pl-bell"><?= icon('bell') ?><b></b></span>
+                    </div>
+                    <div class="pl-hero">
+                        <small>Collected this month</small>
+                        <strong><span>UGX</span> 18,450,000</strong>
+                        <em>▲ 12% on last month</em>
+                        <div class="pl-bars">
+                            <i style="height:46%"></i><i style="height:58%"></i><i style="height:52%"></i><i style="height:70%"></i><i style="height:78%"></i><i class="on" style="height:92%"></i>
+                        </div>
+                    </div>
+                    <div class="pl-stats">
+                        <div><small>Occupancy</small><strong>94%</strong><span>44 of 47 units</span></div>
+                        <div><small>Overdue</small><strong class="warn">1.2M</strong><span>4 invoices</span></div>
+                    </div>
+                    <div class="pl-list">
+                        <div class="pl-list-h">Latest payments</div>
+                        <div class="pl-row"><span class="pl-av">SN</span><span><strong>Sarah N.</strong><small>Kololo B4 · MoMo</small></span><b>850,000</b></div>
+                        <div class="pl-row"><span class="pl-av is-terra">OT</span><span><strong>Okello Trading</strong><small>Ntinda S2 · USSD</small></span><b>2,400,000</b></div>
+                        <div class="pl-row"><span class="pl-av is-green">DM</span><span><strong>David M.</strong><small>Kira A1 · Airtel</small></span><b>600,000</b></div>
+                    </div>
+                    <div class="ps-tabs"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+                </div>
+            </div>
+
+            <div class="push-card">
+                <span class="push-ic"><?= logoMark('#ffffff') ?></span>
+                <span><small>Primora · now</small><strong>Sarah N. paid UGX 850,000</strong>Kololo B4 · INV-00128 is now paid</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ USSD ============ -->
+<section class="section ussd" id="ussd">
+    <div class="container">
+        <div class="section-head center">
+            <span class="eyebrow">Pay by USSD</span>
+            <h2 class="section-title">No smartphone, no data, <em>no problem</em></h2>
+            <p class="section-lead">Tenants pay rent from any MTN or Airtel line by dialling <a class="ussd-inline" href="<?= e($ussdTel) ?>"><?= e($ussd) ?></a>. The payment lands on the right invoice and both of you get confirmation.</p>
+        </div>
+
+        <ol class="ussd-flow" aria-label="How paying by USSD works">
+            <li class="uf-step">
+                <div class="uf-visual">
+                <div class="feature-phone" aria-hidden="true">
+                    <div class="fp-screen"><span class="fp-dial"><?= e($ussd) ?></span><span class="fp-cursor"></span></div>
+                    <div class="fp-keys"><?php foreach (['1','2','3','4','5','6','7','8','9','*','0','#'] as $k): ?><i><?= $k ?></i><?php endforeach; ?></div>
+                    <div class="fp-call"></div>
+                </div>
+                </div>
+                <div class="uf-text"><b>1</b><strong>Dial <?= e($ussd) ?></strong><span>From any phone, on MTN or Airtel.</span></div>
+            </li>
+            <li class="uf-step">
+                <div class="uf-visual">
+                <div class="ussd-box" aria-hidden="true">
+                    <p>Primora PropTech:<br>1 active property unit found against your phone number.<br>1. Acacia Court A4 #1000124 (Grace, Bal: UGX 850,000)</p>
+                    <div class="ub-input">1</div>
+                    <div class="ub-actions"><span>Cancel</span><span>Send</span></div>
+                </div>
+                </div>
+                <div class="uf-text"><b>2</b><strong>Pick your home</strong><span>Found by your phone number, or enter the unit ID on your invoice.</span></div>
+            </li>
+            <li class="uf-step">
+                <div class="uf-visual">
+                <div class="ussd-box" aria-hidden="true">
+                    <p>Primora PropTech:<br>Property unit Acacia Court A4 and amount UGX 850,000 are valid.<br>1. Continue<br>00. Cancel</p>
+                    <div class="ub-input">1</div>
+                    <div class="ub-actions"><span>Cancel</span><span>Send</span></div>
+                </div>
+                </div>
+                <div class="uf-text"><b>3</b><strong>Enter the amount</strong><span>Pay the full balance or part of it.</span></div>
+            </li>
+            <li class="uf-step">
+                <div class="uf-visual">
+                <div class="ussd-box is-pin" aria-hidden="true">
+                    <p>You are paying UGX 850,000. Enter your Mobile Money PIN to approve.</p>
+                    <div class="ub-input">••••</div>
+                    <div class="ub-actions"><span>Cancel</span><span>Send</span></div>
+                </div>
+                </div>
+                <div class="uf-text"><b>4</b><strong>Approve with your PIN</strong><span>The usual mobile money prompt.</span></div>
+            </li>
+            <li class="uf-step">
+                <div class="uf-visual">
+                <div class="sms-stack" aria-hidden="true">
+                    <div class="sms"><small>To the tenant · SMS</small>Dear Grace, payment of UGX 850,000 received for Acacia Court A4. Thank you!</div>
+                    <div class="sms is-app"><small>To the landlord · app</small><strong>Grace N. paid UGX 850,000</strong></div>
+                </div>
+                </div>
+                <div class="uf-text"><b>5</b><strong>Done, everyone knows</strong><span>The invoice is marked paid, with receipts for both sides.</span></div>
+            </li>
+        </ol>
+        <p class="ussd-note">Your landlord’s collections must be switched on in Primora. Screens are illustrations; your network’s wording may differ slightly.</p>
     </div>
 </section>
 
@@ -389,6 +562,8 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                 <ul class="incl-list">
                     <li><?= icon('check') ?> Unlimited tenants, leases & invoices</li>
                     <li><?= icon('check') ?> Automatic recurring rent invoicing</li>
+                    <li><?= icon('check') ?> Mobile money & USSD rent collection</li>
+                    <li><?= icon('check') ?> Tenant portal & the Primora app</li>
                     <li><?= icon('check') ?> SMS reminders & payment receipts</li>
                     <li><?= icon('check') ?> Branded PDF invoices by email</li>
                     <li><?= icon('check') ?> Security deposit ledger</li>
@@ -576,12 +751,15 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                         <span class="brand-tag">PROPTECH</span>
                     </span>
                 </a>
-                <p class="footer-about">Property management software that handles invoicing, payments, deposits and tenant communication, so landlords can focus on growth.</p>
+                <p class="footer-about">Property management software that handles invoicing, rent collection, deposits and tenant communication, so landlords can focus on growth.</p>
             </div>
             <div>
                 <h4>Product</h4>
                 <ul class="footer-links">
                     <li><a href="#features">Features</a></li>
+                    <li><a href="#app">Mobile app</a></li>
+                    <li><a href="<?= e($apk) ?>" download>Download for Android</a></li>
+                    <li><a href="#ussd">Pay by USSD</a></li>
                     <li><a href="#how-it-works">How it works</a></li>
                     <li><a href="#pricing">Pricing</a></li>
                 </ul>

@@ -50,7 +50,16 @@ flutter build apk --release --dart-define=API_BASE_URL=https://app.primorapropte
 flutter build appbundle --release --dart-define=API_BASE_URL=https://app.primoraproptech.com/api/v1
 ```
 
-Release signing (a keystore) and store listings are still to be set up.
+Release builds are signed with the Primora release key, kept OUTSIDE the project in
+`C:/Users/HP/primora-signing/` (`primora-release.jks` + `key.properties` with its
+password). Set `PRIMORA_SIGNING` to another `key.properties` path on other machines.
+Without it, release builds fall back to the debug key (Gradle warns): never hand those out.
+**Back that folder up** (password manager or encrypted storage): losing the key means
+installed apps can't be updated. Use the same key as the app signing key when the app goes
+on Google Play, so phones that installed from the website keep updating.
+
+The website download (universal APK, one file for all phones) is described in
+`website/README.md`. The Google Play listing is still to be set up.
 
 ## Push notifications
 
