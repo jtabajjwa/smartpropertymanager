@@ -86,7 +86,8 @@ function tenantApiSignIn($test, string $phone = '0772 123 456'): string
 }
 
 test('a tenant signs in with a code by SMS and sees their account', function () {
-    ['tenant' => $tenant, 'invoice' => $invoice] = tenantApiTenancy();
+    ['tenant' => $tenant, 'invoice' => $invoice, 'unit' => $unit] = tenantApiTenancy();
+    expect($unit->fresh()->code)->not->toBeEmpty();
 
     $this->postJson(route('api.v1.tenant.auth.lookup'), ['identifier' => '0700 000 001'])->assertUnprocessable()->assertJsonValidationErrors('identifier');
     $r = $this->postJson(route('api.v1.tenant.auth.lookup'), ['identifier' => '0772 123 456'])->assertOk()
@@ -99,7 +100,8 @@ test('a tenant signs in with a code by SMS and sees their account', function () 
 
     $signIn = $this->postJson(route('api.v1.tenant.auth.verify'), ['login_ticket' => $ticket, 'code' => tenantApiCode($this), 'device_name' => 'Pixel'])->assertOk()
         ->assertJsonPath('role', 'tenant')->assertJsonPath('tenant.name', 'Grace Namata')->assertJsonPath('landlord.name', 'Kololo Homes')
-        ->assertJsonPath('can_pay', true)->json();
+        ->assertJsonPath('can_pay', true)
+        ->assertJsonPath('units.0.unit', 'Acacia Court · A4')->assertJsonPath('units.0.code', $unit->fresh()->code)->json();
     CurrentLandlord::clear();
     app('auth')->forgetGuards();
 

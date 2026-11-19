@@ -217,6 +217,10 @@ class AuthController extends Controller
                 'phone' => $tenant->primary_phone,
                 'email' => $tenant->email,
             ],
+            // Unit IDs, which tenants key in when paying by USSD (and can sign in with).
+            'units' => $tenant->leases()->where('status', 'active')->with('unit.estate')->get()
+                ->filter(fn ($l) => $l->unit?->code)
+                ->map(fn ($l) => ['unit' => AccountController::lease($l)['unit'], 'code' => $l->unit->code])->values(),
             'landlord' => [
                 'name' => $landlord->name,
                 'logo_url' => $landlord->logoUrl(),

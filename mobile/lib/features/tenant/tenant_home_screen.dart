@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
@@ -108,6 +109,7 @@ class TenantHomeScreen extends ConsumerWidget {
                 ]),
               ),
             ),
+            const UnitIdCard(),
             if (awaiting != null)
               Card(
                 color: Brand.amber.withValues(alpha: 0.08),
@@ -213,3 +215,39 @@ StatusChip tenantIssueChip(Map<String, dynamic> issue) => switch (issue['status'
       'resolved' => StatusChip('${issue['status_label']}', color: Brand.green),
       _ => StatusChip('${issue['status_label']}'),
     };
+
+/// The tenant's unit ID(s): what they key in when paying rent by USSD (and can
+/// sign in with), with a button to copy it.
+class UnitIdCard extends ConsumerWidget {
+  const UnitIdCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final units = ((ref.watch(sessionProvider).profile['units'] as List?) ?? const []).cast<Map>();
+    if (units.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      child: Column(children: [
+        for (final u in units)
+          ListTile(
+            leading: const Icon(Icons.dialpad, color: Brand.orange),
+            title: Text.rich(TextSpan(children: [
+              const TextSpan(text: 'Unit ID  '),
+              TextSpan(text: '${u['code']}', style: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+            ])),
+            subtitle: Text('${units.length > 1 && u['unit'] != null ? '${u['unit']} · ' : ''}Enter it when paying rent by USSD'),
+            trailing: IconButton(
+              tooltip: 'Copy unit ID',
+              icon: const Icon(Icons.copy, size: 20),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: '${u['code']}'));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unit ID copied')));
+                }
+              },
+            ),
+          ),
+      ]),
+    );
+  }
+}

@@ -242,6 +242,8 @@ class _TenantPayScreenState extends ConsumerState<TenantPayScreen> {
               const Icon(Icons.phonelink_erase_outlined, size: 44, color: Brand.navyMuted),
               const SizedBox(height: 12),
               Text('${o['reason'] ?? 'Mobile money payments are unavailable right now. Please try again later.'}', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              const UnitIdCard(),
             ]);
           }
           _init(o);
@@ -296,6 +298,8 @@ class _TenantPayScreenState extends ConsumerState<TenantPayScreen> {
             ),
             const SizedBox(height: 6),
             const Text('A prompt goes to the phone; approve it with your mobile money PIN.', textAlign: TextAlign.center, style: TextStyle(color: Brand.navyMuted, fontSize: 12)),
+            const SizedBox(height: 20),
+            const UnitIdCard(),
           ]);
         },
       ),

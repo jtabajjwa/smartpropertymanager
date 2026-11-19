@@ -15,10 +15,14 @@ class AppConfig {
   static const _fcmSenderId = String.fromEnvironment('FCM_SENDER_ID');
   static const _fcmProjectId = String.fromEnvironment('FCM_PROJECT_ID');
 
-  static bool get pushEnabled => _fcmApiKey.isNotEmpty && _fcmAppId.isNotEmpty && _fcmSenderId.isNotEmpty && _fcmProjectId.isNotEmpty;
+  /// The sender ID is the project number, which is also the second part of the
+  /// App ID (1:NUMBER:android:…), so a blank one is read from there.
+  static String get _senderId => _fcmSenderId.isNotEmpty ? _fcmSenderId : (_fcmAppId.split(':').elementAtOrNull(1) ?? '');
+
+  static bool get pushEnabled => _fcmApiKey.isNotEmpty && _fcmAppId.isNotEmpty && _senderId.isNotEmpty && _fcmProjectId.isNotEmpty;
 
   static FirebaseOptions get firebaseOptions =>
-      const FirebaseOptions(apiKey: _fcmApiKey, appId: _fcmAppId, messagingSenderId: _fcmSenderId, projectId: _fcmProjectId);
+      FirebaseOptions(apiKey: _fcmApiKey, appId: _fcmAppId, messagingSenderId: _senderId, projectId: _fcmProjectId);
 
   static const apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme.dart';
 import '../../core/api.dart';
 import '../../core/session.dart';
+import 'tenant_home_screen.dart';
 import '../../core/widgets.dart';
 
 /// The tenant's details, their landlord's contacts, switching tenancy (one phone, several landlords), and signing out.
@@ -68,6 +69,8 @@ class TenantAccountScreen extends ConsumerWidget {
             isThreeLine: true,
           ),
         ),
+        const SizedBox(height: 12),
+        const UnitIdCard(),
         const SizedBox(height: 12),
         SectionCard(title: 'Your landlord', children: [
           InfoRow('Name', landlord['name'] as String?),
