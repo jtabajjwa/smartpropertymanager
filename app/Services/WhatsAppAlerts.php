@@ -12,19 +12,20 @@ use App\WhatsApp\Templates;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Tenant alerts by WhatsApp, with SMS as the fallback. Used by
- * SmsNotificationService: each alert first asks queue() to send it by
- * WhatsApp, and goes by SMS when that returns null.
+ * Tenant alerts by WhatsApp. Used by SmsNotificationService: each alert
+ * first asks queue() to send it by WhatsApp, and goes by SMS when that
+ * returns null (and also by SMS in the landlord's "both" mode).
  *
- * An alert goes by WhatsApp only when all of these hold: the landlord has
- * switched WhatsApp alerts on (and isn't read-only), the tenant agreed and
+ * An alert goes by WhatsApp only when all of these hold: the landlord sends
+ * alerts by WhatsApp (any mode but "Only SMS") and isn't read-only, the tenant agreed and
  * hasn't stopped them, WhatsApp hasn't recently said their number can't get
  * messages, the alert's template is approved by Meta, and the landlord has
  * WhatsApp credit. Otherwise it goes by SMS straight away.
  *
  * A WhatsApp alert that then fails (straight away, or later when Meta reports
- * it undelivered) gets its credit back and is sent by SMS instead, linked as
- * its resend. A tenant never gets the same alert both ways.
+ * it undelivered) gets its credit back. In "WhatsApp first" mode it is then
+ * sent by SMS, linked as its resend; in "both" the tenant already has the
+ * SMS, and "only WhatsApp" means no SMS.
  */
 class WhatsAppAlerts
 {
@@ -55,7 +56,7 @@ class WhatsAppAlerts
         $tenant = Tenant::find($tenantId);
         $to = Msisdn::normalize($phone);
 
-        if (!$landlord?->whatsapp_alerts || $landlord->isReadOnly() || !$tenant?->whatsAppAlertsOn() || !$to
+        if (!$landlord?->usesWhatsApp() || $landlord->isReadOnly() || !$tenant?->whatsAppAlertsOn() || !$to
             || !$this->wa->configured() || !Templates::approved($template)) {
             return null;
         }
@@ -118,7 +119,8 @@ class WhatsAppAlerts
             Tenant::whereKey($log->tenant_id)->update(['whatsapp_failed_at' => now()]);
         }
 
-        if (in_array($log->notification_type, self::WHATSAPP_ONLY, true)) {
+        $mode = \App\Models\Landlord::whereKey($log->landlord_id)->value('alert_channels');
+        if ($mode !== 'whatsapp_first' || in_array($log->notification_type, self::WHATSAPP_ONLY, true)) {
             return;
         }
 

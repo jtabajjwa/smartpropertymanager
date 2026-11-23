@@ -13,24 +13,31 @@
 
             {{-- On / off --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-lg font-semibold text-gray-900">Send tenant alerts by WhatsApp</h3>
-                            <x-badge :color="$landlord->whatsapp_alerts ? 'green' : 'gray'">{{ $landlord->whatsapp_alerts ? 'On' : 'Off' }}</x-badge>
-                        </div>
-                        <p class="mt-1 text-sm text-gray-500 max-w-2xl">New invoices (with the PDF), reminders, receipts (with the PDF), issue updates and deposit and lease alerts go to tenants on WhatsApp from Primora's number. If a tenant isn't on WhatsApp, has stopped WhatsApp alerts or a message can't be delivered, the alert goes by SMS instead, so a tenant never gets it twice. Each alert uses 1 WhatsApp credit, whatever its length.</p>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-lg font-semibold text-gray-900">How tenants get alerts</h3>
+                        <x-badge :color="$landlord->usesWhatsApp() ? 'green' : 'gray'">{{ $landlord->alertChannelsLabel() }}</x-badge>
                     </div>
-                    <form method="POST" action="{{ route('whatsapp-alerts.toggle') }}" class="shrink-0">
-                        @csrf @method('PUT')
-                        <input type="hidden" name="on" value="{{ $landlord->whatsapp_alerts ? 0 : 1 }}">
-                        @if($landlord->whatsapp_alerts)
-                            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Turn off</button>
-                        @else
-                            <x-button type="submit">Turn on WhatsApp alerts</x-button>
-                        @endif
-                    </form>
+                    <p class="mt-1 text-sm text-gray-500 max-w-3xl">New invoices (with the PDF), reminders, receipts (with the PDF), issue updates and deposit and lease alerts can go to tenants on WhatsApp from Primora's number. Each WhatsApp alert uses 1 WhatsApp credit, whatever its length. Tenants who haven't agreed to WhatsApp alerts, have stopped them or aren't on WhatsApp always get SMS.</p>
                 </div>
+
+                <form method="POST" action="{{ route('whatsapp-alerts.toggle') }}" class="mt-5" x-data="{ mode: '{{ $landlord->alert_channels }}' }">
+                    @csrf @method('PUT')
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @foreach(\App\Models\Landlord::ALERT_CHANNELS as $value => [$label, $help])
+                            <label class="relative flex cursor-pointer rounded-xl border p-4 transition" :class="mode === '{{ $value }}' ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50/40' : 'border-gray-200 hover:border-gray-300'">
+                                <input type="radio" name="alert_channels" value="{{ $value }}" x-model="mode" class="sr-only">
+                                <span>
+                                    <span class="block text-sm font-semibold text-gray-900">{{ $label }}</span>
+                                    <span class="mt-1 block text-xs text-gray-600">{{ $help }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <div class="mt-4 flex justify-end" x-show="mode !== '{{ $landlord->alert_channels }}'" x-cloak>
+                        <x-button type="submit">Save</x-button>
+                    </div>
+                </form>
 
                 @unless($ready)
                     <div class="mt-4 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
@@ -75,11 +82,11 @@
                     </div>
                 </div>
 
-                @if($landlord->whatsapp_alerts && $balance <= 0)
+                @if($landlord->usesWhatsApp() && $balance <= 0)
                     <div class="mt-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
                         You're out of WhatsApp credit, so alerts are going by SMS. Buy a bundle below to send them on WhatsApp again.
                     </div>
-                @elseif($landlord->whatsapp_alerts && $balance <= $lowThreshold)
+                @elseif($landlord->usesWhatsApp() && $balance <= $lowThreshold)
                     <div class="mt-4 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3 text-sm text-orange-800">
                         Your WhatsApp credit is running low. When it runs out, alerts will go by SMS.
                     </div>

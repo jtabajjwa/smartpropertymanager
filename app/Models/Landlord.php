@@ -44,6 +44,28 @@ class Landlord extends Model
         'promotion_periods_used',
     ];
 
+    /**
+     * How tenant alerts go. Tenants who can't get WhatsApp (not agreed, stopped,
+     * not on WhatsApp, or no WhatsApp credit) get SMS in every mode.
+     */
+    public const ALERT_CHANNELS = [
+        'sms' => ['Only SMS', 'Every alert goes by SMS.'],
+        'whatsapp_first' => ['WhatsApp first, SMS if it fails', 'By WhatsApp; if WhatsApp can\'t deliver it, by SMS instead. Tenants never get both.'],
+        'both' => ['Both WhatsApp and SMS', 'Every alert goes both ways, using WhatsApp and SMS credit.'],
+        'whatsapp' => ['Only WhatsApp', 'By WhatsApp, with no SMS, even if WhatsApp can\'t deliver it. Tenants who can\'t get WhatsApp still get SMS.'],
+    ];
+
+    /** Sends tenant alerts by WhatsApp at all (any mode but "Only SMS"). */
+    public function usesWhatsApp(): bool
+    {
+        return in_array($this->alert_channels, ['whatsapp_first', 'both', 'whatsapp'], true);
+    }
+
+    public function alertChannelsLabel(): string
+    {
+        return self::ALERT_CHANNELS[$this->alert_channels][0] ?? self::ALERT_CHANNELS['sms'][0];
+    }
+
     protected function casts(): array
     {
         return [
@@ -51,7 +73,6 @@ class Landlord extends Model
             'grace_ends_at' => 'date',
             'max_units' => 'integer',
             'collect_payments' => 'boolean',
-            'whatsapp_alerts' => 'boolean',
             'whatsapp_balance' => 'integer',
             'pass_collection_fee' => 'boolean',
             'fiscal_year_start_month' => 'integer',

@@ -220,7 +220,8 @@ class SmsNotificationService
 
     /**
      * A tenant alert: by WhatsApp when the landlord, tenant and template allow
-     * it (see WhatsAppAlerts), otherwise by SMS. Walk-in customers get SMS.
+     * it (see WhatsAppAlerts), otherwise by SMS; in the landlord's "both" mode,
+     * by SMS as well. Walk-in customers get SMS.
      *
      * @param  array{0: string, 1: list<string>, 2?: array}|null  $whatsapp  template, its values, and a PDF to attach
      */
@@ -230,7 +231,9 @@ class SmsNotificationService
             try {
                 $log = $this->whatsapp->queue($phone, mb_substr($message, 0, 320), $tenantId, $type, $refType, $refId, $whatsapp[0], $whatsapp[1], $whatsapp[2] ?? null);
                 if ($log) {
-                    return $log;
+                    $both = \App\Models\Landlord::whereKey(CurrentLandlord::id())->value('alert_channels') === 'both';
+
+                    return $both ? $this->sendAndLog($phone, $message, $tenantId, $type, $refType, $refId) : $log;
                 }
             } catch (\Throwable $e) {
                 Log::error("WhatsApp alert ({$type}) could not be queued, sending SMS: {$e->getMessage()}");

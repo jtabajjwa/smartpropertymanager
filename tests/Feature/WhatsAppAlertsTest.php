@@ -62,11 +62,11 @@ beforeEach(function () {
 });
 afterEach(fn () => CurrentLandlord::clear());
 
-/** Grace (0772 123 456, agreed to WhatsApp) renting A4 from Kololo Homes, who has WhatsApp alerts on. */
-function alertTenancy(bool $alertsOn = true, bool $agreed = true, int $waCredit = 5): array
+/** Grace (0772 123 456, agreed to WhatsApp) renting A4 from Kololo Homes, who sends alerts WhatsApp first. */
+function alertTenancy(string $mode = 'whatsapp_first', bool $agreed = true, int $waCredit = 5): array
 {
     $landlord = Landlord::factory()->create(['name' => 'Kololo Homes', 'trading_name' => 'Kololo Homes Ltd']);
-    $landlord->forceFill(['whatsapp_alerts' => $alertsOn])->save();
+    $landlord->forceFill(['alert_channels' => $mode])->save();
     app(SmsCredits::class)->add($landlord->id, 20, 'purchase', 'setup');
     if ($waCredit) {
         app(WhatsAppCredits::class)->add($landlord->id, $waCredit, 'purchase', 'setup');
@@ -139,8 +139,8 @@ test('a new invoice goes by WhatsApp with its PDF, uses 1 WhatsApp credit and no
     expect(WhatsAppCreditTransaction::where('type', 'usage')->sole()->sms_log_id)->toBe($log->id);
 });
 
-test('alerts go by SMS when the landlord has WhatsApp alerts off, the tenant has not agreed, or the template is not approved', function () {
-    $off = alertTenancy(alertsOn: false);
+test('alerts go by SMS when the landlord chose only SMS, the tenant has not agreed, or the template is not approved', function () {
+    $off = alertTenancy(mode: 'sms');
     app(SmsNotificationService::class)->invoiceCreated($off['invoice']);
     expect(alertLogs()->last()->channel)->toBe('sms')->and($this->sentSms)->toHaveCount(1);
 
@@ -205,6 +205,43 @@ test('Meta reporting an alert undelivered sends it by SMS; a number not on Whats
     CurrentLandlord::set($t['landlord']->id);
     app(SmsNotificationService::class)->invoiceCreated($t['invoice']);
     expect(alertLogs()->last()->channel)->toBe('sms')->and(templateRequests())->toHaveCount(1);
+});
+
+test('"Both": the tenant gets WhatsApp and SMS, using both credits; a WhatsApp failure sends no second SMS', function () {
+    $t = alertTenancy(mode: 'both');
+
+    app(SmsNotificationService::class)->invoiceCreated($t['invoice']);
+
+    [$wa, $sms] = alertLogs()->all();
+    expect($wa->channel)->toBe('whatsapp')->and($wa->status)->toBe('sent')
+        ->and($sms->channel)->toBe('sms')->and($sms->status)->toBe('sent')
+        ->and($this->sentSms)->toHaveCount(1)
+        ->and($t['landlord']->fresh()->whatsapp_balance)->toBe(4)
+        ->and($t['landlord']->fresh()->sms_balance)->toBeLessThan(20);
+
+    metaStatus($this, $wa->wamid, 'failed', [['code' => 131049, 'title' => 'Not delivered']]);
+    expect(alertLogs())->toHaveCount(2)->and($this->sentSms)->toHaveCount(1)
+        ->and($wa->fresh()->status)->toBe('failed')->and($t['landlord']->fresh()->whatsapp_balance)->toBe(5);
+
+    // A tenant who can't get WhatsApp gets the SMS only.
+    $t['tenant']->forceFill(['whatsapp_opted_out_at' => now()])->save();
+    app(SmsNotificationService::class)->invoiceUpcoming($t['invoice']);
+    expect(alertLogs())->toHaveCount(3)->and(alertLogs()->last()->channel)->toBe('sms')->and(templateRequests())->toHaveCount(1);
+});
+
+test('"Only WhatsApp": no SMS, even when WhatsApp fails; tenants who can\'t get WhatsApp still get SMS', function () {
+    $this->metaAccepts = false;
+    $t = alertTenancy(mode: 'whatsapp');
+
+    app(SmsNotificationService::class)->invoiceCreated($t['invoice']);
+
+    $wa = alertLogs()->sole();
+    expect($wa->channel)->toBe('whatsapp')->and($wa->status)->toBe('failed')->and($wa->resent_log_id)->toBeNull()
+        ->and($this->sentSms)->toBe([])->and($t['landlord']->fresh()->whatsapp_balance)->toBe(5);
+
+    $notAgreed = alertTenancy(mode: 'whatsapp', agreed: false);
+    app(SmsNotificationService::class)->invoiceCreated($notAgreed['invoice']);
+    expect(alertLogs()->last()->channel)->toBe('sms')->and($this->sentSms)->toHaveCount(1);
 });
 
 test('delivered and read receipts show in the log and never go backwards', function () {
@@ -314,16 +351,17 @@ test('the landlord records consent on the tenant form', function () {
 
 test('switching WhatsApp alerts on gives the free starter alerts once', function () {
     Settings::set('whatsapp.starter_credits', '10');
-    $t = alertTenancy(alertsOn: false, waCredit: 0);
+    $t = alertTenancy(mode: 'sms', waCredit: 0);
     $admin = User::factory()->admin()->create(['landlord_id' => $t['landlord']->id]);
 
-    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['on' => 1])->assertSessionHas('success');
-    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['on' => 0]);
-    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['on' => 1]);
+    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['alert_channels' => 'both'])->assertSessionHas('success');
+    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['alert_channels' => 'sms']);
+    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['alert_channels' => 'whatsapp']);
+    $this->actingAs($admin)->put(route('whatsapp-alerts.toggle'), ['alert_channels' => 'email'])->assertSessionHasErrors('alert_channels');
 
-    expect($t['landlord']->fresh()->whatsapp_alerts)->toBeTrue()->and($t['landlord']->fresh()->whatsapp_balance)->toBe(10)
+    expect($t['landlord']->fresh()->alert_channels)->toBe('whatsapp')->and($t['landlord']->fresh()->whatsapp_balance)->toBe(10)
         ->and(WhatsAppCreditTransaction::where('type', 'starter')->count())->toBe(1);
-    $this->actingAs($admin)->get(route('whatsapp-alerts.show'))->assertOk()->assertSee('Send tenant alerts by WhatsApp')->assertSee('Tenants who agreed');
+    $this->actingAs($admin)->get(route('whatsapp-alerts.show'))->assertOk()->assertSee('How tenants get alerts')->assertSee('Only WhatsApp')->assertSee('Tenants who agreed');
 });
 
 test('buying a WhatsApp bundle adds the alerts once paid and books it as WhatsApp sales', function () {

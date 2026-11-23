@@ -214,7 +214,7 @@
                             <thead>
                                 <tr class="border-b border-gray-200">
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Landlord</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">WhatsApp alerts</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenant alerts</th>
                                     <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Balance</th>
                                 </tr>
                             </thead>
@@ -222,7 +222,7 @@
                                 @foreach($landlords as $l)
                                     <tr>
                                         <td class="px-6 py-3 text-sm text-gray-900">{{ $l->name }}@if($l->trading_name)<span class="text-gray-500"> · {{ $l->trading_name }}</span>@endif</td>
-                                        <td class="px-6 py-3"><x-badge :color="$l->whatsapp_alerts ? 'green' : 'gray'">{{ $l->whatsapp_alerts ? 'On' : 'Off' }}</x-badge></td>
+                                        <td class="px-6 py-3"><x-badge :color="$l->usesWhatsApp() ? 'green' : 'gray'">{{ $l->alertChannelsLabel() }}</x-badge></td>
                                         <td class="px-6 py-3 text-sm text-right text-gray-900">{{ number_format($l->whatsapp_balance) }}</td>
                                     </tr>
                                 @endforeach

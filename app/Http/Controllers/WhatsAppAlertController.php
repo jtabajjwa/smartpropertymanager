@@ -57,15 +57,15 @@ class WhatsAppAlertController extends Controller
 
     public function toggle(Request $request, WhatsAppCredits $credits)
     {
-        $on = $request->boolean('on');
+        $data = $request->validate(['alert_channels' => ['required', \Illuminate\Validation\Rule::in(array_keys(Landlord::ALERT_CHANNELS))]]);
         $landlord = Landlord::findOrFail(CurrentLandlord::id());
-        $landlord->forceFill(['whatsapp_alerts' => $on])->save();
+        $landlord->forceFill(['alert_channels' => $data['alert_channels']])->save();
 
-        $starter = $on ? $credits->grantStarter($landlord) : null;
+        $starter = $landlord->usesWhatsApp() ? $credits->grantStarter($landlord) : null;
 
-        return back()->with('success', $on
-            ? 'WhatsApp alerts are on. Tenants who agreed get alerts on WhatsApp; everyone else still gets SMS.'.($starter ? ' '.number_format($starter->quantity).' free WhatsApp alerts were added to get you started.' : '')
-            : 'WhatsApp alerts are off. All alerts go by SMS.');
+        return back()->with('success', 'Tenant alerts: '.$landlord->alertChannelsLabel().'.'
+            .($landlord->usesWhatsApp() ? ' Tenants who haven\'t agreed to WhatsApp alerts still get SMS.' : '')
+            .($starter ? ' '.number_format($starter->quantity).' free WhatsApp alerts were added to get you started.' : ''));
     }
 
     public function buy(Request $request, PaymentService $payments)

@@ -36,15 +36,15 @@ class WhatsAppController extends Controller
             'statuses' => Templates::statuses(),
             'accountReady' => Templates::accountConfigured(),
             'stats' => [
-                'landlords_on' => Landlord::where('whatsapp_alerts', true)->count(),
+                'landlords_on' => Landlord::where('alert_channels', '!=', 'sms')->count(),
                 'sent_month' => (clone $sentThisMonth)->whereIn('status', ['sent', 'delivered', 'read'])->count(),
                 'fallback_month' => (clone $sentThisMonth)->where('status', 'failed')->count(),
                 'held' => (int) Landlord::sum('whatsapp_balance'),
                 'sales_month' => (float) PaymentTransaction::where('purpose', 'whatsapp')->where('status', PaymentTransaction::SUCCEEDED)
                     ->where('completed_at', '>=', $monthStart)->sum('amount'),
             ],
-            'landlords' => Landlord::where(fn ($q) => $q->where('whatsapp_alerts', true)->orWhere('whatsapp_balance', '!=', 0))
-                ->orderByDesc('whatsapp_alerts')->orderBy('name')->get(['id', 'name', 'trading_name', 'whatsapp_alerts', 'whatsapp_balance']),
+            'landlords' => Landlord::where(fn ($q) => $q->where('alert_channels', '!=', 'sms')->orWhere('whatsapp_balance', '!=', 0))
+                ->orderBy('name')->get(['id', 'name', 'trading_name', 'alert_channels', 'whatsapp_balance']),
             'allLandlords' => Landlord::orderBy('name')->get(['id', 'name', 'trading_name']),
             'recent' => WhatsAppCreditTransaction::with(['landlord:id,name', 'staffUser:id,name'])->whereIn('type', ['purchase', 'adjustment', 'starter'])->latest('id')->limit(15)->get(),
         ]);

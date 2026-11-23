@@ -123,22 +123,30 @@ sudo primora artisan staging tinker --execute="echo App\Models\WhatsAppMessage::
 
 ## C. Phase 2: tenant alerts by WhatsApp
 
-Landlords who switch on **WhatsApp Alerts** (sidebar → Admin) have tenant
-alerts sent by WhatsApp first, with SMS as the automatic fallback. A tenant
-never gets the same alert both ways.
+Each landlord chooses how tenant alerts go (sidebar → Admin → WhatsApp Alerts):
+
+| Mode | Tenant who can get WhatsApp | If WhatsApp can't deliver |
+|---|---|---|
+| Only SMS (default) | SMS | - |
+| WhatsApp first, SMS if it fails | WhatsApp | credit returned, sent by SMS |
+| Both WhatsApp and SMS | WhatsApp and SMS | credit returned, no second SMS |
+| Only WhatsApp | WhatsApp | credit returned, no SMS |
+
+In every mode, tenants who can't get WhatsApp get SMS (see below).
 
 **Alerts:** new invoice (with the invoice PDF), due soon, overdue, payment
 received (with the receipt PDF), issue update (WhatsApp only; it was never an
 SMS), deposit deduction, deposit refund, lease expiring.
 
 **When an alert goes by WhatsApp:** all of these must hold:
-- the landlord has WhatsApp alerts on and isn't read-only;
+- the landlord's mode isn't "Only SMS" and the account isn't read-only;
 - the tenant agreed (see consent) and hasn't stopped alerts;
 - the alert's template is approved by Meta;
 - the landlord has WhatsApp credit.
 
 Otherwise the alert goes by SMS straight away. If Meta refuses it, or later
-reports it undelivered, the WhatsApp credit is returned and it goes by SMS.
+reports it undelivered, the WhatsApp credit is returned (and, in "WhatsApp
+first" mode only, it is sent by SMS).
 A number WhatsApp says isn't on WhatsApp (error 131026) gets SMS for 30 days.
 
 **Consent:** Meta requires tenants to agree. A tenant has agreed when:
@@ -152,7 +160,7 @@ the tenant stopped.
 
 **Credit:** WhatsApp credit is separate from SMS credit. 1 credit = 1 alert,
 whatever its length. Staff set bundles and the free starter alerts (given
-once, when a landlord first switches alerts on) under Staff → SMS →
+once, when a landlord first picks a WhatsApp mode) under Staff → SMS →
 WhatsApp. Sales post to "WhatsApp sales" (4110). Record Meta's monthly bill
 in the books as "WhatsApp charges" (5210).
 

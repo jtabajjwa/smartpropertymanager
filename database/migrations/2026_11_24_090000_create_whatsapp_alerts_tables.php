@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * WhatsApp alerts (phase 2 of the WhatsApp bot): landlords who switch them on
- * send tenant notifications by WhatsApp template first, with SMS as the
- * automatic fallback. WhatsApp has its own prepaid credit (1 credit = 1 alert),
+ * WhatsApp alerts (phase 2 of the WhatsApp bot): each landlord chooses how
+ * tenant alerts go: only SMS, WhatsApp first with SMS if it fails, both, or
+ * only WhatsApp (tenants who can't get WhatsApp still get SMS). WhatsApp has its own prepaid credit (1 credit = 1 alert),
  * kept exactly like SMS credit: bundles, a ledger with the balance after each
  * change, and landlords.whatsapp_balance as the running total.
  *
@@ -21,7 +21,8 @@ return new class extends Migration
     {
         Schema::table('landlords', function (Blueprint $table) {
             $table->integer('whatsapp_balance')->default(0)->after('sms_balance');
-            $table->boolean('whatsapp_alerts')->default(false)->after('whatsapp_balance');
+            // How tenant alerts go: sms | whatsapp_first | both | whatsapp (see Landlord::ALERT_CHANNELS).
+            $table->string('alert_channels', 20)->default('sms')->after('whatsapp_balance');
         });
 
         Schema::table('tenants', function (Blueprint $table) {
@@ -102,7 +103,7 @@ return new class extends Migration
             $table->dropColumn(['whatsapp_opted_in_at', 'whatsapp_opted_out_at', 'whatsapp_failed_at']);
         });
         Schema::table('landlords', function (Blueprint $table) {
-            $table->dropColumn(['whatsapp_balance', 'whatsapp_alerts']);
+            $table->dropColumn(['whatsapp_balance', 'alert_channels']);
         });
     }
 };
