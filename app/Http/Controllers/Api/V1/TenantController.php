@@ -52,22 +52,26 @@ class TenantController extends Controller
 
     public function store(StoreTenantRequest $request, CreateTenant $create)
     {
-        $tenant = $create($request->validated(), [
+        $tenant = $create(collect($request->validated())->except('whatsapp_alerts')->all(), [
             'photo' => $request->file('photo'), 'id_scan' => $request->file('id_scan'), 'lc_letter' => $request->file('lc_letter'),
         ]);
+        $tenant->setWhatsAppConsent($request->boolean('whatsapp_alerts'));
 
         return response()->json(self::summary($tenant->fresh()), 201);
     }
 
     public function update(UpdateTenantRequest $request, Tenant $tenant)
     {
-        $data = collect($request->validated())->except(array_keys(CreateTenant::FILE_FOLDERS))->all();
+        $data = collect($request->validated())->except([...array_keys(CreateTenant::FILE_FOLDERS), 'whatsapp_alerts'])->all();
         foreach (CreateTenant::FILE_FOLDERS as $field => $folder) {
             if ($request->hasFile($field)) {
                 $data[$field] = $request->file($field)->store($folder, 'public');
             }
         }
         $tenant->update($data);
+        if ($request->has('whatsapp_alerts')) {
+            $tenant->setWhatsAppConsent($request->boolean('whatsapp_alerts'));
+        }
 
         return response()->json(self::summary($tenant->fresh()));
     }
@@ -79,6 +83,8 @@ class TenantController extends Controller
         return [
             'id' => $t->id, 'number' => $t->number, 'type' => $t->type, 'name' => $t->name,
             'email' => $t->email, 'phone' => $t->primary_phone,
+            'whatsapp_alerts' => $t->whatsapp_opted_in_at !== null && $t->whatsapp_opted_out_at === null,
+            'whatsapp_stopped' => $t->whatsapp_opted_out_at !== null,
             'unit' => $active ? trim(($active->unit?->estate?->name ? $active->unit->estate->name.' · ' : '').$active->unit?->name) : null,
             'active_lease_id' => $active?->id,
         ];

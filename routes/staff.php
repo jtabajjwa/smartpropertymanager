@@ -103,6 +103,14 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('sms/landlords/{landlord}', [$Sms, 'landlord'])->middleware('staff.can:sms.view')->name('sms.landlord');
         Route::post('sms/landlords/{landlord}/adjust', [$Sms, 'adjust'])->middleware('staff.can:sms.credits')->name('sms.adjust');
         Route::post('sms/landlords/{landlord}/sales', [$Sms, 'recordSale'])->middleware('staff.can:sms.credits')->name('sms.sales.store');
+        $Wa = \App\Http\Controllers\Staff\WhatsAppController::class;
+        Route::get('sms/whatsapp', [$Wa, 'index'])->middleware('staff.can:sms.view')->name('sms.whatsapp');
+        Route::post('sms/whatsapp/bundles', [$Wa, 'storeBundle'])->middleware('staff.can:sms.manage')->name('sms.whatsapp.bundles.store');
+        Route::put('sms/whatsapp/bundles/{bundle}', [$Wa, 'updateBundle'])->middleware('staff.can:sms.manage')->name('sms.whatsapp.bundles.update');
+        Route::delete('sms/whatsapp/bundles/{bundle}', [$Wa, 'destroyBundle'])->middleware('staff.can:sms.manage')->name('sms.whatsapp.bundles.destroy');
+        Route::put('sms/whatsapp/settings', [$Wa, 'updateSettings'])->middleware('staff.can:sms.manage')->name('sms.whatsapp.settings');
+        Route::post('sms/whatsapp/templates', [$Wa, 'syncTemplates'])->middleware(['staff.can:sms.manage', 'throttle:10,1'])->name('sms.whatsapp.templates');
+        Route::post('sms/whatsapp/adjust', [$Wa, 'adjust'])->middleware('staff.can:sms.credits')->name('sms.whatsapp.adjust');
 
         // Rent tenants pay by mobile money into the pool, owed to landlords until settled.
         $Col = \App\Http\Controllers\Staff\CollectionController::class;

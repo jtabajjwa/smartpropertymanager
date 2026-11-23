@@ -37,6 +37,28 @@ class Tenant extends Model implements \Illuminate\Contracts\Auth\Authenticatable
         'notes',
     ];
 
+    protected function casts(): array
+    {
+        return ['whatsapp_opted_in_at' => 'datetime', 'whatsapp_opted_out_at' => 'datetime', 'whatsapp_failed_at' => 'datetime'];
+    }
+
+    /** Agreed to WhatsApp alerts, hasn't stopped them, and WhatsApp hasn't recently refused their number. */
+    public function whatsAppAlertsOn(): bool
+    {
+        return $this->whatsapp_opted_in_at !== null && $this->whatsapp_opted_out_at === null
+            && ($this->whatsapp_failed_at === null || $this->whatsapp_failed_at->lt(now()->subDays(\App\Services\WhatsAppAlerts::RETRY_AFTER_DAYS)));
+    }
+
+    /** The landlord confirms (or withdraws) that the tenant agreed. A tenant who stopped alerts stays stopped. */
+    public function setWhatsAppConsent(bool $agreed): void
+    {
+        if ($agreed && !$this->whatsapp_opted_in_at && !$this->whatsapp_opted_out_at) {
+            $this->forceFill(['whatsapp_opted_in_at' => now()])->save();
+        } elseif (!$agreed && $this->whatsapp_opted_in_at) {
+            $this->forceFill(['whatsapp_opted_in_at' => null])->save();
+        }
+    }
+
     public function leases(): HasMany
     {
         return $this->hasMany(Lease::class);

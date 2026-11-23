@@ -63,6 +63,11 @@ class TenantBot
             return;
         }
 
+        if ($this->alertsChoice($in, $tenants)) {
+            return;
+        }
+        $this->consentByContact($tenants);
+
         if ($in->is('logout') && $this->session->via) {
             $this->session->update(['via' => null, 'via_to' => null, 'tenant_id' => null, 'state' => null, 'context' => null]);
             $this->wa->text($waId, 'You have signed out. Send your unit ID any time to sign in again.');
@@ -88,6 +93,55 @@ class TenantBot
         }
 
         CurrentLandlord::runAs($tenant->landlord_id, fn () => $this->route($tenant, $in, $tenants->count() > 1));
+    }
+
+    // --- WhatsApp alerts: stop / turn back on, and consent ------------------------------
+
+    /** "Stop WhatsApp alerts" (the button on every alert, or typing STOP), and turning them back on. */
+    protected function alertsChoice(Input $in, Collection $tenants): bool
+    {
+        $typed = $in->type === 'text' ? mb_strtolower(trim((string) $in->text, " \t\n!.")) : null;
+        $stop = $in->id === Templates::STOP || in_array($typed, ['stop', 'stop alerts', 'unsubscribe'], true);
+        $start = $in->id === 'alerts:on' || in_array($typed, ['alerts on', 'start alerts'], true);
+        if (!$stop && !$start) {
+            return false;
+        }
+
+        $mine = $this->ownTenancies($tenants)->pluck('id');
+        $tenantId = $tenants->firstWhere('id', $this->session->tenant_id)?->id ?? $tenants->first()?->id;
+        if ($mine->isNotEmpty()) {
+            Tenant::withoutGlobalScopes()->whereIn('id', $mine)->update($stop
+                ? ['whatsapp_opted_out_at' => now()]
+                : ['whatsapp_opted_out_at' => null, 'whatsapp_failed_at' => null, 'whatsapp_opted_in_at' => now()]);
+        }
+
+        $stop
+            ? $this->wa->buttons($this->session->wa_id, "Done. We won't send you alerts on WhatsApp any more; invoices, reminders and receipts will come by SMS instead.\n\nYou can still use this chat any time. To get alerts here again, tap below or send ALERTS ON.",
+                ['alerts:on' => 'Turn alerts back on', 'menu' => 'Menu'], $tenantId)
+            : $this->wa->buttons($this->session->wa_id, "WhatsApp alerts are on. We'll send your invoices, reminders and receipts here. Send STOP any time to get them by SMS instead.",
+                ['menu' => 'Menu'], $tenantId);
+
+        return true;
+    }
+
+    /**
+     * A tenant who messages us from the phone number on their tenancy has
+     * agreed to hear from us there (unless they stopped alerts before).
+     */
+    protected function consentByContact(Collection $tenants): void
+    {
+        $ids = $this->ownTenancies($tenants)->filter(fn (Tenant $t) => !$t->whatsapp_opted_in_at && !$t->whatsapp_opted_out_at)->pluck('id');
+        if ($ids->isNotEmpty()) {
+            Tenant::withoutGlobalScopes()->whereIn('id', $ids)->update(['whatsapp_opted_in_at' => now()]);
+        }
+    }
+
+    /** The tenancies whose main phone is this WhatsApp number (alerts go to the main phone). */
+    protected function ownTenancies(Collection $tenants): Collection
+    {
+        $msisdn = Msisdn::normalize($this->session->wa_id);
+
+        return $tenants->filter(fn (Tenant $t) => $msisdn && Msisdn::normalize((string) $t->primary_phone) === $msisdn)->values();
     }
 
     /** The tenant records this number can use: by its own phone number, or the code it signed in with. */

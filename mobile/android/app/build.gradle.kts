@@ -2,7 +2,8 @@ import java.util.Properties
 
 // Release signing key: kept OUTSIDE the project (it's secret). Point PRIMORA_SIGNING at a
 // key.properties file (storeFile, storePassword, keyAlias, keyPassword); the default is
-// ~/primora-signing/key.properties. Without it, release builds fall back to the debug key.
+// ~/primora-signing/key.properties. Without it, release builds stop (PRIMORA_DEBUG_SIGNING=1 allows a
+// throwaway debug-signed build).
 val signingFile = file(System.getenv("PRIMORA_SIGNING") ?: "${System.getProperty("user.home")}/primora-signing/key.properties")
 val signing = Properties().apply { if (signingFile.exists()) signingFile.inputStream().use { load(it) } }
 
@@ -52,16 +53,24 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (signingFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                logger.warn("Release key not found at $signingFile: signing with the DEBUG key (not for distribution).")
-                signingConfigs.getByName("debug")
-            }
+            // Without the key this falls back to the debug key, but the check below stops any
+            // release build unless PRIMORA_DEBUG_SIGNING=1 (debug builds are unaffected).
+            signingConfig = signingConfigs.getByName(if (signingFile.exists()) "release" else "debug")
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+gradle.taskGraph.whenReady {
+    val releasing = allTasks.any { it.project == project && it.name.contains("Release") }
+    if (releasing && !signingFile.exists() && System.getenv("PRIMORA_DEBUG_SIGNING") != "1") {
+        throw GradleException(
+            "Primora release key not found at $signingFile. Restore primora-release.jks and key.properties " +
+                "from KeePass (or set PRIMORA_SIGNING to your key.properties). For a throwaway local build only, " +
+                "set PRIMORA_DEBUG_SIGNING=1.",
+        )
+    }
 }

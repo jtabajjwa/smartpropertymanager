@@ -2,12 +2,13 @@
     $tabs = [
         'staff.sms.index' => 'Stock & bundles',
         'staff.sms.landlords' => 'Landlord balances',
+        'staff.sms.whatsapp' => 'WhatsApp',
     ];
 @endphp
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
         <h3 class="text-lg font-semibold text-gray-900">SMS</h3>
-        <p class="mt-1 text-sm text-gray-500">SMS bought from providers and resold to landlords as prepaid credit.</p>
+        <p class="mt-1 text-sm text-gray-500">SMS bought from providers and resold to landlords as prepaid credit, and WhatsApp alerts sold the same way.</p>
     </div>
     <nav class="inline-flex gap-1 p-1 rounded-xl bg-gray-100 self-start sm:self-auto">
         @foreach($tabs as $route => $label)

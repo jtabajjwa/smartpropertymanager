@@ -141,6 +141,7 @@
                     <x-sidebar-link :dark="true" route="users.index" label="Users" icon="users" />
                     <x-sidebar-link :dark="true" route="audits.index" label="Audit Log" icon="clipboard" :locked="!\App\Support\PlanFeatures::allows('audit_log')" />
                     <x-sidebar-link :dark="true" route="sms-credits.show" label="SMS Credits" icon="chat" />
+                    <x-sidebar-link :dark="true" route="whatsapp-alerts.show" label="WhatsApp Alerts" icon="chat" />
                     <x-sidebar-link :dark="true" route="sms-logs.index" label="SMS Logs" icon="chat" />
                 </div>
             @endif

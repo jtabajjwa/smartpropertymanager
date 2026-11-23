@@ -120,3 +120,64 @@ sudo primora artisan staging tinker --execute="echo App\Models\WhatsAppMessage::
 - **Charged per message (phase 2):** messages Primora starts, such as
   new-invoice alerts, receipts and reminders. These need **message templates**
   approved by Meta.
+
+## C. Phase 2: tenant alerts by WhatsApp
+
+Landlords who switch on **WhatsApp Alerts** (sidebar → Admin) have tenant
+alerts sent by WhatsApp first, with SMS as the automatic fallback. A tenant
+never gets the same alert both ways.
+
+**Alerts:** new invoice (with the invoice PDF), due soon, overdue, payment
+received (with the receipt PDF), issue update (WhatsApp only; it was never an
+SMS), deposit deduction, deposit refund, lease expiring.
+
+**When an alert goes by WhatsApp:** all of these must hold:
+- the landlord has WhatsApp alerts on and isn't read-only;
+- the tenant agreed (see consent) and hasn't stopped alerts;
+- the alert's template is approved by Meta;
+- the landlord has WhatsApp credit.
+
+Otherwise the alert goes by SMS straight away. If Meta refuses it, or later
+reports it undelivered, the WhatsApp credit is returned and it goes by SMS.
+A number WhatsApp says isn't on WhatsApp (error 131026) gets SMS for 30 days.
+
+**Consent:** Meta requires tenants to agree. A tenant has agreed when:
+- the landlord ticked "Tenant agreed to receive alerts on WhatsApp" on the
+  tenant's details; or
+- the tenant messaged the bot from their tenancy's main phone number.
+
+Every alert has a **Stop WhatsApp alerts** button (or the tenant sends STOP);
+**ALERTS ON** turns them back on. A landlord can't tick a tenant back in after
+the tenant stopped.
+
+**Credit:** WhatsApp credit is separate from SMS credit. 1 credit = 1 alert,
+whatever its length. Staff set bundles and the free starter alerts (given
+once, when a landlord first switches alerts on) under Staff → SMS →
+WhatsApp. Sales post to "WhatsApp sales" (4110). Record Meta's monthly bill
+in the books as "WhatsApp charges" (5210).
+
+### Setting it up (once per environment)
+1. **Business account ID:** add it to the server's settings:
+   ```
+   WHATSAPP_BUSINESS_ACCOUNT_ID=<"WhatsApp Business Account ID" on API Setup>
+   WHATSAPP_APP_ID=<App settings → Basic → App ID>   # optional
+   ```
+   Then run `config:cache` and `queue:restart`.
+2. **Token permissions:** the system-user token needs
+   `whatsapp_business_management` (templates) as well as
+   `whatsapp_business_messaging`.
+3. **Submit the templates:** either Staff → SMS → WhatsApp → **Submit to
+   WhatsApp**, or run:
+   ```
+   sudo primora artisan production whatsapp:templates --submit
+   ```
+   Meta usually reviews them within minutes to a day. Until a template is
+   approved, that alert goes by SMS.
+4. **Webhook field:** under Webhook fields, also subscribe to
+   **message_template_status_update**, so approvals arrive immediately. The
+   scheduler checks every 15 minutes anyway (`whatsapp:templates`), and that
+   run also sends by SMS any WhatsApp alert stuck for over 30 minutes.
+5. **Bundles:** add at least one WhatsApp bundle (Staff → SMS → WhatsApp).
+   Price it above Meta's charge per **utility** message to Uganda.
+6. **Queue worker:** must be running. WhatsApp alerts are sent in the
+   background, because making and uploading the PDFs takes a few seconds.

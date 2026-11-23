@@ -54,18 +54,18 @@ $apkSize  = is_file(__DIR__ . '/' . $apk) ? max(1, (int) round(filesize(__DIR__ 
 $year     = date('Y');
 
 $features = [
-    ['building', 'Properties, estates & units', 'Organise your portfolio by location, estate and unit. Occupancy updates itself the moment a lease starts or ends.'],
-    ['users', 'Tenants & leases', 'Individuals or companies, ID documents and emergency contacts in one profile. Print lease agreements from your own templates.'],
-    ['repeat', 'Automatic rent invoicing', 'Daily, weekly, monthly, quarterly or yearly. Primora raises every rent invoice on schedule and catches up if one was missed.'],
-    ['banknotes', 'Rent collection by mobile money', 'Tenants pay with MTN MoMo or Airtel Money from the tenant portal, the Primora app or by dialling ' . $config['ussd_code'] . '. Each payment lands on the right invoices, ready for you to withdraw.'],
-    ['document', 'Payments & balances', 'Record bank, cash and other payments once and allocate them across invoices. Partial payments, credit and arrears are always exact.'],
-    ['device', 'Tenant portal & app', 'Tenants see their bills, receipts and deposit, pay rent and report issues on the web or in the Primora app. They sign in with a one-time code, so there is no password to forget.'],
-    ['wrench', 'Repairs & expenses', 'Tenants report issues with a photo and follow your replies. Track repairs with vendors and job cards, and log every expense against its estate or unit.'],
-    ['shield', 'Security deposits', 'A clear ledger for every lease, with deposits, deductions, refunds and forfeits, so move-out is never a dispute.'],
-    ['chat', 'SMS, email & app alerts', 'Invoice alerts, reminders and receipts by SMS, branded PDF invoices by email and notifications in the app. Message all your tenants at once with bulk SMS.'],
-    ['chart', 'Books & taxes', 'An income statement, balance sheet and results by property, built from your records. Rental income tax, LST and property rates worked out, with a tax pack in PDF or Excel.'],
-    ['bell', 'Dashboard & reports', 'Occupancy, collections, revenue against expenses and your top earning estates at a glance. Export anything to CSV.'],
-    ['lock', 'Team access & audit trail', 'Invite your staff with the right level of access. Every change is recorded, and your data is visible only to your organisation.'],
+    ['building', 'Properties, Estates & Units', 'Organise your portfolio by location, estate and unit. Occupancy updates itself the moment a lease starts or ends.'],
+    ['users', 'Tenants & Leases', 'Individuals or companies, ID documents and emergency contacts in one profile. Print lease agreements from your own templates.'],
+    ['repeat', 'Automatic Rent Invoicing', 'Daily, weekly, monthly, quarterly or yearly. Primora raises every rent invoice on schedule and catches up if one was missed.'],
+    ['banknotes', 'Rent Collection by Mobile Money', 'Tenants pay with MTN MoMo or Airtel Money from the tenant portal, the Primora app or by dialling ' . $config['ussd_code'] . '. Each payment lands on the right invoices, ready for you to withdraw.'],
+    ['document', 'Payments & Balances', 'Record bank, cash and other payments once and allocate them across invoices. Partial payments, credit and arrears are always exact.'],
+    ['device', 'Tenant Portal & App', 'Tenants see their bills, receipts and deposit, pay rent and report issues on the web or in the Primora app. They sign in with a one-time code, so there is no password to forget.'],
+    ['wrench', 'Repairs & Expenses', 'Tenants report issues with a photo and follow your replies. Track repairs with vendors and job cards, and log every expense against its estate or unit.'],
+    ['shield', 'Security Deposits', 'A clear ledger for every lease, with deposits, deductions, refunds and forfeits, so move-out is never a dispute.'],
+    ['chat', 'SMS, Email & App Alerts', 'Invoice alerts, reminders and receipts by SMS, branded PDF invoices by email and notifications in the app. Message all your tenants at once with bulk SMS.'],
+    ['chart', 'Books & Taxes', 'An income statement, balance sheet and results by property, built from your records. Rental income tax, LST and property rates worked out, with a tax pack in PDF or Excel.'],
+    ['bell', 'Dashboard & Reports', 'Occupancy, collections, revenue against expenses and your top earning estates at a glance. Export anything to CSV.'],
+    ['lock', 'Team Access & Audit Trail', 'Invite your staff with the right level of access. Every change is recorded, and your data is visible only to your organisation.'],
 ];
 
 $faqs = [
@@ -107,7 +107,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
-    <link rel="stylesheet" href="assets/css/style.css?v=8">
+    <link rel="stylesheet" href="assets/css/style.css?v=9">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -170,7 +170,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 <section class="banner">
     <div class="container banner-copy">
         <a class="hero-badge" href="#app"><span>New</span> The Primora app for Android, for landlords and tenants</a>
-        <h1>Every property, lease and shilling, <em>in one place.</em></h1>
+        <h1>Every Property, Lease and Shilling, <em>in One Place.</em></h1>
         <p class="hero-lead">Primora handles rent invoicing, mobile money collection, security deposits and tenant reminders for you, on the web, in the app and by USSD. Spend less time chasing rent and more time growing your portfolio.</p>
         <div class="hero-ctas">
             <a class="btn btn-primary" href="<?= e($signup) ?>">Start your free trial <?= icon('arrow') ?></a>
@@ -256,10 +256,10 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 <div class="strip">
     <div class="container">
         <ul>
-            <li><span class="ic"><?= icon('repeat') ?></span><span><strong>Automatic rent invoices</strong><small>On every lease’s own schedule</small></span></li>
-            <li><span class="ic"><?= icon('banknotes') ?></span><span><strong>Rent by USSD on any phone</strong><small>Tenants dial <?= e($ussd) ?></small></span></li>
-            <li><span class="ic"><?= icon('device') ?></span><span><strong>Primora app for Android</strong><small>For landlords and tenants</small></span></li>
-            <li><span class="ic"><?= icon('lock') ?></span><span><strong>Your data stays yours</strong><small>Private to your organisation</small></span></li>
+            <li><span class="ic"><?= icon('repeat') ?></span><span><strong>Automatic Rent Invoices</strong><small>On every lease’s own schedule</small></span></li>
+            <li><span class="ic"><?= icon('banknotes') ?></span><span><strong>Rent by USSD on Any Phone</strong><small>Tenants dial <?= e($ussd) ?></small></span></li>
+            <li><span class="ic"><?= icon('device') ?></span><span><strong>Primora App for Android</strong><small>For landlords and tenants</small></span></li>
+            <li><span class="ic"><?= icon('lock') ?></span><span><strong>Your Data Stays Yours</strong><small>Private to your organisation</small></span></li>
         </ul>
     </div>
 </div>
@@ -269,7 +269,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head center">
             <span class="eyebrow">Features</span>
-            <h2 class="section-title">Everything you need to run your rentals, <em>and nothing you don’t</em></h2>
+            <h2 class="section-title">Everything You Need to Run Your Rentals, <em>and Nothing You Don’t</em></h2>
             <p class="section-lead">From the first viewing to the final deposit refund, Primora keeps every part of your portfolio organised and every shilling accounted for.</p>
         </div>
 
@@ -290,14 +290,14 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head">
             <span class="eyebrow">How it works</span>
-            <h2 class="section-title">Up and running in <em>three steps</em></h2>
+            <h2 class="section-title">Up and Running in <em>Three Steps</em></h2>
             <p class="section-lead">Set it up once. From then on, Primora runs the routine work of managing rentals every day.</p>
         </div>
 
         <div class="steps">
             <div class="step">
                 <span class="num">1</span>
-                <h3>Add your properties</h3>
+                <h3>Add Your Properties</h3>
                 <p>Create your locations, estates and units in minutes and see your whole portfolio in one view.</p>
                 <ul>
                     <li><?= icon('check') ?> Group units by estate and location</li>
@@ -306,7 +306,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
             </div>
             <div class="step">
                 <span class="num">2</span>
-                <h3>Register tenants & leases</h3>
+                <h3>Register Tenants & Leases</h3>
                 <p>Capture tenant details, set the rent, billing cycle and deposit, and print the agreement.</p>
                 <ul>
                     <li><?= icon('check') ?> Deposit and first rent invoices are created for you</li>
@@ -315,7 +315,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
             </div>
             <div class="step">
                 <span class="num">3</span>
-                <h3>Let Primora do the rest</h3>
+                <h3>Let Primora Do the Rest</h3>
                 <p>Invoices go out on time, reminders follow up and tenants pay by mobile money, matched to their bills automatically.</p>
                 <ul>
                     <li><?= icon('check') ?> Automatic recurring invoices & SMS reminders</li>
@@ -332,13 +332,13 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container split">
         <div>
             <span class="eyebrow">Built for how you work</span>
-            <h2 class="section-title">Made for landlords in Uganda, <em>not adapted for them</em></h2>
+            <h2 class="section-title">Made for Landlords in Uganda, <em>Not Adapted for Them</em></h2>
             <p class="section-lead">Primora speaks your currency, takes the payment methods your tenants actually use and reaches them on the phones they already have.</p>
             <ul class="checklist">
-                <li><span class="ic"><?= icon('check') ?></span><div><strong>Shillings throughout</strong><span>Invoices, receipts, reports and reminders all in UGX.</span></div></li>
-                <li><span class="ic"><?= icon('check') ?></span><div><strong>Every way your tenants pay</strong><span>Tenants pay by MTN MoMo or Airtel Money through Primora, even on a basic phone with <?= e($ussd) ?>. Bank transfers, FlexiPay and cash are recorded in a click.</span></div></li>
-                <li><span class="ic"><?= icon('check') ?></span><div><strong>Tenants and walk-in customers</strong><span>Bill long-term tenants and one-off customers from the same system.</span></div></li>
-                <li><span class="ic"><?= icon('check') ?></span><div><strong>Fair, unit-based pricing</strong><span>Pay for the size of your portfolio, not for features you won’t use.</span></div></li>
+                <li><span class="ic"><?= icon('check') ?></span><div><strong>Shillings Throughout</strong><span>Invoices, receipts, reports and reminders all in UGX.</span></div></li>
+                <li><span class="ic"><?= icon('check') ?></span><div><strong>Every Way Your Tenants Pay</strong><span>Tenants pay by MTN MoMo or Airtel Money through Primora, even on a basic phone with <?= e($ussd) ?>. Bank transfers, FlexiPay and cash are recorded in a click.</span></div></li>
+                <li><span class="ic"><?= icon('check') ?></span><div><strong>Tenants and Walk-in Customers</strong><span>Bill long-term tenants and one-off customers from the same system.</span></div></li>
+                <li><span class="ic"><?= icon('check') ?></span><div><strong>Fair, Unit-Based Pricing</strong><span>Pay for the size of your portfolio, not for features you won’t use.</span></div></li>
             </ul>
         </div>
 
@@ -362,12 +362,12 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container split app-split">
         <div>
             <span class="eyebrow">The Primora app</span>
-            <h2 class="section-title">Your rentals in your pocket, <em>and your tenants’ too</em></h2>
+            <h2 class="section-title">Your Rentals in Your Pocket, <em>and Your Tenants’ Too</em></h2>
             <p class="section-lead">One app for Android. Sign in as a landlord to run your portfolio on the go, or as a tenant to see your bills and pay rent.</p>
 
             <div class="app-roles">
                 <div>
-                    <h3><span class="ic"><?= icon('building') ?></span>For landlords</h3>
+                    <h3><span class="ic"><?= icon('building') ?></span>For Landlords</h3>
                     <ul>
                         <li><?= icon('check') ?> Tenants, leases, invoices and payments</li>
                         <li><?= icon('check') ?> Expenses, repairs, SMS and payouts</li>
@@ -376,7 +376,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                     </ul>
                 </div>
                 <div>
-                    <h3><span class="ic"><?= icon('users') ?></span>For tenants</h3>
+                    <h3><span class="ic"><?= icon('users') ?></span>For Tenants</h3>
                     <ul>
                         <li><?= icon('check') ?> Bills, receipts and deposit balance</li>
                         <li><?= icon('check') ?> Pay rent by MTN MoMo or Airtel Money</li>
@@ -455,7 +455,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head center">
             <span class="eyebrow">Pay by USSD</span>
-            <h2 class="section-title">No smartphone, no data, <em>no problem</em></h2>
+            <h2 class="section-title">No Smartphone, No Data, <em>No Problem</em></h2>
             <p class="section-lead">Tenants pay rent from any MTN or Airtel line by dialling <a class="ussd-inline" href="<?= e($ussdTel) ?>"><?= e($ussd) ?></a>. The payment lands on the right invoice and both of you get confirmation.</p>
         </div>
 
@@ -478,7 +478,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                     <div class="ub-actions"><span>Cancel</span><span>Send</span></div>
                 </div>
                 </div>
-                <div class="uf-text"><b>2</b><strong>Pick your home</strong><span>Found by your phone number, or enter the unit ID on your invoice.</span></div>
+                <div class="uf-text"><b>2</b><strong>Pick Your Home</strong><span>Found by your phone number, or enter the unit ID on your invoice.</span></div>
             </li>
             <li class="uf-step">
                 <div class="uf-visual">
@@ -488,7 +488,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                     <div class="ub-actions"><span>Cancel</span><span>Send</span></div>
                 </div>
                 </div>
-                <div class="uf-text"><b>3</b><strong>Enter the amount</strong><span>Pay the full balance or part of it.</span></div>
+                <div class="uf-text"><b>3</b><strong>Enter the Amount</strong><span>Pay the full balance or part of it.</span></div>
             </li>
             <li class="uf-step">
                 <div class="uf-visual">
@@ -498,7 +498,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                     <div class="ub-actions"><span>Cancel</span><span>Send</span></div>
                 </div>
                 </div>
-                <div class="uf-text"><b>4</b><strong>Approve with your PIN</strong><span>The usual mobile money prompt.</span></div>
+                <div class="uf-text"><b>4</b><strong>Approve with Your PIN</strong><span>The usual mobile money prompt.</span></div>
             </li>
             <li class="uf-step">
                 <div class="uf-visual">
@@ -507,7 +507,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                     <div class="sms is-app"><small>To the landlord · app</small><strong>Grace N. paid UGX 850,000</strong></div>
                 </div>
                 </div>
-                <div class="uf-text"><b>5</b><strong>Done, everyone knows</strong><span>The invoice is marked paid, with receipts for both sides.</span></div>
+                <div class="uf-text"><b>5</b><strong>Done, Everyone Knows</strong><span>The invoice is marked paid, with receipts for both sides.</span></div>
             </li>
         </ol>
         <p class="ussd-note">Your landlord’s collections must be switched on in Primora. Screens are illustrations; your network’s wording may differ slightly.</p>
@@ -519,7 +519,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="section-head center">
             <span class="eyebrow">Pricing</span>
-            <h2 class="section-title">Simple pricing that <em>grows with your portfolio</em></h2>
+            <h2 class="section-title">Simple Pricing That <em>Grows with Your Portfolio</em></h2>
             <p class="section-lead"><?= $everyFeatureEverywhere ? 'Every feature on every plan. You only pay according to the number of units you manage.' : 'The essentials on every plan. Choose the plan that fits, and pay according to the number of units you manage.' ?></p>
         </div>
 
@@ -557,7 +557,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
             </div>
 
             <div class="price-incl">
-                <h3><?= $everyFeatureEverywhere ? 'Everything included' : 'On every plan' ?></h3>
+                <h3><?= $everyFeatureEverywhere ? 'Everything Included' : 'On Every Plan' ?></h3>
                 <p><?= $everyFeatureEverywhere ? 'No add-ons, no feature tiers.' : 'See what each plan adds in the comparison below.' ?></p>
                 <ul class="incl-list">
                     <li><?= icon('check') ?> Unlimited tenants, leases & invoices</li>
@@ -587,7 +587,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
 
         <?php if ($comparePlans): ?>
             <div class="compare" id="compare">
-                <h3 class="compare-title">Compare plans</h3>
+                <h3 class="compare-title">Compare Plans</h3>
                 <div class="compare-scroll" tabindex="0" role="region" aria-label="Plan comparison">
                     <table class="compare-table">
                         <thead>
@@ -603,7 +603,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
                         </thead>
                         <tbody>
                             <tr>
-                                <th scope="row"><?= $everyFeatureEverywhere ? 'Everything listed above' : 'Everything listed under “On every plan”' ?></th>
+                                <th scope="row"><?= $everyFeatureEverywhere ? 'Everything listed above' : 'Everything listed under “On Every Plan”' ?></th>
                                 <?php foreach ($comparePlans as $plan): ?>
                                     <td class="yes"><?= icon('check') ?><span class="sr-only">Included</span></td>
                                 <?php endforeach; ?>
@@ -634,7 +634,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container faq-grid">
         <div class="faq-aside">
             <span class="eyebrow">FAQ</span>
-            <h2 class="section-title">Questions, <em>answered</em></h2>
+            <h2 class="section-title">Questions, <em>Answered</em></h2>
             <p class="section-lead">Can’t find what you’re looking for? Our team is happy to walk you through Primora.</p>
             <a class="btn btn-ghost" href="#contact">Talk to us</a>
         </div>
@@ -654,7 +654,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container">
         <div class="cta-box">
             <div>
-                <h2>Stop chasing rent. <em>Start managing your portfolio.</em></h2>
+                <h2>Stop Chasing Rent. <em>Start Managing Your Portfolio.</em></h2>
                 <p>Swap spreadsheets, receipt books and phone reminders for one system that keeps up with you.</p>
             </div>
             <div class="cta-actions">
@@ -670,7 +670,7 @@ $unitOptions = ['1 – 6 units', '7 – 20 units', '21 – 50 units', 'More than
     <div class="container contact-grid">
         <div>
             <span class="eyebrow">Contact</span>
-            <h2 class="section-title">Let’s talk about <em>your properties</em></h2>
+            <h2 class="section-title">Let’s Talk About <em>Your Properties</em></h2>
             <p class="section-lead">Want a guided demo, help moving your records over or answers to a specific question? Send us a message and we’ll get back to you shortly.</p>
             <ul class="contact-points">
                 <?php if ($config['contact_email']): ?>

@@ -45,6 +45,7 @@ class Postings
         $credits = match ($t->purpose) {
             'subscription' => [['account' => 'subscription_income', 'credit' => round($amount + $discount, 2)]],
             'sms' => [['account' => 'sms_income', 'credit' => $amount]],
+            'whatsapp' => [['account' => 'whatsapp_income', 'credit' => $amount]],
             'rent' => [
                 ['account' => 'landlord_payable', 'credit' => (float) ($t->landlord_amount ?? $amount - (float) $t->fee_amount), 'landlord_id' => $t->landlord_id, 'memo' => ($c['tenant_name'] ?? 'Tenant').(!empty($c['invoice_number']) ? ' · '.$c['invoice_number'] : ' · advance')],
                 ['account' => 'collection_fee_income', 'credit' => (float) $t->fee_amount],
@@ -55,6 +56,7 @@ class Postings
         $what = match ($t->purpose) {
             'subscription' => 'Subscription',
             'sms' => 'SMS credit',
+            'whatsapp' => 'WhatsApp credit',
             'rent' => 'Rent collected for landlord',
             default => ucfirst($t->purpose),
         };

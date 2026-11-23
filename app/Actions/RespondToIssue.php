@@ -38,6 +38,11 @@ class RespondToIssue
         }
 
         app(\App\Services\Push\PushNotifications::class)->issueUpdated($issue, $changed ? $status : null, $note ?: null);
+        try {
+            app(\App\Services\SmsNotificationService::class)->issueUpdated($issue, $changed ? $status : null, $note ?: null);
+        } catch (\Throwable $e) {
+            report($e); // the update is saved; a WhatsApp alert is a bonus
+        }
 
         return $update;
     }

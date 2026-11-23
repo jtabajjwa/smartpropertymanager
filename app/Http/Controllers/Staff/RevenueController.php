@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 class RevenueController extends Controller
 {
     /** Payment purpose => label, in display order. */
-    public const STREAMS = ['subscription' => 'Subscriptions', 'sms' => 'SMS sales'];
+    public const STREAMS = ['subscription' => 'Subscriptions', 'sms' => 'SMS sales', 'whatsapp' => 'WhatsApp sales'];
 
     public const PERIODS = [
         'this_month' => 'This month',
@@ -141,7 +141,7 @@ class RevenueController extends Controller
         $months = [];
         for ($m = $start; $m->lte($end); $m = $m->addMonthNoOverflow()) {
             $key = $m->format('Y-m');
-            $months[$key] = ['label' => $m->format('M Y'), 'short' => $m->format('M'), 'subscription' => 0.0, 'sms' => 0.0];
+            $months[$key] = ['label' => $m->format('M Y'), 'short' => $m->format('M'), 'subscription' => 0.0, 'sms' => 0.0, 'whatsapp' => 0.0];
         }
 
         foreach ($payments as $p) {

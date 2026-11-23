@@ -17,16 +17,22 @@ use Illuminate\Support\Facades\DB;
  */
 class SmsCredits
 {
+    /** The landlords column holding this balance, the ledger model, the settings prefix and the unit shown to people. */
+    protected const COLUMN = 'sms_balance';
+    protected const LEDGER = SmsCreditTransaction::class;
+    protected const SETTINGS = 'sms';
+    public const UNIT = 'SMS';
+
     public function balance(Landlord|int $landlord): int
     {
         $id = $landlord instanceof Landlord ? $landlord->id : $landlord;
 
-        return (int) DB::table('landlords')->where('id', $id)->value('sms_balance');
+        return (int) DB::table('landlords')->where('id', $id)->value(static::COLUMN);
     }
 
     public function lowBalanceThreshold(): int
     {
-        return Settings::int('sms.low_balance_threshold', 20);
+        return Settings::int(static::SETTINGS.'.low_balance_threshold', 20);
     }
 
     /** Add credits (purchase, starter allowance, positive adjustment, refund). */
@@ -43,7 +49,7 @@ class SmsCredits
     public function adjust(int $landlordId, int $quantity, string $note, ?StaffUser $staff): SmsCreditTransaction
     {
         return DB::transaction(function () use ($landlordId, $quantity, $note, $staff) {
-            $balance = (int) DB::table('landlords')->where('id', $landlordId)->lockForUpdate()->value('sms_balance');
+            $balance = (int) DB::table('landlords')->where('id', $landlordId)->lockForUpdate()->value(static::COLUMN);
 
             if ($balance + $quantity < 0) {
                 throw new \InvalidArgumentException("This would take the balance below zero (it is {$balance}).");
@@ -56,9 +62,9 @@ class SmsCredits
     /** New landlords' free allowance (amount set by staff; 0 = none). */
     public function grantStarter(Landlord $landlord): ?SmsCreditTransaction
     {
-        $credits = Settings::int('sms.starter_credits', 50);
+        $credits = Settings::int(static::SETTINGS.'.starter_credits', 50);
 
-        return $credits > 0 ? $this->add($landlord->id, $credits, 'starter', 'Free starter SMS') : null;
+        return $credits > 0 ? $this->add($landlord->id, $credits, 'starter', 'Free starter '.static::UNIT) : null;
     }
 
     /**
@@ -68,7 +74,7 @@ class SmsCredits
     public function reserve(int $landlordId, int $segments, SmsLog $smsLog): bool
     {
         return DB::transaction(function () use ($landlordId, $segments, $smsLog) {
-            $balance = (int) DB::table('landlords')->where('id', $landlordId)->lockForUpdate()->value('sms_balance');
+            $balance = (int) DB::table('landlords')->where('id', $landlordId)->lockForUpdate()->value(static::COLUMN);
 
             if ($balance < $segments) {
                 return false;
@@ -83,18 +89,18 @@ class SmsCredits
     /** Give back credits for an SMS the provider didn't accept. */
     public function release(int $landlordId, int $segments, SmsLog $smsLog): void
     {
-        $this->add($landlordId, $segments, 'refund', 'SMS not sent', smsLog: $smsLog);
+        $this->add($landlordId, $segments, 'refund', static::UNIT.' not sent', smsLog: $smsLog);
     }
 
     protected function change(int $landlordId, int $quantity, string $type, ?string $note = null, ?PaymentTransaction $payment = null, ?StaffUser $staff = null, ?SmsLog $smsLog = null): SmsCreditTransaction
     {
         return DB::transaction(function () use ($landlordId, $quantity, $type, $note, $payment, $staff, $smsLog) {
-            $balance = (int) DB::table('landlords')->where('id', $landlordId)->lockForUpdate()->value('sms_balance');
+            $balance = (int) DB::table('landlords')->where('id', $landlordId)->lockForUpdate()->value(static::COLUMN);
             $after = $balance + $quantity;
 
-            DB::table('landlords')->where('id', $landlordId)->update(['sms_balance' => $after]);
+            DB::table('landlords')->where('id', $landlordId)->update([static::COLUMN => $after]);
 
-            return SmsCreditTransaction::create([
+            return (static::LEDGER)::create([
                 'landlord_id' => $landlordId,
                 'type' => $type,
                 'quantity' => $quantity,

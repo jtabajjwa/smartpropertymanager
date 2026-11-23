@@ -23,6 +23,7 @@ return [
     'purposes' => [
         'subscription' => App\Payments\Purposes\SubscriptionPurpose::class,
         'sms' => App\Payments\Purposes\SmsCreditPurpose::class,
+        'whatsapp' => App\Payments\Purposes\WhatsAppCreditPurpose::class,
         'rent' => App\Payments\Purposes\RentPurpose::class,
     ],
 

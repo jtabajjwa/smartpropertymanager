@@ -51,6 +51,8 @@ class Landlord extends Model
             'grace_ends_at' => 'date',
             'max_units' => 'integer',
             'collect_payments' => 'boolean',
+            'whatsapp_alerts' => 'boolean',
+            'whatsapp_balance' => 'integer',
             'pass_collection_fee' => 'boolean',
             'fiscal_year_start_month' => 'integer',
             'extra_features' => 'array',

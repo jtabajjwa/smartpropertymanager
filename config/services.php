@@ -65,6 +65,10 @@ return [
         'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v24.0'),
         // Shown to tenants, e.g. on the portal: "+256 7xx xxx xxx".
         'display_number' => env('WHATSAPP_DISPLAY_NUMBER'),
+        // Alert templates (phase 2): the WhatsApp Business Account they live in, and the
+        // Meta app id (only needed to submit templates; read from the token if blank).
+        'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+        'app_id' => env('WHATSAPP_APP_ID'),
     ],
 
     // Yo! Custom USSD call-outs (Yo! hosts the menu; see deploy/YO_USSD.md).

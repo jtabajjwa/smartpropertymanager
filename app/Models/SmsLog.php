@@ -12,6 +12,8 @@ class SmsLog extends Model
 
     protected $fillable = [
         'phone',
+        'channel',
+        'wamid',
         'message',
         'segments',
         'credits_charged',
@@ -41,15 +43,19 @@ class SmsLog extends Model
         return $this->belongsTo(self::class, 'resent_log_id');
     }
 
+    /** Counts as sent: an SMS sent, or a WhatsApp alert on its way, delivered or read. */
+    public const SENT = ['sent', 'pending', 'delivered', 'read'];
+
+    /** Only SMS are resent by hand; a WhatsApp alert that fails is resent by SMS automatically. */
     public function canResend(): bool
     {
-        return in_array($this->status, self::NOT_SENT, true) && $this->resent_at === null;
+        return $this->channel !== 'whatsapp' && in_array($this->status, self::NOT_SENT, true) && $this->resent_at === null;
     }
 
     /** Failed messages still waiting for a resend, from the last RESEND_DAYS days. */
     public function scopeResendable($query)
     {
-        return $query->whereIn('status', self::NOT_SENT)->whereNull('resent_at')
+        return $query->where('channel', 'sms')->whereIn('status', self::NOT_SENT)->whereNull('resent_at')
             ->where('created_at', '>=', now()->subDays(self::RESEND_DAYS));
     }
 
@@ -63,7 +69,7 @@ class SmsLog extends Model
         return static::where('notification_type', $type)
             ->where('reference_type', $referenceType)
             ->where('reference_id', $referenceId)
-            ->where('status', 'sent')
+            ->whereIn('status', self::SENT)
             ->whereDate('created_at', today())
             ->exists();
     }

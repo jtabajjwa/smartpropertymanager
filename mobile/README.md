@@ -53,7 +53,9 @@ flutter build appbundle --release --dart-define=API_BASE_URL=https://app.primora
 Release builds are signed with the Primora release key, kept OUTSIDE the project in
 `C:/Users/HP/primora-signing/` (`primora-release.jks` + `key.properties` with its
 password). Set `PRIMORA_SIGNING` to another `key.properties` path on other machines.
-Without it, release builds fall back to the debug key (Gradle warns): never hand those out.
+Without it, release builds stop with an error (set `PRIMORA_DEBUG_SIGNING=1` only for a
+throwaway local build, and never hand that APK out). The key is stored in KeePass: restore
+both files to that folder before building a release, and remove them again afterwards.
 **Back that folder up** (password manager or encrypted storage): losing the key means
 installed apps can't be updated. Use the same key as the app signing key when the app goes
 on Google Play, so phones that installed from the website keep updating.

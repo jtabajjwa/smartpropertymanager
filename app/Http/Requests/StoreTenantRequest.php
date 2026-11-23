@@ -41,6 +41,7 @@ class StoreTenantRequest extends FormRequest
             'emergency_contact_email' => 'nullable|email|max:255',
             'emergency_contact_address' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'whatsapp_alerts' => 'nullable|boolean',
         ];
     }
 }

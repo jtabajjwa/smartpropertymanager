@@ -38,7 +38,7 @@ class LandlordPaymentController extends Controller
             'message' => $transaction->status_message,
             'receipt' => $transaction->receipt_number,
             'period_end' => $transaction->isFinal() && $transaction->purpose === 'subscription' ? $landlord?->current_period_end?->format('d M Y') : null,
-            'sms_balance' => $transaction->purpose === 'sms' ? $landlord?->sms_balance : null,
+            'sms_balance' => match ($transaction->purpose) { 'sms' => $landlord?->sms_balance, 'whatsapp' => $landlord?->whatsapp_balance, default => null },
         ]);
     }
 }

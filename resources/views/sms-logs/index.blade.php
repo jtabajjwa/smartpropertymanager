@@ -56,6 +56,7 @@
                         <option value="deposit_refund" {{ request('notification_type') === 'deposit_refund' ? 'selected' : '' }}>Deposit Refund</option>
                         <option value="upcoming_reminder" {{ request('notification_type') === 'upcoming_reminder' ? 'selected' : '' }}>Upcoming Reminder</option>
                         <option value="bulk" {{ request('notification_type') === 'bulk' ? 'selected' : '' }}>Bulk SMS</option>
+                        <option value="issue_update" {{ request('notification_type') === 'issue_update' ? 'selected' : '' }}>Issue Update (WhatsApp)</option>
                     </x-select>
                 </div>
                 <div class="w-28">
@@ -63,6 +64,8 @@
                     <x-select name="status">
                         <option value="">All</option>
                         <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
+                        <option value="delivered" {{ request('status') === 'delivered' ? 'selected' : '' }}>Delivered (WhatsApp)</option>
+                        <option value="read" {{ request('status') === 'read' ? 'selected' : '' }}>Read (WhatsApp)</option>
                         <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Failed</option>
                         <option value="no_credit" {{ request('status') === 'no_credit' ? 'selected' : '' }}>No credit</option>
                         <option value="read_only" {{ request('status') === 'read_only' ? 'selected' : '' }}>Not sent: read-only</option>
@@ -135,21 +138,16 @@
                                         @case('upcoming_reminder')
                                             <x-badge color="orange">Upcoming</x-badge>
                                             @break
+                                        @case('issue_update')
+                                            <x-badge color="blue">Issue update</x-badge>
+                                            @break
                                         @default
                                             <x-badge>{{ $log->notification_type }}</x-badge>
                                     @endswitch
                                 </td>
                                 <td class="px-5 py-3 text-gray-600 max-w-xs truncate">{{ Str::limit($log->message, 60) }}</td>
                                 <td class="px-5 py-3 whitespace-nowrap">
-                                    @if($log->status === 'sent')
-                                        <x-badge color="green">Sent</x-badge>
-                                    @elseif($log->status === 'no_credit')
-                                        <x-badge color="orange">No credit</x-badge>
-                                        @elseif($log->status === 'read_only')
-                                        <x-badge color="gray">Not sent: read-only</x-badge>
-                                    @else
-                                        <x-badge color="red">Failed</x-badge>
-                                    @endif
+                                    @include('sms-logs.partials.status', ['log' => $log])
                                 </td>
                                 <td class="px-5 py-3 text-right whitespace-nowrap" @click.stop>@include('sms-logs.partials.resend', ['log' => $log])</td>
                             </tr>
@@ -202,15 +200,7 @@
                                     <p class="text-sm text-gray-600" title="{{ $log->created_at->format('Y-m-d H:i:s') }}">{{ $log->created_at->diffForHumans() }}</p>
                                 </div>
                                 <div>
-                                    @if($log->status === 'sent')
-                                        <x-badge color="green">Sent</x-badge>
-                                    @elseif($log->status === 'no_credit')
-                                        <x-badge color="orange">No credit</x-badge>
-                                        @elseif($log->status === 'read_only')
-                                        <x-badge color="gray">Not sent: read-only</x-badge>
-                                    @else
-                                        <x-badge color="red">Failed</x-badge>
-                                    @endif
+                                    @include('sms-logs.partials.status', ['log' => $log])
                                 </div>
                             </div>
                             <div class="mt-3 flex flex-wrap gap-2">
@@ -235,6 +225,9 @@
                                         @break
                                     @case('upcoming_reminder')
                                         <x-badge color="orange">Upcoming</x-badge>
+                                        @break
+                                    @case('issue_update')
+                                        <x-badge color="blue">Issue update</x-badge>
                                         @break
                                     @default
                                         <x-badge>{{ $log->notification_type }}</x-badge>

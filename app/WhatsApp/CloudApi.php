@@ -84,6 +84,66 @@ class CloudApi
         $this->send($to, 'document', ['document' => ['id' => $upload->json('id'), 'filename' => $filename, 'caption' => $caption]], "{$filename}: {$caption}", $tenantId);
     }
 
+    /**
+     * Sends an approved template (a tenant alert; see Templates), optionally
+     * with a PDF in its header. Unlike the bot's replies the caller needs the
+     * outcome, to fall back to SMS.
+     *
+     * @param  list<string>  $params  the body's {{1}}, {{2}}…
+     * @param  array{contents: string, filename: string}|null  $document
+     * @return array{ok: bool, wamid: ?string, error: ?string}
+     */
+    public function template(string $to, string $name, array $params, ?array $document = null, ?int $tenantId = null): array
+    {
+        $definition = Templates::get($name);
+        $summary = Templates::render($name, $params);
+        if (!$definition || !$this->configured()) {
+            $error = $definition ? 'WhatsApp is not configured.' : "Unknown template {$name}.";
+            $this->log($to, 'template', $summary, null, 'failed', $error, $tenantId);
+
+            return ['ok' => false, 'wamid' => null, 'error' => $error];
+        }
+
+        $components = [];
+        if ($document) {
+            $upload = Http::withToken(config('services.whatsapp.token'))->timeout(30)
+                ->attach('file', $document['contents'], $document['filename'], ['Content-Type' => 'application/pdf'])
+                ->post($this->url('media'), ['messaging_product' => 'whatsapp', 'type' => 'application/pdf']);
+            if (!$upload->successful() || !$upload->json('id')) {
+                $this->log($to, 'template', $summary, null, 'failed', 'PDF upload failed: '.$upload->body(), $tenantId);
+
+                return ['ok' => false, 'wamid' => null, 'error' => 'The PDF could not be uploaded to WhatsApp.'];
+            }
+            $components[] = ['type' => 'header', 'parameters' => [['type' => 'document', 'document' => ['id' => $upload->json('id'), 'filename' => $document['filename']]]]];
+        }
+
+        // WhatsApp rejects parameters with new lines, tabs or more than 4 spaces in a row.
+        $components[] = ['type' => 'body', 'parameters' => array_map(fn ($p) => [
+            'type' => 'text', 'text' => Str::limit(trim(preg_replace('/\s+/u', ' ', (string) $p)) ?: '-', 900, '…'),
+        ], $params)];
+
+        foreach (array_keys($definition['buttons']) as $i => $payload) {
+            $components[] = ['type' => 'button', 'sub_type' => 'quick_reply', 'index' => (string) $i, 'parameters' => [['type' => 'payload', 'payload' => $payload]]];
+        }
+
+        $payload = ['messaging_product' => 'whatsapp', 'recipient_type' => 'individual', 'to' => $to, 'type' => 'template',
+            'template' => ['name' => $name, 'language' => ['code' => Templates::LANGUAGE], 'components' => $components]];
+
+        try {
+            $response = Http::withToken(config('services.whatsapp.token'))->timeout(20)->post($this->url('messages'), $payload);
+        } catch (\Throwable $e) {
+            $this->log($to, 'template', $summary, $payload, 'failed', $e->getMessage(), $tenantId);
+
+            return ['ok' => false, 'wamid' => null, 'error' => $e->getMessage()];
+        }
+
+        $wamid = $response->successful() ? $response->json('messages.0.id') : null;
+        $error = $wamid ? null : ($response->json('error.error_data.details') ?? $response->json('error.message') ?? $response->body());
+        $this->log($to, 'template', $summary, $payload, $wamid ? 'sent' : 'failed', $error, $tenantId, $wamid);
+
+        return ['ok' => (bool) $wamid, 'wamid' => $wamid, 'error' => $error ? Str::limit((string) $error, 500) : null];
+    }
+
     /** The bytes of a photo or file the tenant sent, or null. */
     public function downloadMedia(string $mediaId): ?array
     {

@@ -13,9 +13,22 @@ class SmsNotificationService
 {
     protected SmsService $sms;
 
-    public function __construct(SmsService $sms, protected SmsCredits $credits)
+    public function __construct(SmsService $sms, protected SmsCredits $credits, protected WhatsAppAlerts $whatsapp)
     {
         $this->sms = $sms;
+    }
+
+    /** The landlord's name as tenants know it, for WhatsApp alerts. */
+    protected function landlordName(): string
+    {
+        $landlord = \App\Models\Landlord::find(CurrentLandlord::id());
+
+        return $landlord ? ($landlord->trading_name ?: $landlord->name) : config('app.name');
+    }
+
+    protected static function ugx(float|int|string $amount): string
+    {
+        return 'UGX '.number_format((float) $amount);
     }
 
     /**
@@ -45,7 +58,10 @@ class SmsNotificationService
             default => "Dear {$payer->name}, invoice {$invoice->number} for {$invoice->title} ({$amount}) has been issued. Due: {$invoice->due_date->format('d M Y')}. - {$app}",
         };
 
-        $this->sendAndLog($phone, $message, $tenantId, 'invoice_created', 'Invoice', $invoice->id);
+        $this->deliver($phone, $message, $tenantId, 'invoice_created', 'Invoice', $invoice->id, ['primora_invoice_issued', [
+            $payer->name, $this->landlordName(), $invoice->number, $invoice->title, $amount,
+            self::ugx(max(0, (float) $invoice->amount - $paid)), $invoice->due_date->format('j M Y'),
+        ], ['invoice', $invoice->id]]);
     }
 
     /**
@@ -70,7 +86,9 @@ class SmsNotificationService
         $app = config('app.name');
         $message = "Dear {$payer->name}, invoice {$invoice->number} (UGX " . number_format((float) $invoice->amount) . ") was due on {$invoice->due_date->format('d M Y')} and is now overdue. Please settle your balance. - {$app}";
 
-        $this->sendAndLog($phone, $message, $tenantId, 'overdue_reminder', 'Invoice', $invoice->id);
+        $this->deliver($phone, $message, $tenantId, 'overdue_reminder', 'Invoice', $invoice->id, ['primora_invoice_overdue', [
+            $payer->name, $invoice->number, self::ugx($invoice->amount), $this->landlordName(), $invoice->due_date->format('j M Y'),
+        ]]);
     }
 
     /**
@@ -90,7 +108,9 @@ class SmsNotificationService
         $ref = $payment->reference ? " (Ref: {$payment->reference})" : '';
         $message = "Dear {$payer->name}, payment of UGX " . number_format((float) $payment->amount) . " received{$ref}. Thank you! - {$app}";
 
-        $this->sendAndLog($phone, $message, $tenantId, 'payment_received', 'Payment', $payment->id);
+        $this->deliver($phone, $message, $tenantId, 'payment_received', 'Payment', $payment->id, ['primora_payment_received', [
+            $payer->name, $this->landlordName(), self::ugx($payment->amount), $payment->number ?: ($payment->reference ?: '-'),
+        ], ['receipt', $payment->id]]);
     }
 
     /**
@@ -107,7 +127,10 @@ class SmsNotificationService
         $unit = $lease->unit?->name ?? 'your unit';
         $message = "Dear {$tenant->name}, your lease for {$unit} expires on {$lease->end_date->format('d M Y')}. Please contact management for renewal. - {$app}";
 
-        $this->sendAndLog($tenant->primary_phone, $message, $tenant->id, 'lease_expiring', 'Lease', $lease->id);
+        $unitLabel = $lease->unit ? trim(($lease->unit->estate?->name ? $lease->unit->estate->name.' · ' : '').$lease->unit->name) : 'your unit';
+        $this->deliver($tenant->primary_phone, $message, $tenant->id, 'lease_expiring', 'Lease', $lease->id, ['primora_lease_expiring', [
+            $tenant->name, $unitLabel, $this->landlordName(), $lease->end_date->format('j M Y'),
+        ]]);
     }
 
     /**
@@ -125,7 +148,9 @@ class SmsNotificationService
         // Truncate if too long (notes can push it over)
         $message = mb_substr($message, 0, 320);
 
-        $this->sendAndLog($tenant->primary_phone, $message, $tenant->id, 'deposit_deduction', 'SecurityDepositLedger', $entry->id);
+        $this->deliver($tenant->primary_phone, $message, $tenant->id, 'deposit_deduction', 'SecurityDepositLedger', $entry->id, ['primora_deposit_deduction', [
+            $tenant->name, $this->landlordName(), self::ugx($entry->amount), $entry->notes || $entry->category ? lcfirst(rtrim($entry->description(), '.')) : 'charges', self::ugx($remainingBalance),
+        ]]);
     }
 
     /**
@@ -139,7 +164,9 @@ class SmsNotificationService
         $app = config('app.name');
         $message = "Dear {$tenant->name}, UGX " . number_format((float) $entry->amount) . " refunded from your security deposit. Remaining: UGX " . number_format($remainingBalance) . ". - {$app}";
 
-        $this->sendAndLog($tenant->primary_phone, $message, $tenant->id, 'deposit_refund', 'SecurityDepositLedger', $entry->id);
+        $this->deliver($tenant->primary_phone, $message, $tenant->id, 'deposit_refund', 'SecurityDepositLedger', $entry->id, ['primora_deposit_refund', [
+            $tenant->name, $this->landlordName(), self::ugx($entry->amount), self::ugx($remainingBalance),
+        ]]);
     }
 
     /**
@@ -164,7 +191,53 @@ class SmsNotificationService
         $app = config('app.name');
         $message = "Dear {$payer->name}, reminder: invoice {$invoice->number} (UGX " . number_format((float) $invoice->amount) . ") is due on {$invoice->due_date->format('d M Y')}. Please ensure timely payment. - {$app}";
 
-        $this->sendAndLog($phone, $message, $tenantId, 'upcoming_reminder', 'Invoice', $invoice->id);
+        $this->deliver($phone, $message, $tenantId, 'upcoming_reminder', 'Invoice', $invoice->id, ['primora_invoice_due_soon', [
+            $payer->name, $this->landlordName(), $invoice->number, self::ugx($invoice->amount), $invoice->due_date->format('j M Y'),
+        ]]);
+    }
+
+    /**
+     * The landlord answered an issue the tenant reported. Only by WhatsApp
+     * (tenants already get it in the app and portal; it was never an SMS).
+     */
+    public function issueUpdated(\App\Models\Issue $issue, ?string $newStatus, ?string $note): void
+    {
+        $tenant = $issue->tenant;
+        if (!$tenant?->primary_phone) return;
+
+        $status = \App\Models\Issue::STATUSES[$newStatus ?? $issue->status][0] ?? ucfirst((string) ($newStatus ?? $issue->status));
+        $params = [$tenant->name, $issue->title, $newStatus ? $status : "{$status} (no change)", $note ?: 'None'];
+
+        $this->whatsapp->queue($tenant->primary_phone, \App\WhatsApp\Templates::render('primora_issue_update', $params),
+            $tenant->id, 'issue_update', 'Issue', $issue->id, 'primora_issue_update', $params);
+    }
+
+    /** A WhatsApp alert that couldn't be delivered, sent again by SMS (see WhatsAppAlerts::failed). */
+    public function fallback(SmsLog $whatsappLog): ?SmsLog
+    {
+        return $this->sendAndLog($whatsappLog->phone, $whatsappLog->message, $whatsappLog->tenant_id, $whatsappLog->notification_type, $whatsappLog->reference_type, $whatsappLog->reference_id);
+    }
+
+    /**
+     * A tenant alert: by WhatsApp when the landlord, tenant and template allow
+     * it (see WhatsAppAlerts), otherwise by SMS. Walk-in customers get SMS.
+     *
+     * @param  array{0: string, 1: list<string>, 2?: array}|null  $whatsapp  template, its values, and a PDF to attach
+     */
+    protected function deliver(string $phone, string $message, ?int $tenantId, string $type, ?string $refType, ?int $refId, ?array $whatsapp = null): ?SmsLog
+    {
+        if ($whatsapp && $tenantId) {
+            try {
+                $log = $this->whatsapp->queue($phone, mb_substr($message, 0, 320), $tenantId, $type, $refType, $refId, $whatsapp[0], $whatsapp[1], $whatsapp[2] ?? null);
+                if ($log) {
+                    return $log;
+                }
+            } catch (\Throwable $e) {
+                Log::error("WhatsApp alert ({$type}) could not be queued, sending SMS: {$e->getMessage()}");
+            }
+        }
+
+        return $this->sendAndLog($phone, $message, $tenantId, $type, $refType, $refId);
     }
 
     /**

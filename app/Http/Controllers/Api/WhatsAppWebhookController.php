@@ -4,7 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\HandleWhatsAppMessage;
+use App\Models\Scopes\LandlordScope;
+use App\Models\SmsLog;
 use App\Models\WhatsAppMessage;
+use App\Services\CurrentLandlord;
+use App\Services\WhatsAppAlerts;
+use App\WhatsApp\Templates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -42,6 +47,15 @@ class WhatsAppWebhookController extends Controller
         foreach ($request->input('entry', []) as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
                 $value = $change['value'] ?? [];
+
+                // Meta approved / rejected / paused one of our alert templates.
+                if (($change['field'] ?? null) === 'message_template_status_update') {
+                    if (!empty($value['message_template_name']) && !empty($value['event'])) {
+                        Templates::setStatus($value['message_template_name'], (string) $value['event']);
+                    }
+
+                    continue;
+                }
                 $names = collect($value['contacts'] ?? [])->mapWithKeys(fn ($c) => [$c['wa_id'] ?? '' => $c['profile']['name'] ?? null]);
 
                 foreach ($value['messages'] ?? [] as $message) {
@@ -85,5 +99,14 @@ class WhatsAppWebhookController extends Controller
             'status' => Str::limit($status['status'], 20, ''),
             'error' => isset($status['errors']) ? Str::limit(json_encode($status['errors']), 2000) : null,
         ]));
+
+        // A tenant alert: show its progress in the landlord's log; if it failed, send it by SMS.
+        $log = SmsLog::withoutGlobalScope(LandlordScope::class)->where('wamid', $status['id'])->first();
+        if ($log) {
+            $alerts = app(WhatsAppAlerts::class);
+            CurrentLandlord::runAs($log->landlord_id, fn () => $status['status'] === 'failed'
+                ? $alerts->failed($log, 'WhatsApp: '.($status['errors'][0]['title'] ?? $status['errors'][0]['message'] ?? 'not delivered'), isset($status['errors'][0]['code']) ? (int) $status['errors'][0]['code'] : null)
+                : $alerts->progressed($log, (string) $status['status']));
+        }
     }
 }

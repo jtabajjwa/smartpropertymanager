@@ -383,6 +383,15 @@
                                         <x-phone-input name="secondary_phone" />
                                     </div>
                                 </div>
+                                <div>
+                                    <input type="hidden" name="whatsapp_alerts" value="0">
+                                    <label class="flex items-start gap-3 cursor-pointer">
+                                        <input type="checkbox" name="whatsapp_alerts" value="1" @checked(old('whatsapp_alerts')) class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                        <span class="text-sm text-gray-700">Tenant agreed to receive alerts on WhatsApp
+                                            <span class="block text-xs text-gray-500">Invoices, reminders and receipts go to the primary phone on WhatsApp when WhatsApp alerts are on, with SMS as the backup. The tenant can stop them at any time.</span>
+                                        </span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -519,6 +528,22 @@
                                         <x-label>Secondary Phone</x-label>
                                         <x-phone-input name="secondary_phone" model="editing.secondary_phone" />
                                     </div>
+                                </div>
+                                <div>
+                                    <template x-if="editing.whatsapp_opted_out_at">
+                                        <p class="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-600">The tenant stopped WhatsApp alerts, so they get SMS. They can turn WhatsApp alerts back on by sending ALERTS ON to Primora on WhatsApp.</p>
+                                    </template>
+                                    <template x-if="!editing.whatsapp_opted_out_at">
+                                        <div>
+                                            <input type="hidden" name="whatsapp_alerts" value="0">
+                                            <label class="flex items-start gap-3 cursor-pointer">
+                                                <input type="checkbox" name="whatsapp_alerts" value="1" :checked="!!editing.whatsapp_opted_in_at" class="mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                                                <span class="text-sm text-gray-700">Tenant agreed to receive alerts on WhatsApp
+                                                    <span class="block text-xs text-gray-500">Invoices, reminders and receipts go to the primary phone on WhatsApp when WhatsApp alerts are on, with SMS as the backup.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>

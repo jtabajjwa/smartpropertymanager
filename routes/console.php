@@ -20,3 +20,5 @@ Schedule::command('payments:reconcile')->everyMinute()->withoutOverlapping();
 Schedule::command('payouts:reconcile')->everyFiveMinutes()->withoutOverlapping();
 // Yo! pool balance against the books, and landlord funds covered; emails staff on problems.
 Schedule::command('reconcile:balances')->hourlyAt(7)->withoutOverlapping();
+// WhatsApp alerts: refresh template approvals and send any stuck alert by SMS.
+Schedule::command('whatsapp:templates')->everyFifteenMinutes()->withoutOverlapping();

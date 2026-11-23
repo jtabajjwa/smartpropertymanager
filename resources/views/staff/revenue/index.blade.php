@@ -3,8 +3,9 @@
 
     @php
         $streams = \App\Http\Controllers\Staff\RevenueController::STREAMS;
-        // Chart colours (validated for colour-blind separation and contrast).
-        $colors = ['subscription' => '#3b6ea5', 'sms' => '#c1704a'];
+        // Chart colours (subscriptions and SMS validated for colour-blind separation; WhatsApp added later, unvalidated). Every value is also in the table view and tooltips.
+        $colors = ['subscription' => '#3b6ea5', 'sms' => '#c1704a', 'whatsapp' => '#2f9e8f'];
+        $monthTotal = fn ($m) => collect(array_keys($streams))->sum(fn ($k) => $m[$k]);
         $ugx = fn ($v) => 'UGX '.number_format((float) $v);
         $change = function (float $now, float $before) {
             if ($before == 0.0) return $now > 0 ? ['new', 'text-green-700'] : null;
@@ -13,8 +14,8 @@
         };
         $smsRevenue = $current['streams']['sms']['amount'];
         $smsMargin = $smsCost !== null ? $smsRevenue - $smsCost : null;
-        $maxMonth = max(1, collect($months)->max(fn ($m) => $m['subscription'] + $m['sms']));
-        $yearTotal = collect($months)->sum(fn ($m) => $m['subscription'] + $m['sms']);
+        $maxMonth = max(1, collect($months)->max($monthTotal));
+        $yearTotal = collect($months)->sum($monthTotal);
     @endphp
 
     <div class="max-w-7xl mx-auto space-y-6">
@@ -116,11 +117,12 @@
                     </div>
                     <div class="relative h-56 pl-10 flex items-end gap-1 sm:gap-2">
                         @foreach($months as $i => $m)
-                            @php $total = $m['subscription'] + $m['sms']; @endphp
+                            @php $total = $monthTotal($m); $segments = array_values(array_filter(array_reverse(array_keys($streams)), fn ($k) => $m[$k] > 0)); @endphp
                             <div class="relative flex-1 h-full flex flex-col justify-end items-center cursor-default" @mouseenter="hover = {{ $i }}" @mouseleave="hover = null">
                                 <div class="w-full max-w-10 flex flex-col justify-end gap-0.5 transition-opacity" :class="hover !== null && hover !== {{ $i }} ? 'opacity-50' : ''" style="height: {{ $total / $maxMonth * 100 }}%">
-                                    @if($m['sms'] > 0)<div class="w-full rounded-t-[4px]" style="background: {{ $colors['sms'] }}; height: {{ $m['sms'] / max($total, 1) * 100 }}%; min-height: 2px"></div>@endif
-                                    @if($m['subscription'] > 0)<div class="w-full {{ $m['sms'] > 0 ? '' : 'rounded-t-[4px]' }}" style="background: {{ $colors['subscription'] }}; height: {{ $m['subscription'] / max($total, 1) * 100 }}%; min-height: 2px"></div>@endif
+                                    @foreach($segments as $j => $k)
+                                        <div class="w-full {{ $j === 0 ? 'rounded-t-[4px]' : '' }}" style="background: {{ $colors[$k] }}; height: {{ $m[$k] / max($total, 1) * 100 }}%; min-height: 2px"></div>
+                                    @endforeach
                                 </div>
                                 {{-- Tooltip --}}
                                 <div x-show="hover === {{ $i }}" x-cloak class="absolute bottom-full mb-2 z-10 w-48 rounded-xl bg-white border border-gray-200 shadow-lg p-3 text-xs {{ $i > 8 ? 'right-0' : ($i < 3 ? 'left-0' : '') }}">
@@ -155,7 +157,7 @@
                             <tr>
                                 <td class="px-6 py-2.5 text-sm text-gray-700">{{ $m['label'] }}</td>
                                 @foreach($streams as $key => $label)<td class="px-6 py-2.5 text-sm text-gray-900 text-right">{{ number_format($m[$key]) }}</td>@endforeach
-                                <td class="px-6 py-2.5 text-sm font-medium text-gray-900 text-right">{{ number_format($m['subscription'] + $m['sms']) }}</td>
+                                <td class="px-6 py-2.5 text-sm font-medium text-gray-900 text-right">{{ number_format($monthTotal($m)) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

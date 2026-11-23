@@ -812,3 +812,35 @@ a.hero-badge:hover { border-color: rgba(255, 255, 255, .3); background: rgba(255
     .ussd-flow { grid-template-columns: 1fr; row-gap: 40px; }
     .uf-visual { height: auto; }
 }
+
+/* ==========================================================================
+   Brand gradient background: the same drifting glow as the Primora web app
+   (.app-bg in the app's resources/css/app.css) and the mobile app.
+   Dark sections (banner, how it works, USSD, CTA, footer) paint over it.
+   ========================================================================== */
+body { background: #fbfaf9; }
+body::before, body::after {
+    content: ''; position: fixed; inset: -15vmax; z-index: -1; pointer-events: none; will-change: transform;
+}
+body::before {
+    background:
+        radial-gradient(42vmax 34vmax at 82% 8%, rgba(214, 140, 104, .30), rgba(214, 140, 104, .12) 45%, transparent 72%),
+        radial-gradient(40vmax 36vmax at 6% 42%, rgba(110, 146, 226, .24), rgba(110, 146, 226, .09) 48%, transparent 72%);
+    animation: app-drift-a 28s ease-in-out infinite alternate;
+}
+body::after {
+    background:
+        radial-gradient(44vmax 32vmax at 62% 100%, rgba(170, 146, 232, .24), rgba(170, 146, 232, .08) 48%, transparent 72%),
+        radial-gradient(30vmax 26vmax at 98% 62%, rgba(236, 170, 190, .18), transparent 70%);
+    animation: app-drift-b 34s ease-in-out infinite alternate;
+}
+@keyframes app-drift-a { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-3vmax, 2.5vmax, 0); } }
+@keyframes app-drift-b { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(3vmax, -2.5vmax, 0); } }
+@media (prefers-reduced-motion: reduce) { body::before, body::after { animation: none; } }
+html { overflow-x: clip; }
+
+/* Light sections let the glow through; cards stay solid white. */
+.strip { background: rgba(255, 255, 255, .55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.app, .pricing { background: transparent; }
+.app { border-top: 0; }
+.mobile-menu { background: rgba(251, 250, 249, .97); }

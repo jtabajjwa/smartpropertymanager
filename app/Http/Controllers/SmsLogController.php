@@ -47,7 +47,7 @@ class SmsLogController extends Controller
         // Summary stats
         $stats = (object) [
             'total' => SmsLog::count(),
-            'sent' => SmsLog::where('status', 'sent')->count(),
+            'sent' => SmsLog::whereIn('status', ['sent', 'delivered', 'read'])->count(),
             'failed' => SmsLog::whereIn('status', SmsLog::NOT_SENT)->whereNull('resent_at')->count(),
             'today' => SmsLog::whereDate('created_at', today())->count(),
         ];

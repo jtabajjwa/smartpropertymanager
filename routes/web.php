@@ -126,6 +126,10 @@ Route::middleware(['auth:web,staff', 'resolve-landlord', 'check-active', 'verifi
         Route::get('sms-credits', [\App\Http\Controllers\SmsCreditController::class, 'show'])->name('sms-credits.show');
         Route::post('sms-credits/buy', [\App\Http\Controllers\SmsCreditController::class, 'buy'])->middleware('throttle:10,1')->name('sms-credits.buy');
         Route::get('sms-credits/payments/{reference}', [\App\Http\Controllers\LandlordPaymentController::class, 'status'])->middleware('throttle:60,1')->name('sms-credits.payment-status');
+        Route::get('whatsapp-alerts', [\App\Http\Controllers\WhatsAppAlertController::class, 'show'])->name('whatsapp-alerts.show');
+        Route::put('whatsapp-alerts', [\App\Http\Controllers\WhatsAppAlertController::class, 'toggle'])->middleware('throttle:10,1')->name('whatsapp-alerts.toggle');
+        Route::post('whatsapp-alerts/buy', [\App\Http\Controllers\WhatsAppAlertController::class, 'buy'])->middleware('throttle:10,1')->name('whatsapp-alerts.buy');
+        Route::get('whatsapp-alerts/payments/{reference}', [\App\Http\Controllers\LandlordPaymentController::class, 'status'])->middleware('throttle:60,1')->name('whatsapp-alerts.payment-status');
         // Payouts of rent Primora collected (landlords Primora collects for)
         Route::get('payouts', [\App\Http\Controllers\PayoutController::class, 'index'])->name('payouts.index');
         Route::post('payouts', [\App\Http\Controllers\PayoutController::class, 'store'])->middleware('throttle:10,1')->name('payouts.store');

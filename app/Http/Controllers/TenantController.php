@@ -38,16 +38,17 @@ class TenantController extends Controller
 
     public function store(StoreTenantRequest $request, \App\Actions\CreateTenant $create)
     {
-        $create($request->validated(), [
+        $tenant = $create(collect($request->validated())->except('whatsapp_alerts')->all(), [
             'photo' => $request->file('photo'), 'id_scan' => $request->file('id_scan'), 'lc_letter' => $request->file('lc_letter'),
         ]);
+        $tenant->setWhatsAppConsent($request->boolean('whatsapp_alerts'));
 
         return redirect()->back()->with('success', 'Tenant created successfully.');
     }
 
     public function update(UpdateTenantRequest $request, Tenant $tenant)
     {
-        $data = $request->validated();
+        $data = collect($request->validated())->except('whatsapp_alerts')->all();
 
         if ($request->hasFile('photo')) {
             if ($tenant->photo) Storage::disk('public')->delete($tenant->photo);
@@ -63,6 +64,9 @@ class TenantController extends Controller
         }
 
         $tenant->update($data);
+        if ($request->has('whatsapp_alerts')) {
+            $tenant->setWhatsAppConsent($request->boolean('whatsapp_alerts'));
+        }
 
         return redirect()->back()->with('success', 'Tenant updated successfully.');
     }

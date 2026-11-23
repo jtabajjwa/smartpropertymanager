@@ -46,7 +46,7 @@ $sections = [
     <link rel="canonical" href="<?= e(rtrim($config['site_url'], '/')) ?>/privacy.php">
     <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
     <link rel="preload" href="assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/css/style.css?v=7">
+    <link rel="stylesheet" href="assets/css/style.css?v=9">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
