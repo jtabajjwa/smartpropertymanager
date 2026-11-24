@@ -373,7 +373,7 @@ test('requests stay within the available balance and hold it while in progress',
 
     requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 600000])->assertSessionHasErrors('request');
     Mail::assertNotSent(ActionCodeMail::class); // no code for a request that can't go through
-    requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 1000])->assertSessionHasErrors('amount');
+    requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 1000])->assertSessionHasErrors('request'); // doesn't cover the UGX 1,500 charge
     requestPayout($this, $admin, ['payout_account_id' => $account->id, 'amount' => 300000])->assertSessionHas('payout_received');
 
     $l = Liquidation::withoutGlobalScopes()->sole();
@@ -389,6 +389,30 @@ test('requests stay within the available balance and hold it while in progress',
     expect(app(Liquidations::class)->available($landlord->id))->toBe(500000.0);
 
     $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('UGX 500,000')->assertSee('Cancelled');
+});
+
+test('the smallest payout is where the lowest payout fee tier for that method starts', function () {
+    [$landlord, $admin] = payoutLandlord(1800);
+    CollectionFeeTier::create(['kind' => 'payout_mobile_money', 'min_amount' => 500, 'max_amount' => 5000, 'fixed_fee' => 100]);
+    CollectionFeeTier::create(['kind' => 'payout_mobile_money', 'min_amount' => 5001, 'max_amount' => null, 'fixed_fee' => 1000]);
+    CollectionFeeTier::create(['kind' => 'payout_bank', 'min_amount' => 5000, 'max_amount' => null, 'fixed_fee' => 5000]);
+    $liq = app(Liquidations::class);
+    expect($liq->minFor('mobile_money'))->toBe(500)->and($liq->minFor('bank'))->toBe(5000);
+
+    // Only a bank account: 1,800 is below the bank tier, so no request form.
+    $bank = verifiedAccount($landlord, 'bank');
+    $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('below the minimum payout of UGX 5,000');
+
+    // With a mobile money account the form shows, and 1,800 can go to mobile money but not to the bank.
+    $mm = verifiedAccount($landlord);
+    $this->actingAs($admin)->get(route('payouts.index'))->assertOk()->assertSee('Request everything available');
+    requestPayout($this, $admin, ['payout_account_id' => $bank->id, 'amount' => 1800])->assertSessionHasErrors('request');
+    requestPayout($this, $admin, ['payout_account_id' => $mm->id, 'amount' => 400])->assertSessionHasErrors('request');
+    requestPayout($this, $admin, ['payout_account_id' => $mm->id, 'amount' => 1800])->assertSessionHas('payout_received');
+
+    // Staff move the lowest tier: the minimum follows.
+    CollectionFeeTier::where('kind', 'payout_mobile_money')->where('min_amount', 500)->update(['min_amount' => 1000]);
+    expect(app(Liquidations::class)->minFor('mobile_money'))->toBe(1000);
 });
 
 test('a payout request needs the code sent to the user; the landlord is told it was received', function () {

@@ -242,7 +242,8 @@ class _RequestPayoutSheetState extends ConsumerState<RequestPayoutSheet> {
       child: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const Text('Request a payout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          Text('Available: ${ugx(toNum(widget.overview['available']))} · smallest ${ugx(toNum(widget.overview['min']))}', style: const TextStyle(color: Brand.navyMuted)),
+          Text('Available: ${ugx(toNum(widget.overview['available']))} · smallest ${ugx(toNum(widget.accounts.firstWhere((a) => (a['id'] as num).toInt() == _accountId, orElse: () => widget.overview)['min'] ?? widget.overview['min']))}',
+              style: const TextStyle(color: Brand.navyMuted)),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(
             initialValue: _accountId,

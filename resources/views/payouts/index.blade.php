@@ -54,11 +54,13 @@
                           x-data="{
                               accounts: {{ Js::from($verified->mapWithKeys(fn ($a) => [$a->id => $a->type])) }},
                               bands: {{ Js::from($feeBands) }},
-                              accountId: '{{ old('payout_account_id', $verified->first()->id) }}',
+                              mins: {{ Js::from($mins) }},
+                              accountId: '{{ old('payout_account_id', ($verified->first(fn ($a) => $available >= $mins[$a->type]) ?? $verified->first())->id) }}',
                               amount: '{{ old('amount', (int) $available) }}',
                               available: {{ (float) $available }},
                               busy: false,
                               get method() { return this.accounts[this.accountId] || 'mobile_money' },
+                              get min() { return this.mins[this.method] ?? {{ $min }} },
                               get fee() {
                                   const a = Number(this.amount) || 0;
                                   const t = (this.bands[this.method] || []).find(t => a >= t.min && (t.max === null || a <= t.max));
@@ -85,7 +87,8 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-label :required="true">Amount (UGX)</x-label>
-                                <x-input type="number" name="amount" min="{{ $min }}" max="{{ (int) $available }}" step="1" x-model="amount" required />
+                                <x-input type="number" name="amount" x-bind:min="min" max="{{ (int) $available }}" step="1" x-model="amount" required />
+                                <p class="mt-1 text-xs text-gray-500" x-text="'Smallest payout to this account: UGX ' + fmt(min)"></p>
                                 <button type="button" class="mt-1 text-xs font-medium text-orange-600 hover:text-orange-700" @click="amount = Math.floor(available)">Request everything available</button>
                                 @error('amount')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                             </div>
@@ -108,7 +111,7 @@
                             @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                         <div class="flex justify-end">
-                            <x-button type="submit" x-bind:disabled="busy || Number(amount) < {{ $min }} || Number(amount) > available || net <= 0">
+                            <x-button type="submit" x-bind:disabled="busy || Number(amount) < min || Number(amount) > available || net <= 0">
                                 <span x-show="!busy">Continue</span>
                                 <span x-show="busy" x-cloak>Checking…</span>
                             </x-button>

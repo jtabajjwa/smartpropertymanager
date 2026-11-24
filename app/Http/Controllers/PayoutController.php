@@ -36,6 +36,7 @@ class PayoutController extends Controller
     public function index(PayoutFees $fees)
     {
         $landlord = Landlord::findOrFail(CurrentLandlord::id());
+        $accounts = PayoutAccount::where('status', '!=', 'disabled')->latest()->get();
 
         return view('payouts.index', [
             'landlord' => $landlord,
@@ -43,11 +44,13 @@ class PayoutController extends Controller
             'reserved' => $this->liquidations->reserved($landlord->id),
             'available' => $this->liquidations->available($landlord->id),
             'paidOut' => (float) Liquidation::where('status', Liquidation::COMPLETED)->sum('net_amount'),
-            'accounts' => PayoutAccount::where('status', '!=', 'disabled')->latest()->get(),
+            'accounts' => $accounts,
             'payouts' => Liquidation::latest('id')->paginate(15),
             'feeBands' => $fees->forScript(),
             'canRequest' => !$this->isStaff(),
-            'min' => Liquidations::MIN_AMOUNT,
+            // The smallest payout to any verified account (the button shows once that's reachable); each method's own minimum is in $mins.
+            'min' => $this->liquidations->lowestMin($accounts->where('status', 'verified')->pluck('type')),
+            'mins' => $this->liquidations->minimums(),
             'mobileMax' => Liquidations::MOBILE_MONEY_MAX,
             'mobileLimit' => PayoutAccount::mobileMoneyLimit(),
             'mobileInUse' => PayoutAccount::mobileMoneyInUse(),
@@ -64,12 +67,11 @@ class PayoutController extends Controller
 
         $data = $request->validate([
             'payout_account_id' => ['required', 'integer'],
-            'amount' => ['required', 'numeric', 'min:'.Liquidations::MIN_AMOUNT],
+            'amount' => ['required', 'numeric', 'min:1'], // each method's minimum is checked by Liquidations::check()
             'note' => ['nullable', 'string', 'max:300'],
             'password' => ['required', 'current_password:web'],
         ], [
             'password.current_password' => 'That password is not correct.',
-            'amount.min' => 'The smallest payout is UGX '.number_format(Liquidations::MIN_AMOUNT).'.',
         ]);
 
         try {

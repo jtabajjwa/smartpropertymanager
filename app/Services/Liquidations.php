@@ -35,7 +35,33 @@ use Illuminate\Support\Str;
  */
 class Liquidations
 {
-    public const MIN_AMOUNT = 5000;
+    /** Smallest payout by method when staff haven't set any payout fee tiers for it (UGX). */
+    public const FALLBACK_MIN_AMOUNTS = ['mobile_money' => 500, 'bank' => 5000];
+
+    /**
+     * The smallest payout to this kind of account: where the lowest payout fee
+     * tier staff configured for the method starts (Staff › Collections).
+     */
+    public function minFor(string $type): int
+    {
+        $lowest = $this->fees->tiers($type)->first();
+
+        return $lowest ? max(1, (int) ceil((float) $lowest->min_amount)) : (self::FALLBACK_MIN_AMOUNTS[$type] ?? max(self::FALLBACK_MIN_AMOUNTS));
+    }
+
+    /** The smallest payout to any of these kinds of account (any method, with none given). */
+    public function lowestMin(iterable $types = []): int
+    {
+        $types = collect($types)->unique();
+
+        return (int) ($types->isEmpty() ? collect(array_keys(PayoutFees::KINDS)) : $types)->map(fn ($type) => $this->minFor($type))->min();
+    }
+
+    /** @return array<string, int> each method's smallest payout */
+    public function minimums(): array
+    {
+        return collect(PayoutFees::KINDS)->map(fn ($kind, $type) => $this->minFor($type))->all();
+    }
 
     /** Largest single mobile money payout (network limit). */
     public const MOBILE_MONEY_MAX = 5_000_000;
@@ -126,8 +152,9 @@ class Liquidations
         if ($account->landlord_id !== $landlord->id || !$account->isUsable()) {
             throw new LiquidationException('Choose a verified payout account.');
         }
-        if ($amount < self::MIN_AMOUNT) {
-            throw new LiquidationException('The smallest payout is UGX '.number_format(self::MIN_AMOUNT).'.');
+        $min = $this->minFor($account->type);
+        if ($amount < $min) {
+            throw new LiquidationException('The smallest payout '.($account->type === 'bank' ? 'to a bank account' : 'to mobile money').' is UGX '.number_format($min).'.');
         }
         $available = $this->available($landlord->id);
         if ($amount > $available) {

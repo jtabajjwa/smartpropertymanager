@@ -33,6 +33,7 @@ class PayoutController extends Controller
     {
         $landlord = $this->landlord();
         $user = $request->user();
+        $accounts = PayoutAccount::where('status', '!=', 'disabled')->latest()->get();
 
         return response()->json([
             'collects' => (bool) $landlord->collect_payments,
@@ -40,13 +41,15 @@ class PayoutController extends Controller
             'reserved' => $this->liquidations->reserved($landlord->id),
             'available' => $this->liquidations->available($landlord->id),
             'paid_out' => (float) Liquidation::where('status', Liquidation::COMPLETED)->sum('net_amount'),
-            'min' => Liquidations::MIN_AMOUNT,
+            // The smallest payout to any usable account; each account also carries its own 'min'.
+            'min' => $this->liquidations->lowestMin($accounts->where('status', 'verified')->pluck('type')),
             'mobile_max' => Liquidations::MOBILE_MONEY_MAX,
             'mobile_limit' => PayoutAccount::mobileMoneyLimit(),
             'mobile_in_use' => PayoutAccount::mobileMoneyInUse(),
             'code_destinations' => ActionCodes::destinations($user),
-            'accounts' => PayoutAccount::where('status', '!=', 'disabled')->latest()->get()->map(fn (PayoutAccount $a) => [
+            'accounts' => $accounts->map(fn (PayoutAccount $a) => [
                 'id' => $a->id, 'type' => $a->type, 'summary' => $a->summary(), 'status' => $a->status, 'status_label' => $a->statusLabel(), 'usable' => $a->status === 'verified',
+                'min' => $this->liquidations->minFor($a->type),
             ])->values(),
             'payouts' => Liquidation::latest('id')->limit(30)->get()->map(fn (Liquidation $l) => self::payout($l))->values(),
             'pending_payout' => $this->pending($user, 'payout'),
@@ -78,12 +81,11 @@ class PayoutController extends Controller
     {
         $data = $request->validate([
             'payout_account_id' => ['required', 'integer'],
-            'amount' => ['required', 'numeric', 'min:'.Liquidations::MIN_AMOUNT],
+            'amount' => ['required', 'numeric', 'min:1'], // each method's minimum is checked by Liquidations::check()
             'note' => ['nullable', 'string', 'max:300'],
             'password' => ['required', 'current_password:sanctum'],
         ], [
             'password.current_password' => 'That password is not correct.',
-            'amount.min' => 'The smallest payout is UGX '.number_format(Liquidations::MIN_AMOUNT).'.',
         ]);
 
         $pending = $this->step(fn () => $this->steps->startPayout($request->user(), $this->landlord(), (int) $data['payout_account_id'], (float) $data['amount'], $data['note'] ?? null, $request->ip()));
