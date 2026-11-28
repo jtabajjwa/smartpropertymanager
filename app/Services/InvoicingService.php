@@ -82,7 +82,7 @@ class InvoicingService
             'notes' => 'Auto-generated recurring invoice.',
         ]);
 
-        $invoice->update(['number' => app(NumberGenerator::class)->next($lease->landlord_id, 'invoice', 'INV')]);
+        $invoice->update(['number' => app(NumberGenerator::class)->next($lease->landlord_id, 'invoice', 'INV', table: 'invoices')]);
 
         // Advance the lease's next_invoice_date by 1 period
         $nextDate = $this->calculateNextInvoiceDate(
@@ -116,7 +116,7 @@ class InvoicingService
             'notes' => 'Auto-generated on lease creation.',
         ]);
 
-        $invoice->update(['number' => app(NumberGenerator::class)->next($lease->landlord_id, 'invoice', 'INV')]);
+        $invoice->update(['number' => app(NumberGenerator::class)->next($lease->landlord_id, 'invoice', 'INV', table: 'invoices')]);
 
         return $invoice;
     }
@@ -149,7 +149,7 @@ class InvoicingService
             'notes' => 'Auto-generated on lease creation.',
         ]);
 
-        $invoice->update(['number' => app(NumberGenerator::class)->next($lease->landlord_id, 'invoice', 'INV')]);
+        $invoice->update(['number' => app(NumberGenerator::class)->next($lease->landlord_id, 'invoice', 'INV', table: 'invoices')]);
 
         return $invoice;
     }

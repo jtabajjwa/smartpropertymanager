@@ -35,7 +35,7 @@ class CreateInvoice
             }
 
             $invoice = Invoice::create($data);
-            $invoice->update(['number' => 'INV-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT)]);
+            $invoice->update(['number' => app(\App\Services\NumberGenerator::class)->next($invoice->landlord_id, 'invoice', 'INV', table: 'invoices')]);
 
             // A tenant's money paid in advance pays the new invoice.
             if ($invoice->invoiceable_type === Lease::class && ($tenantId = Lease::whereKey($invoice->lease_id)->value('tenant_id'))) {
